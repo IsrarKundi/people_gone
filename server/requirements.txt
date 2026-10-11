@@ -1,0 +1,23 @@
+# PeopleGone Phase 0 Worker Dependencies
+# Pinned versions for reproducible CUDA runtime
+# Base image: pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime or Python 3.10+
+
+torch==2.4.0
+torchvision==0.19.0
+numpy==1.26.4
+scipy==1.13.1
+pillow==10.4.0
+opencv-python-headless==4.10.0.84
+
+# Permissive Apache-2.0 / MIT model inference & utilities
+transformers==4.44.2
+timm==1.0.9
+accelerate==0.34.2
+huggingface-hub==0.24.6
+
+# RunPod Serverless SDK
+runpod==1.7.7
+
+# HTTP client for Clipdrop arm & downloads
+requests==2.32.3
+urllib3==2.2.2

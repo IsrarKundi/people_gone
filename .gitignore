@@ -43,3 +43,29 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Security & Secrets (PEOPLEGONE_REQUIREMENTS.md §6.3, AGENTS.md)
+.env*
+!.env.example
+server/.env
+**/key.properties
+**/*.jks
+**/*.keystore
+
+# Python & Worker
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Test outputs & ratings
+ratings/*.json
+!tools/sample_ratings.json
+results/primary/*.jpg
+results/clipdrop/*.jpg
+!results/primary/.gitkeep
+!results/clipdrop/.gitkeep
+results/timings_and_costs.csv
