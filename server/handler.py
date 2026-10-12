@@ -41,6 +41,10 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
     # 2. Run pipeline
     try:
         result_bytes, metadata = process(photo_bytes, keep=keep)
+        if metadata.get("fallbacks_used"):
+            print("!" * 70)
+            print(f">>> LOUD WARNING: FALLBACK MODE ACTIVE IN RUNPOD HANDLER: {metadata['fallbacks_used']} <<<")
+            print("!" * 70)
         result_base64 = base64.b64encode(result_bytes).decode("utf-8")
         return {
             "status": "success",

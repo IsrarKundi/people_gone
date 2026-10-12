@@ -15,7 +15,11 @@ from PIL import Image, ImageOps
 from .detector import PersonDetector
 from .segmentor import SamSegmentor
 from .keeper import classify_keepers_and_removals
-from .mask_prep import prepare_combined_removal_mask, dilate_mask
+from .mask_prep import (
+    prepare_individual_removal_masks,
+    prepare_combined_removal_mask,
+    dilate_mask
+)
 from .inpainter import LamaInpainter, get_crop_bounds, composite_with_feather
 from .ghost_check import check_for_ghost_residuals
 
@@ -42,6 +46,16 @@ class PeopleGonePipeline:
         self.segmentor = SamSegmentor(checkpoint=self.config.sam_checkpoint)
         self.inpainter = LamaInpainter(checkpoint_path=self.config.lama_checkpoint)
 
+    def _get_fallbacks_used(self) -> List[str]:
+        fallbacks = []
+        if getattr(self.detector, "fallback_used", False):
+            fallbacks.append("detector")
+        if getattr(self.segmentor, "fallback_used", False):
+            fallbacks.append("segmentor")
+        if getattr(self.inpainter, "fallback_used", False):
+            fallbacks.append("inpainter")
+        return fallbacks
+
     def process(
         self,
         photo: Union[str, bytes, np.ndarray, Image.Image],
@@ -63,7 +77,6 @@ class PeopleGonePipeline:
         timings["detection_ms"] = (time.perf_counter() - t0) * 1000.0
 
         if not persons:
-            # No persons found
             total_time_s = time.perf_counter() - t_start
             return self._encode_jpeg(orig_pil), {
                 "input_dimensions": [w, h],
@@ -71,11 +84,14 @@ class PeopleGonePipeline:
                 "persons_detected": 0,
                 "keeper_ids": [],
                 "removed_ids": [],
+                "crops_inpainted": 0,
                 "timings_ms": timings,
+                "total_seconds": round(total_time_s, 4),
                 "total_gpu_seconds": round(total_time_s, 4),
                 "cost_estimate_usd": round(total_time_s * self.config.runpod_rate_per_sec, 6),
                 "ghost_check_fired": False,
                 "retry_count": 0,
+                "fallbacks_used": self._get_fallbacks_used(),
                 "model_versions": self._get_model_versions()
             }
 
@@ -92,7 +108,6 @@ class PeopleGonePipeline:
         timings["keeper_ms"] = (time.perf_counter() - t0) * 1000.0
 
         if not remove_ids:
-            # Only keepers detected
             total_time_s = time.perf_counter() - t_start
             return self._encode_jpeg(orig_pil), {
                 "input_dimensions": [w, h],
@@ -100,54 +115,85 @@ class PeopleGonePipeline:
                 "persons_detected": len(persons),
                 "keeper_ids": sorted(list(keeper_ids)),
                 "removed_ids": [],
+                "crops_inpainted": 0,
                 "timings_ms": timings,
+                "total_seconds": round(total_time_s, 4),
                 "total_gpu_seconds": round(total_time_s, 4),
                 "cost_estimate_usd": round(total_time_s * self.config.runpod_rate_per_sec, 6),
                 "ghost_check_fired": False,
                 "retry_count": 0,
+                "fallbacks_used": self._get_fallbacks_used(),
                 "model_versions": self._get_model_versions()
             }
 
-        # 5. Mask Preparation (Dilation + Shadows)
+        # 5. Mask Preparation (Per-person dilation + shadows)
         t0 = time.perf_counter()
-        combined_mask = prepare_combined_removal_mask(
+        individual_masks = prepare_individual_removal_masks(
             orig_rgb, persons, masks, remove_ids,
             dilation_factor=self.config.initial_dilation_factor
         )
         timings["mask_prep_ms"] = (time.perf_counter() - t0) * 1000.0
 
-        # 6. Inpainting on Native-Resolution Crops
+        # 6. Inpainting on Native-Resolution Crops per remove-mask
         t0 = time.perf_counter()
-        crop_bounds = get_crop_bounds(combined_mask)
-        if crop_bounds is None:
-            crop_bounds = (0, 0, w, h)
+        composited = orig_rgb.copy()
+        crops_inpainted = 0
+        inpaint_crop_records = []
 
-        cx1, cy1, cx2, cy2 = crop_bounds
-        image_crop = orig_rgb[cy1:cy2, cx1:cx2]
-        mask_crop = combined_mask[cy1:cy2, cx1:cx2]
+        for item in individual_masks:
+            m = item["mask"]
+            crop_bounds = get_crop_bounds(m)
+            if crop_bounds is None:
+                continue
 
-        inpainted_crop = self.inpainter.inpaint_crop(image_crop, mask_crop)
-        composited = composite_with_feather(
-            orig_rgb, inpainted_crop, mask_crop, crop_bounds, feather_px=4
-        )
+            cx1, cy1, cx2, cy2 = crop_bounds
+            image_crop = composited[cy1:cy2, cx1:cx2]
+            mask_crop = m[cy1:cy2, cx1:cx2]
+
+            inpainted_crop = self.inpainter.inpaint_crop(image_crop, mask_crop)
+            composited = composite_with_feather(
+                composited, inpainted_crop, mask_crop, crop_bounds, feather_px=4
+            )
+            crops_inpainted += 1
+            inpaint_crop_records.append({
+                "crop_bounds": crop_bounds,
+                "item": item
+            })
+
         timings["inpaint_ms"] = (time.perf_counter() - t0) * 1000.0
 
-        # 7. Second-pass Ghost Check
+        # 7. Second-pass Ghost Check on final composite
         t0 = time.perf_counter()
-        ghost_fired, residuals = check_for_ghost_residuals(
-            composited, crop_bounds, self.detector
-        )
-        retry_count = 0
+        ghost_fired = False
+        ghost_affected_records = []
 
-        # Automatic single retry with larger dilation if ghost detected
+        for rec in inpaint_crop_records:
+            cb = rec["crop_bounds"]
+            fired, residuals = check_for_ghost_residuals(composited, cb, self.detector)
+            if fired:
+                ghost_fired = True
+                ghost_affected_records.append(rec)
+
+        retry_count = 0
         if ghost_fired:
             retry_count = 1
-            larger_mask = dilate_mask(combined_mask, dilation_px=16)
-            mask_crop_retry = larger_mask[cy1:cy2, cx1:cx2]
-            inpainted_retry = self.inpainter.inpaint_crop(image_crop, mask_crop_retry)
-            composited = composite_with_feather(
-                orig_rgb, inpainted_retry, mask_crop_retry, crop_bounds, feather_px=6
-            )
+            for rec in ghost_affected_records:
+                cb = rec["crop_bounds"]
+                item = rec["item"]
+                cx1, cy1, cx2, cy2 = cb
+
+                # Re-dilate using configured retry_dilation_factor relative to person height
+                bh = item["height"]
+                retry_dilation_px = max(12, int(bh * self.config.retry_dilation_factor))
+                dilated_retry_mask = dilate_mask(item["mask"], retry_dilation_px)
+
+                image_crop = composited[cy1:cy2, cx1:cx2]
+                mask_crop_retry = dilated_retry_mask[cy1:cy2, cx1:cx2]
+
+                inpainted_retry = self.inpainter.inpaint_crop(image_crop, mask_crop_retry)
+                composited = composite_with_feather(
+                    composited, inpainted_retry, mask_crop_retry, cb, feather_px=6
+                )
 
         timings["ghost_check_ms"] = (time.perf_counter() - t0) * 1000.0
 
@@ -158,17 +204,22 @@ class PeopleGonePipeline:
         res_pil = Image.fromarray(composited)
         output_bytes = self._encode_jpeg(res_pil)
 
+        fallbacks_used = self._get_fallbacks_used()
+
         metadata = {
             "input_dimensions": [w, h],
             "output_dimensions": [w, h],
             "persons_detected": len(persons),
             "keeper_ids": sorted(list(keeper_ids)),
             "removed_ids": sorted(list(remove_ids)),
+            "crops_inpainted": crops_inpainted,
             "timings_ms": timings,
+            "total_seconds": round(total_time_s, 4),
             "total_gpu_seconds": round(total_time_s, 4),
             "cost_estimate_usd": round(total_time_s * self.config.runpod_rate_per_sec, 6),
             "ghost_check_fired": ghost_fired,
             "retry_count": retry_count,
+            "fallbacks_used": fallbacks_used,
             "model_versions": self._get_model_versions()
         }
 

@@ -31,6 +31,10 @@ def test_pipeline_dry_run():
 
     pil_img.save(temp_in, format="JPEG", quality=95)
 
+    # Allow fallbacks for offline dry run if environment allows
+    if "PG_ALLOW_FALLBACKS" not in os.environ:
+        os.environ["PG_ALLOW_FALLBACKS"] = "1"
+
     print("Running process() on synthetic image...")
     with open(temp_in, "rb") as f:
         photo_bytes = f.read()
@@ -40,10 +44,21 @@ def test_pipeline_dry_run():
     with open(temp_out, "wb") as f:
         f.write(res_bytes)
 
-    print(f"Output dimensions: {meta['output_dimensions']}")
+    print(f"\n--- Model / Fallback Execution Status Per Stage ---")
+    fallbacks = meta.get("fallbacks_used", [])
+    model_vers = meta.get("model_versions", {})
+    for stage in ["detector", "segmentor", "inpainter"]:
+        if stage in fallbacks:
+            print(f"  Stage '{stage}': [FALLBACK MODE (heuristic/mock)]")
+        else:
+            print(f"  Stage '{stage}': [REAL MODEL ({model_vers.get(stage, 'active')})]")
+
+    print(f"\nOutput dimensions: {meta['output_dimensions']}")
     print(f"Input dimensions: {meta['input_dimensions']}")
+    print(f"Crops inpainted: {meta.get('crops_inpainted', 0)}")
     assert meta["output_dimensions"] == [800, 600], "Output dimensions must match input dimensions!"
-    print(f"GPU seconds: {meta['total_gpu_seconds']}s")
+    sec = meta.get("total_seconds", meta.get("total_gpu_seconds", 0.0))
+    print(f"Processing time: {sec}s")
     print(f"Cost USD: ${meta['cost_estimate_usd']:.6f}")
 
     # Cleanup temp test files
@@ -51,6 +66,17 @@ def test_pipeline_dry_run():
         os.remove(temp_in)
     if os.path.exists(temp_out):
         os.remove(temp_out)
+
+    # Test error behavior when fallbacks are disabled
+    print("\nVerifying strict failure mode when PG_ALLOW_FALLBACKS=0...")
+    os.environ["PG_ALLOW_FALLBACKS"] = "0"
+    from worker.detector import PersonDetector
+    bogus_detector = PersonDetector(model_name="nonexistent/bogus-checkpoint-1234")
+    try:
+        bogus_detector.detect_persons(img)
+        raise AssertionError("Expected RuntimeError was not raised for bogus checkpoint with PG_ALLOW_FALLBACKS=0!")
+    except RuntimeError as err:
+        print(f"  Verified: Model loading error raised loudly: {type(err).__name__}")
 
     print("\nSUCCESS: Worker prototype pipeline dry-run completed successfully!")
 

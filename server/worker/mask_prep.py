@@ -95,6 +95,34 @@ def expand_shadows(
 
     return expanded_mask
 
+def prepare_individual_removal_masks(
+    image_rgb: np.ndarray,
+    persons: List[Dict[str, Any]],
+    instance_masks: List[np.ndarray],
+    remove_ids: set,
+    dilation_factor: float = 0.02
+) -> List[Dict[str, Any]]:
+    """
+    Prepares dilated and shadow-expanded masks per removed person.
+    Returns list of dicts:
+    [{'person_id': int, 'box': list, 'mask': np.ndarray, 'height': int}]
+    """
+    results = []
+    for p, inst_mask in zip(persons, instance_masks):
+        if p["id"] in remove_ids:
+            filled = fill_mask_holes(inst_mask)
+            bh = max(1, p["box"][3] - p["box"][1])
+            dilation_px = max(8, int(bh * dilation_factor))
+            dilated = dilate_mask(filled, dilation_px)
+            shadow_exp = expand_shadows(image_rgb, dilated, p["box"])
+            results.append({
+                "person_id": p["id"],
+                "box": p["box"],
+                "mask": shadow_exp,
+                "height": bh
+            })
+    return results
+
 def prepare_combined_removal_mask(
     image_rgb: np.ndarray,
     persons: List[Dict[str, Any]],
@@ -108,21 +136,9 @@ def prepare_combined_removal_mask(
     """
     h, w = image_rgb.shape[:2]
     combined_mask = np.zeros((h, w), dtype=np.uint8)
-
-    for p, inst_mask in zip(persons, instance_masks):
-        if p["id"] in remove_ids:
-            # 1. Fill holes
-            filled = fill_mask_holes(inst_mask)
-
-            # 2. Dilation: 2% of person height (floor 8px)
-            bh = p["box"][3] - p["box"][1]
-            dilation_px = max(8, int(bh * dilation_factor))
-            dilated = dilate_mask(filled, dilation_px)
-
-            # 3. Shadow expansion
-            shadow_exp = expand_shadows(image_rgb, dilated, p["box"])
-
-            # 4. Union into combined
-            combined_mask = np.maximum(combined_mask, shadow_exp)
-
+    individual_preps = prepare_individual_removal_masks(
+        image_rgb, persons, instance_masks, remove_ids, dilation_factor=dilation_factor
+    )
+    for item in individual_preps:
+        combined_mask = np.maximum(combined_mask, item["mask"])
     return combined_mask

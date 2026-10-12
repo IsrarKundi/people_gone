@@ -61,7 +61,17 @@ def main():
     print(f"Result saved to: {args.output}")
     print(f"Dimensions: {metadata['input_dimensions']} -> {metadata['output_dimensions']}")
     print(f"Persons detected: {metadata['persons_detected']} (Kept: {metadata['keeper_ids']}, Removed: {metadata['removed_ids']})")
-    print(f"GPU-seconds: {metadata['total_gpu_seconds']}s | Estimated RunPod 16GB Cost: ${metadata['cost_estimate_usd']:.6f}")
+    print(f"Crops inpainted: {metadata.get('crops_inpainted', 0)}")
+    sec = metadata.get("total_seconds", metadata.get("total_gpu_seconds", 0.0))
+    print(f"Processing time: {sec}s | Estimated RunPod 16GB Cost: ${metadata['cost_estimate_usd']:.6f}")
+
+    if metadata.get("fallbacks_used"):
+        print("\n" + "!" * 70)
+        print(">>> LOUD WARNING: FALLBACK MODE ACTIVE! <<<")
+        print(f"The following stages used heuristic/fallback code: {metadata['fallbacks_used']}")
+        print("DO NOT GRADE OR CERTIFY QUALITY GATE ON FALLBACK OUTPUTS!")
+        print("Set PG_ALLOW_FALLBACKS=0 to enforce real model weights.")
+        print("!" * 70 + "\n")
 
     if args.json:
         print("\n--- METADATA JSON ---")

@@ -169,7 +169,34 @@
     }
     initRandomMap();
 
-    function renderPhoto() {
+    const availableCache = {};
+
+    function checkArmExists(arm, photoId) {
+      const url = `/results/${arm}/${photoId}.jpg`;
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = url;
+      });
+    }
+
+    async function getAvailableLetters(photoId) {
+      if (availableCache[photoId]) return availableCache[photoId];
+      const mapping = randomizedMap[photoId];
+      const letters = ['A', 'B', 'C', 'D'];
+      const checks = letters.map(async (letter) => {
+        const arm = mapping[letter];
+        const exists = await checkArmExists(arm, photoId);
+        return { letter, exists };
+      });
+      const results = await Promise.all(checks);
+      const avail = results.filter(r => r.exists).map(r => r.letter);
+      availableCache[photoId] = avail;
+      return avail;
+    }
+
+    async function renderPhoto() {
       document.getElementById('currentIdx').innerText = currentPhotoId;
       document.getElementById('catBadge').innerText = CATEGORIES[currentPhotoId - 1] || 'Test Photo';
       document.getElementById('raterId').value = raterId;
@@ -177,14 +204,26 @@
       const origSrc = `/testset/photos/${String(currentPhotoId).padStart(2, '0')}.jpg`;
       document.getElementById('origImg').src = origSrc;
 
-      // Render Candidate Tabs
+      // Filter tabs: ONLY show arms with available output files (no broken-image tabs)
       const mapping = randomizedMap[currentPhotoId];
+      const availableLetters = await getAvailableLetters(currentPhotoId);
       const tabsDiv = document.getElementById('candidateTabs');
       const bestSelect = document.getElementById('selBestArm');
       tabsDiv.innerHTML = '';
       bestSelect.innerHTML = '<option value="">-- Select Best Candidate --</option>';
 
-      ['A', 'B', 'C', 'D'].forEach(letter => {
+      if (availableLetters.length === 0) {
+        tabsDiv.innerHTML = '<span style="color: var(--warning); font-size: 0.85rem;">No candidate outputs found for this photo in results/. Run tools/run_batch.py first.</span>';
+        document.getElementById('candImg').src = '';
+        document.getElementById('candidateTitle').innerText = 'No outputs available';
+        return;
+      }
+
+      if (!availableLetters.includes(activeCandidateLetter)) {
+        activeCandidateLetter = availableLetters[0];
+      }
+
+      availableLetters.forEach(letter => {
         const btn = document.createElement('button');
         btn.className = `tab-btn ${letter === activeCandidateLetter ? 'active' : ''}`;
         btn.innerText = `Result ${letter}`;
@@ -206,7 +245,7 @@
       const candPath = `/results/${actualArm}/${currentPhotoId}.jpg`;
       document.getElementById('candImg').src = candPath;
 
-      // Load existing scores for current candidate
+      // Load existing scores for active candidate
       const candScores = (photoRecord.candidates && photoRecord.candidates[activeCandidateLetter]) || {
         completeness: 3, fill_normal: 3, fill_zoom: 3, keeper: 'PASS', would_post: 'YES'
       };

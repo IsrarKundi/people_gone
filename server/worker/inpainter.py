@@ -5,6 +5,7 @@ then composites back with boundary alpha feathering.
 Guarantees: Output dimensions == input dimensions, bit-identical outside masks.
 """
 
+import os
 from typing import List, Tuple, Optional
 import numpy as np
 
@@ -18,6 +19,12 @@ class LamaInpainter:
         self.device = device
         self._model = None
         self._initialized = False
+        self._load_error: Optional[str] = None
+        self.fallback_used: bool = False
+
+    @property
+    def allow_fallbacks(self) -> bool:
+        return os.getenv("PG_ALLOW_FALLBACKS", "0") == "1"
 
     def _lazy_init(self):
         if self._initialized:
@@ -33,11 +40,16 @@ class LamaInpainter:
                 self._model = torch.jit.load(self.checkpoint_path, map_location=self.device)
                 self._model.eval()
             else:
-                # Try loading via torch hub or standard simple-lama if available
                 from simple_lama_inpainting import SimpleLama
                 self._model = SimpleLama(device=self.device)
-        except Exception:
+        except Exception as e:
+            self._load_error = str(e)
             self._model = None
+            if not self.allow_fallbacks:
+                raise RuntimeError(
+                    f"Stage 'inpainter' failed to load LaMa model: {e}. "
+                    "Silent fallbacks are disabled. Set PG_ALLOW_FALLBACKS=1 only for offline development."
+                ) from e
 
     def inpaint_crop(self, image_crop: np.ndarray, mask_crop: np.ndarray) -> np.ndarray:
         """
@@ -45,6 +57,7 @@ class LamaInpainter:
         image_crop: RGB uint8 (H, W, 3)
         mask_crop: uint8 (H, W), >0 is region to inpaint.
         """
+        self.fallback_used = False
         self._lazy_init()
         if self._model is not None:
             try:
@@ -54,17 +67,26 @@ class LamaInpainter:
                 if hasattr(self._model, "__call__"):
                     result_pil = self._model(pil_img, pil_mask)
                     return np.array(result_pil)
-            except Exception:
-                pass
+            except Exception as e:
+                if not self.allow_fallbacks:
+                    raise RuntimeError(
+                        f"Stage 'inpainter' inference failed during inpaint_crop: {e}."
+                    ) from e
 
-        # Robust OpenCV Navier-Stokes / Telea fallback when weights not downloaded
+        # Fallback inpainter only if explicitly enabled
+        if not self.allow_fallbacks:
+            raise RuntimeError(
+                f"Stage 'inpainter' model is not initialized: {self._load_error}. "
+                "Silent fallbacks are disabled. Set PG_ALLOW_FALLBACKS=1 only for offline development."
+            )
+
+        self.fallback_used = True
         try:
             import cv2
             bgr_crop = cv2.cvtColor(image_crop, cv2.COLOR_RGB2BGR)
             inpainted_bgr = cv2.inpaint(bgr_crop, mask_crop, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
             return cv2.cvtColor(inpainted_bgr, cv2.COLOR_BGR2RGB)
         except Exception:
-            # Simple color blend fallback for test dry run
             result = image_crop.copy()
             mean_color = np.mean(image_crop[mask_crop == 0], axis=0) if np.any(mask_crop == 0) else [128, 128, 128]
             result[mask_crop > 0] = mean_color.astype(np.uint8)

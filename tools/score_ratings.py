@@ -9,7 +9,7 @@ import glob
 import json
 import os
 import sys
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 SIMPLE_BACKGROUND_IDS = {1, 2, 3, 4, 5, 6}
 
@@ -32,8 +32,8 @@ def evaluate_ratings(rating_files: List[str], timings_file: str = "") -> Dict[st
     simple_would_post_count = 0
     keeper_defects_count = 0
 
-    head_to_head_comparisons = 0
-    primary_wins_or_ties = 0
+    photos_with_native_count = 0
+    primary_wins_vs_native = 0
 
     for fpath in rating_files:
         with open(fpath, "r", encoding="utf-8") as f:
@@ -62,46 +62,86 @@ def evaluate_ratings(rating_files: List[str], timings_file: str = "") -> Dict[st
                     if keeper == "FAIL":
                         keeper_defects_count += 1
 
-            # Head to head vs native tools (google/apple)
-            if best_arm:
-                head_to_head_comparisons += 1
-                if best_arm == "primary":
-                    primary_wins_or_ties += 1
+            # Head-to-head vs native arms (google or apple) ONLY
+            has_native_output = any(
+                cand.get("actual_arm") in ("google", "apple")
+                for cand in candidates.values()
+            )
 
-    # Computed metrics
+            if has_native_output:
+                photos_with_native_count += 1
+                if best_arm == "primary":
+                    primary_wins_vs_native += 1
+
+    # Computed rating metrics
     would_post_overall = (primary_would_post_count / primary_evals) if primary_evals > 0 else 0.0
     would_post_simple = (simple_would_post_count / simple_evals) if simple_evals > 0 else 0.0
-    win_or_tie_pct = (primary_wins_or_ties / head_to_head_comparisons) if head_to_head_comparisons > 0 else 0.0
 
-    # Parse timings & cost if file exists
-    median_warm_sec = 8.5   # Baseline placeholder if timings file empty
-    cost_per_photo = 0.0035 # Baseline placeholder
+    native_measured = (photos_with_native_count > 0)
+    best_pick_vs_native_pct = (primary_wins_vs_native / photos_with_native_count) if native_measured else None
+
+    # Parse timings & cost — NEVER invent measurements
+    median_warm_sec = None
+    cost_per_photo = None
+    timings_measured = False
 
     if timings_file and os.path.exists(timings_file):
         import csv
-        with open(timings_file, "r") as tf:
+        with open(timings_file, "r", encoding="utf-8") as tf:
             reader = list(csv.DictReader(tf))
-            gpu_secs = [float(r["gpu_seconds"]) for r in reader if "gpu_seconds" in r]
-            costs = [float(r["cost_usd"]) for r in reader if "cost_usd" in r]
-            if gpu_secs:
-                gpu_secs.sort()
-                median_warm_sec = gpu_secs[len(gpu_secs) // 2]
+            secs = []
+            costs = []
+            for r in reader:
+                s = r.get("total_seconds") or r.get("gpu_seconds")
+                if s is not None and s.strip() != "":
+                    try:
+                        secs.append(float(s))
+                    except ValueError:
+                        pass
+                c = r.get("cost_usd")
+                if c is not None and c.strip() != "":
+                    try:
+                        costs.append(float(c))
+                    except ValueError:
+                        pass
+            if secs:
+                secs.sort()
+                median_warm_sec = secs[len(secs) // 2]
             if costs:
                 cost_per_photo = sum(costs) / len(costs)
+            if secs and costs:
+                timings_measured = True
 
-    # Check criteria for GO (§3.4)
+    # Criteria evaluation
     pass_wp_overall = (would_post_overall >= THRESH_WOULD_POST_OVERALL)
     pass_wp_simple = (would_post_simple >= THRESH_WOULD_POST_SIMPLE)
-    pass_win_tie = (win_or_tie_pct >= THRESH_PRIMARY_WINS_TIES)
     pass_keeper = (keeper_defects_count == THRESH_KEEPER_DEFECTS)
-    pass_time = (median_warm_sec <= THRESH_MEDIAN_E2E_SEC)
-    pass_cost = (cost_per_photo <= THRESH_MAX_COST_PER_PHOTO)
 
-    all_go = (pass_wp_overall and pass_wp_simple and pass_win_tie and
-              pass_keeper and pass_time and pass_cost)
+    if native_measured:
+        pass_win_tie = (best_pick_vs_native_pct >= THRESH_PRIMARY_WINS_TIES)
+    else:
+        pass_win_tie = None  # Excluded from GO requirements if not measured
+
+    pass_time = (median_warm_sec <= THRESH_MEDIAN_E2E_SEC) if timings_measured else False
+    pass_cost = (cost_per_photo <= THRESH_MAX_COST_PER_PHOTO) if timings_measured else False
+
+    # Check criteria for GO (§3.4)
+    # If timings are missing, verdict CANNOT be GO
+    all_go = (
+        pass_wp_overall and
+        pass_wp_simple and
+        pass_keeper and
+        (pass_win_tie is not False) and
+        timings_measured and
+        pass_time and
+        pass_cost
+    )
 
     # Check criteria for STOP
-    stop_condition = (would_post_overall < 0.50 or win_or_tie_pct < 0.20)
+    stop_condition = (
+        would_post_overall < 0.50 or
+        (native_measured and best_pick_vs_native_pct < 0.20)
+    )
 
     if all_go:
         verdict = "GO"
@@ -111,11 +151,14 @@ def evaluate_ratings(rating_files: List[str], timings_file: str = "") -> Dict[st
         iterate_stage = None
     else:
         verdict = "ITERATE"
-        # Determine allowed single stage swap per §3.4
-        if would_post_simple < THRESH_WOULD_POST_SIMPLE or not pass_wp_overall:
+        if not timings_measured:
+            iterate_stage = "time/cost not measured (missing or empty timings file)"
+        elif not pass_wp_simple or not pass_wp_overall:
             iterate_stage = "inpaint arm (Clipdrop quality mode / diffusion tile for hard crops)"
         elif keeper_defects_count > 0:
             iterate_stage = "detection / keeper heuristic (larger SAM 2.1 checkpoint, tuned weights)"
+        elif native_measured and not pass_win_tie:
+            iterate_stage = "inpaint arm / edge handling vs native competitors"
         else:
             iterate_stage = "shadow expansion heuristic (§6.4)"
 
@@ -126,10 +169,13 @@ def evaluate_ratings(rating_files: List[str], timings_file: str = "") -> Dict[st
         "pass_wp_overall": pass_wp_overall,
         "would_post_simple": would_post_simple,
         "pass_wp_simple": pass_wp_simple,
-        "win_or_tie_pct": win_or_tie_pct,
+        "native_measured": native_measured,
+        "photos_with_native": photos_with_native_count,
+        "best_pick_vs_native_pct": best_pick_vs_native_pct,
         "pass_win_tie": pass_win_tie,
         "keeper_defects": keeper_defects_count,
         "pass_keeper": pass_keeper,
+        "timings_measured": timings_measured,
         "median_warm_sec": median_warm_sec,
         "pass_time": pass_time,
         "cost_per_photo": cost_per_photo,
@@ -144,24 +190,40 @@ def print_report(res: Dict[str, Any]):
     print("=====================================================================")
     print(f"Total Blind Raters: {res['raters_count']} | Primary Evaluations: {res['total_evals']}\n")
 
-    def mark(passed: bool) -> str:
+    def mark(passed: Optional[bool]) -> str:
+        if passed is None:
+            return "[NOT MEASURED]"
         return "[PASS]" if passed else "[FAIL]"
 
-    print(f"{'Metric':<35} | {'Measured':<10} | {'Threshold':<12} | {'Result'}")
-    print("-" * 72)
-    print(f"{'Overall Would Post %':<35} | {res['would_post_overall']*100:>8.1f}% | {'>= 70.0%':<12} | {mark(res['pass_wp_overall'])}")
-    print(f"{'Simple-Background Would Post %':<35} | {res['would_post_simple']*100:>8.1f}% | {'>= 90.0%':<12} | {mark(res['pass_wp_simple'])}")
-    print(f"{'Head-to-Head Win/Tie % vs Native':<35} | {res['win_or_tie_pct']*100:>8.1f}% | {'>= 40.0%':<12} | {mark(res['pass_win_tie'])}")
-    print(f"{'Keeper Damage Critical Defects':<35} | {res['keeper_defects']:>8}   | {'== 0':<12} | {mark(res['pass_keeper'])}")
-    print(f"{'Median Warm E2E Time':<35} | {res['median_warm_sec']:>7.2f}s | {'<= 20.0s':<12} | {mark(res['pass_time'])}")
-    print(f"{'Measured All-in Cost / Photo':<35} | ${res['cost_per_photo']:>7.4f} | {'<= $0.0100':<12} | {mark(res['pass_cost'])}")
-    print("=" * 72)
+    print(f"{'Metric':<42} | {'Measured':<12} | {'Threshold':<12} | {'Result'}")
+    print("-" * 80)
+    print(f"{'Overall Would Post %':<42} | {res['would_post_overall']*100:>10.1f}% | {'>= 70.0%':<12} | {mark(res['pass_wp_overall'])}")
+    print(f"{'Simple-Background Would Post %':<42} | {res['would_post_simple']*100:>10.1f}% | {'>= 90.0%':<12} | {mark(res['pass_wp_simple'])}")
+
+    # Native metric
+    native_str = f"{res['best_pick_vs_native_pct']*100:>10.1f}%" if res["native_measured"] else "NOT MEASURED"
+    print(f"{'Best-pick rate vs native arms':<42} | {native_str:<12} | {'>= 40.0%':<12} | {mark(res['pass_win_tie'])}")
+
+    print(f"{'Keeper Damage Critical Defects':<42} | {res['keeper_defects']:>10}   | {'== 0':<12} | {mark(res['pass_keeper'])}")
+
+    # Time and cost metrics
+    time_str = f"{res['median_warm_sec']:>9.2f}s" if res["timings_measured"] else "NOT MEASURED"
+    time_res = "[PASS]" if (res["timings_measured"] and res["pass_time"]) else ("[NOT MEASURED]" if not res["timings_measured"] else "[FAIL]")
+    print(f"{'Median Warm E2E Time':<42} | {time_str:<12} | {'<= 20.0s':<12} | {time_res}")
+
+    cost_str = f"${res['cost_per_photo']:>9.4f}" if res["timings_measured"] else "NOT MEASURED"
+    cost_res = "[PASS]" if (res["timings_measured"] and res["pass_cost"]) else ("[NOT MEASURED]" if not res["timings_measured"] else "[FAIL]")
+    print(f"{'Measured All-in Cost / Photo':<42} | {cost_str:<12} | {'<= $0.0100':<12} | {cost_res}")
+    print("=" * 80)
+
+    if not res["native_measured"]:
+        print(">> Note: Native comparison not measured — no Google/Apple outputs in this run.")
 
     print(f"\nFINAL VERDICT: {res['verdict']}")
     if res['verdict'] == "GO":
         print(">> Proceed to Phase 1: Scaffold Flutter app on primary pipeline.")
     elif res['verdict'] == "ITERATE":
-        print(f">> Swap single stage: {res['iterate_stage']} and re-test same 30 photos.")
+        print(f">> Outcome: ITERATE. Reason/stage: {res['iterate_stage']}.")
     else:
         print(">> Quality bar not met. Project terminated per §3.4 STOP rule.")
     print("=====================================================================\n")
