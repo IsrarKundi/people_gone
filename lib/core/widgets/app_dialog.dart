@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../strings/app_strings.dart';
 import '../theme/theme_ext.dart';
 
 /// The only dialog shell (Conventions §6.7). Feature code never calls
@@ -42,5 +43,33 @@ abstract final class AppDialog {
       ),
     );
     return result ?? false;
+  }
+
+  /// Single-action information dialog (e.g. the no-free-saves state,
+  /// §9.3 — the message needs a decision surface, not a snackbar).
+  static Future<void> info({
+    required String titleKey,
+    required String bodyKey,
+    String actionLabelKey = AppStrings.commonClose,
+  }) async {
+    final context = Get.context;
+    if (context == null) return;
+    final p = context.palette;
+    await Get.dialog<void>(
+      AlertDialog(
+        backgroundColor: p.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(context.sizes.radiusLg),
+        ),
+        title: Text(titleKey.tr, style: context.textStyles.titleLg),
+        content: Text(bodyKey.tr, style: context.textStyles.bodyMd),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Get.back<void>(),
+            child: Text(actionLabelKey.tr),
+          ),
+        ],
+      ),
+    );
   }
 }

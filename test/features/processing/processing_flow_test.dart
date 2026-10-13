@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:people_gone/config/app_config.dart';
 import 'package:people_gone/core/routes/app_pages.dart';
 import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
@@ -109,6 +110,15 @@ class TestBinding extends Bindings {
   void dependencies() {
     Get.put<ProcessingApi>(api);
     Get.put<LocalStore>(store);
+    Get.put<AppConfig>(
+      const AppConfig(
+        apiBaseUrl: 'https://worker.test',
+        providerDisplayName: "PeopleGone's processing servers",
+        consentVersion: 1,
+        supportEmail: 'support@example.com',
+        privacyPolicyUrl: 'https://example.invalid/privacy',
+      ),
+    );
   }
 }
 
