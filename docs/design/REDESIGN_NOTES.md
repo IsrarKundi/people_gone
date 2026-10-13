@@ -44,12 +44,47 @@ The previous design system dogmatically confused "calm and honest" with "sterile
 
 ---
 
-## 3. Screen-by-Screen Progress Log
+## 3. Screen-by-Screen Implementation Log
 
-- **S1 Home:** (In progress) Adding interactive Before/After demo card with real pipeline output; relocating quota meter below action; updating layout rhythm.
-- **S2 Consent:** (In progress) Structuring §11.2A text into 3 scannable trust points with icons.
-- **S4 Proposal:** (In progress) Worker API `/detect` + client controller + face crop chips for keeper selection.
-- **S3/S6 Processing:** (In progress) Unifying photo surround, adding staged progress cues and honest 2-minute expectation text.
-- **S7 Result:** (In progress) Polishing top chrome, reorganizing disclosure layout, dominant Save button.
-- **S9 History:** (In progress) Aspect ratio preservation on thumbnails, empty state illustration, Before/After comparison in detail view.
-- **S10 Settings:** (In progress) Grouped settings cards, discrete processing disclosure without exposed plumbing.
+### S1 Home Screen (Fixed)
+- **Problem Fixed:** Dead empty space on first run; zero visual proof of app capability; quota meter leading the screen as an accounting barrier.
+- **Solution:**
+  - Added `InteractiveDemoCard`: Embedded genuine pipeline output (`assets/images/demo_original.jpg` and `assets/images/demo_result.jpg` from `08_historic_arch.jpg` processed through the live serverless worker). Users can drag or tap to see real background people removal before picking their first photo.
+  - Hierarchy inversion: Primary "Pick a photo" action is immediately accessible at the top of the body above the fold, accompanied by the calm `SavesIndicator` quota meter.
+  - History cards: Elevated tile borders with subtle aspect framing.
+
+### S2 Consent Sheet (Fixed)
+- **Problem Fixed:** Dense, imposing wall of unformatted legal text causing drop-off.
+- **Solution:**
+  - Structured the mandatory §11.2A compliance copy into three distinct, scannable trust pillars:
+    1. *Private server processing* (HTTPS transfer, strictly for editing).
+    2. *Auto-deleted within 24 hours* (zero permanent cloud storage).
+    3. *Never used for AI training* (no model training or resale).
+  - Preserved 100% of the legally required facts, plain language, and action buttons ("Continue" / "Cancel").
+
+### S9 History & Detail View (Fixed)
+- **Problem Fixed:** History detail only showed the finished result with no before/after comparison; empty state was a stark unstyled label; square tile crops cut off subjects.
+- **Solution:**
+  - Added original photo persistence (`adoptOriginalIntoHistory`) in `LocalStoreImpl` and updated `ResultController` to save both original and cleaned photos.
+  - Added interactive before/after split slider (`CompareSlider`) and hold-to-compare switch in `HistoryDetailView`.
+  - Upgraded empty history state with a dedicated illustrated icon, clear title, and instructional caption.
+  - Framed history grid tiles with subtle border and aspect styling.
+
+### S10 Settings Screen (Fixed)
+- **Problem Fixed:** Exposed plumbing (internal engine names, raw build numbers), unstyled flat list.
+- **Solution:**
+  - Grouped settings into clean, elevated card containers with icons and subtle dividers.
+  - Clear section headers: *Account & Plan*, *Processing & Privacy*, *About*.
+  - Maintained compliance access: tap on "Processing details" opens the full §11.2A trust sheet.
+  - Respects calm disclosure rules without exposing raw internal worker identifiers.
+
+### S4 Proposal Screen & Visual Keeper Selection (Next)
+- Extending worker with `/detect` endpoint and person bounding boxes.
+- Building proposal screen with face/crop avatars so users visually distinguish subjects from bystanders.
+
+### S3/S6 Processing (Next)
+- Harmonizing photo canvas background, staged progress cues, and honest ~2-minute copy.
+
+### S7 Result Screen (Next)
+- Streamlining top navigation bar, floating compare capsule, and reorganizing disclosures above a full-width Save button.
+

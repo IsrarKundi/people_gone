@@ -9,6 +9,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../history/widgets/history_grid.dart';
 import '../controller/home_controller.dart';
+import '../widgets/interactive_demo_card.dart';
 import '../widgets/saves_indicator.dart';
 
 /// Home (S1) — Design Review 01 layout: the wordmark lives ONLY in the
@@ -44,27 +45,29 @@ class HomeView extends GetView<HomeController> {
             actionLabelKey: AppStrings.errorPickAnother,
           );
         }
-        return Padding(
+        return SingleChildScrollView(
           padding: EdgeInsets.all(s.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              SavesIndicator(
-                savesLeft: controller.savesLeft.value,
-                of: HomeController.freeSavesPerMonth,
-              ),
-              SizedBox(height: s.xxxl),
               PrimaryButton(
                 labelKey: AppStrings.homePickPhoto,
                 isLoading: controller.isPicking,
                 onPressed: controller.onPickPhoto,
               ),
+              SizedBox(height: s.sm),
+              SavesIndicator(
+                savesLeft: controller.savesLeft.value,
+                of: HomeController.freeSavesPerMonth,
+              ),
               if (!controller.hasHistory) ...<Widget>[
-                SizedBox(height: s.xxxl),
+                SizedBox(height: s.xl),
                 Text(
                   AppStrings.homeEmptyLine.tr,
                   style: context.textStyles.bodyLg,
                 ),
+                SizedBox(height: s.md),
+                const InteractiveDemoCard(),
               ] else ...<Widget>[
                 SizedBox(height: s.xxl),
                 SectionHeader(
