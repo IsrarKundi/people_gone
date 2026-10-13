@@ -15,7 +15,6 @@ class FakeStore implements LocalStore {
   int used = 0;
   DateTime reset = DateTime.utc(2026, 11, 1);
 
-
   GatewayJobRecord? gatewayJobRecord;
 
   @override
@@ -33,6 +32,7 @@ class FakeStore implements LocalStore {
     gatewayJobRecord = null;
     return const Success<void>(null);
   }
+
   @override
   Future<Result<int>> freeSavesUsed() async => Success<int>(used);
 
@@ -122,12 +122,22 @@ void main() {
     expect(find.text('9 of 10 free saves left — resets 1 Nov'), findsOneWidget);
   });
 
-  testWidgets('provider label and value keep a minimum gap (F8)', (
+  testWidgets('provider value sits beneath the label (Review 04 F8)', (
     tester,
   ) async {
     await pumpSettings(tester, FakeStore());
     final label = tester.getRect(find.text('Processing provider'));
     final value = tester.getRect(find.text("PeopleGone's processing servers"));
-    expect(value.left - label.right, greaterThanOrEqualTo(8));
+    // Column layout: the label keeps its full width and the value
+    // wraps below it — the label can never become a letter column.
+    expect(value.top, greaterThanOrEqualTo(label.bottom));
+    expect(label.width, greaterThan(100));
+  });
+
+  testWidgets('privacy group header is its own title (Review 04 F9)', (
+    tester,
+  ) async {
+    await pumpSettings(tester, FakeStore());
+    expect(find.text('Processing & Privacy'), findsOneWidget);
   });
 }

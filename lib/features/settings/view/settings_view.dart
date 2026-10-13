@@ -42,13 +42,13 @@ class SettingsView extends GetView<SettingsController> {
             }),
           ),
           SizedBox(height: s.xl),
-          const SectionHeader(titleKey: AppStrings.consentTitle),
+          const SectionHeader(titleKey: AppStrings.settingsProcessingPrivacy),
           SizedBox(height: s.sm),
           _cardContainer(
             context,
             child: Column(
               children: <Widget>[
-                _row(
+                _providerRow(
                   context,
                   icon: Icons.dns_outlined,
                   label: AppStrings.settingsProcessingProvider.tr,
@@ -114,6 +114,45 @@ class SettingsView extends GetView<SettingsController> {
               style: context.textStyles.bodyMd.copyWith(color: p.textSecondary),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// Provider row (Review 04 F8): the LABEL takes layout priority and
+  /// the value wraps BENEATH it, so the label can never be squeezed
+  /// into a letter column by a long single-line value — at 1.30 text
+  /// scale or any other.
+  Widget _providerRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+    IconData? icon,
+  }) {
+    final p = context.palette;
+    final s = context.sizes;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: s.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              if (icon != null) ...<Widget>[
+                Icon(icon, size: s.iconSm, color: p.primary),
+                SizedBox(width: s.sm),
+              ],
+              Expanded(child: Text(label, style: context.textStyles.bodyMd)),
+            ],
+          ),
+          SizedBox(height: s.xs),
+          Padding(
+            padding: EdgeInsets.only(left: icon != null ? s.iconSm + s.sm : 0),
+            child: Text(
+              value,
+              style: context.textStyles.bodyMd.copyWith(color: p.textSecondary),
+            ),
+          ),
         ],
       ),
     );
