@@ -116,7 +116,10 @@ app = modal.App(APP_NAME, image=image)
 # (4 cores / 8 GB) — slower (~1-3 min/photo) but it proves the full
 # endpoint + pipeline + app contract end to end. To upgrade: add the card in
 # Modal billing, change this decorator to gpu="T4" (drop cpu/memory), redeploy.
-@app.cls(cpu=4.0, memory=8192, timeout=900, scaledown_window=180)
+# timeout=1800 (raised from 900 on 2026-10-14): a 29 MP photo on this
+# 4-core CPU container takes longer than 900 s end-to-end, and the web
+# function below timed out at Modal's 300 s default while waiting.
+@app.cls(cpu=4.0, memory=8192, timeout=1800, scaledown_window=180)
 class Processor:
     @modal.enter()
     def load(self):
@@ -182,6 +185,9 @@ class Processor:
 @app.function(
     image=modal.Image.debian_slim().pip_install("fastapi[standard]", "requests"),
     secrets=[modal.Secret.from_name("peoplegone-worker")],
+    # Must outlast a Processor call: Modal's 300 s default killed large
+    # /process requests at ~305 s on 2026-10-14 (see RACING_NOTES.md).
+    timeout=1800,
 )
 @modal.asgi_app()
 def web():
