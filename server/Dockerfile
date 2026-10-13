@@ -26,7 +26,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY worker/ /app/worker/
 COPY handler.py /app/handler.py
 COPY cli.py /app/cli.py
-COPY clipdrop_arm.py /app/clipdrop_arm.py
 
 # Health check / smoke test entry point
 CMD ["python", "-u", "handler.py"]

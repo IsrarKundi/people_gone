@@ -8,7 +8,6 @@ services:
     container_name: peoplegone-worker
     environment:
       - RUNPOD_DEBUG_LEVEL=DEBUG
-      - CLIPDROP_API_KEY=${CLIPDROP_API_KEY:-}
     volumes:
       - ./worker:/app/worker
       - ./data:/app/data

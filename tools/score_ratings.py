@@ -154,7 +154,7 @@ def evaluate_ratings(rating_files: List[str], timings_file: str = "") -> Dict[st
         if not timings_measured:
             iterate_stage = "time/cost not measured (missing or empty timings file)"
         elif not pass_wp_simple or not pass_wp_overall:
-            iterate_stage = "inpaint arm (Clipdrop quality mode / diffusion tile for hard crops)"
+            iterate_stage = "inpaint arm (own-pipeline fill swap / diffusion tile for hard crops)"
         elif keeper_defects_count > 0:
             iterate_stage = "detection / keeper heuristic (larger SAM 2.1 checkpoint, tuned weights)"
         elif native_measured and not pass_win_tie:

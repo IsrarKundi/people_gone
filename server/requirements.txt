@@ -18,6 +18,6 @@ huggingface-hub==0.24.6
 # RunPod Serverless SDK
 runpod==1.7.7
 
-# HTTP client for Clipdrop arm & downloads
+# HTTP client (worker handler / downloads)
 requests==2.32.3
 urllib3==2.2.2
