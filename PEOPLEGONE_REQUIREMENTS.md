@@ -105,8 +105,7 @@ Real-world example: a family's one good photo at a landmark has six strangers be
 1. A Python worker implementing the §6.4 pipeline end-to-end (detector → SAM 2.1 masks → mask prep → LaMa inpainting on native-res crops → composite), callable as `process(photo, keep=[ids]) → result.jpg + job_metadata.json`. Deploy on RunPod Serverless; local/Replicate LaMa is allowed for first smoke tests only.
 2. A batch runner: folder of test photos + hand-written ground truth per photo (keeper IDs, remove IDs, shadow locations) → produces primary results at identical dimensions/JPEG quality, EXIF stripped, randomised filenames.
 3. A local static blind-review page: Original / Result A / Result B (randomised order per photo and per rater), 100%-zoom toggle, scoring form writing CSV/JSON (§3.3).
-4. The Clipdrop comparison arm (§6.5): same masks through Clipdrop Cleanup `quality` mode inside the crop loop, using its free developer credits — the whole gate fits in free/near-free tiers at this set size.
-5. **Licence verification task (blocking):** confirm and archive in `docs/licences/` the exact licences of every shipped weight: SAM 2.1 checkpoints (Apache 2.0 — Verified), the chosen detector checkpoint, and big-lama as distributed via IOPaint. **Ultralytics YOLO models must not be used** (AGPL-3.0 / paid Enterprise only — Verified).
+4. **Licence verification task (blocking):** confirm and archive in `docs/licences/` the exact licences of every shipped weight: SAM 2.1 checkpoints (Apache 2.0 — Verified), the chosen detector checkpoint, and big-lama as distributed via IOPaint. **Ultralytics YOLO models must not be used** (AGPL-3.0 / paid Enterprise only — Verified).
 
 **Do NOT build in Phase 0:** the Flutter app beyond a throwaway picker if needed, accounts, payments, store assets.
 
@@ -143,14 +142,14 @@ Cross-cutting: at least 2 photos must be low-light/noisy, and at least 2 must co
   - median end-to-end ≤ **20 s** warm; measured all-in cost ≤ **$0.01/photo**.
   (This operationalises the mission's original rule — blind test, comparable on ≥7 of 10 — with measurable thresholds; see Decisions Log D7.)
 - **ITERATE** — change exactly one stage and re-run the *same* 30 photos:
-  - fills fail, segmentation clean → swap inpaint arm (Clipdrop quality → diffusion hard-tile for hard crops);
+  - fills fail, segmentation clean → swap inpaint arm (a different own-pipeline fill engine → diffusion hard-tile for hard crops);
   - segmentation fails, fills good → fix detection (larger SAM 2 checkpoint, higher analysis resolution, Mask2Former comparison arm);
   - shadows dominate complaints → invest only in §6.4 shadow handling first.
 - **STOP — do not build the app** if, after one inpaint swap **and** one segmentation fix: "would post" stays < **50%**, **or** natives win > **80%** of head-to-heads, **or** the overlap category is unacceptable in > 75% of its photos on *every* engine including the natives. Report the finding; polishing an app around a failed core is forbidden.
 
-### 3.5 Fallback switch (pre-decided)
+### 3.5 No third-party fallback (pre-decided)
 
-If the gate fails *on LaMa fill quality only*, the fallback engine is **Clipdrop Cleanup (quality mode) fed the same masks inside the crop loop** (§6.5), re-tested in the same harness. If Clipdrop also fails or its written commercial price (a precondition, §6.5) makes all-in cost > $0.02/photo, escalate hard crops to a diffusion tile pass and re-test. If all arms fail the STOP rule, stop.
+There is **no third-party fallback engine**. If the gate fails *on fill quality only*, the swap happens inside our own pipeline — a different own fill engine fed the same masks inside the crop loop, or a diffusion tile pass for hard crops (§6.5) — re-tested in the same harness. If the own-pipeline arms fail the STOP rule, stop. *(Clipdrop Cleanup was the pre-decided fallback until 2026-10-13; removed completely by owner decision — see §6.5.)*
 
 ---
 
@@ -312,13 +311,12 @@ Two server stages over **one upload** (the original is uploaded once; both stage
 **Worker implementation:** one portable Docker container (Python): detector → SAM 2.1 → mask prep → LaMa → composite. Hosted on **RunPod Serverless** (16 GB GPU tier, $0.00016/s — Verified 2026-10-12; scale-to-zero, 0 always-on workers; FlashBoot on). The container and handler must stay host-agnostic (no RunPod-specific APIs in worker code) so **Modal** is a deployment change, not a rewrite. **Ops trap (Verified, RunPod docs):** endpoints idle 7 days get max-workers set to 0 — a scheduled health-ping is a launch-checklist item (§14, Phase 5).
 **Concurrency/memory (server):** work crop-by-crop, stream decode where possible, cap concurrent jobs per worker, queue rather than OOM on 50 MP inputs (~150 MB decoded).
 
-### 6.5 Fallback engine — Clipdrop Cleanup (pre-decided, §3.5)
+### 6.5 No third-party fallback — own pipeline only (owner decision, 2026-10-13)
 
-- Role: (a) production failover if the primary endpoint is down/overloaded, (b) Phase 0 reference arm, (c) possible hard-photo escalation if the gate proves it better on structured backgrounds.
-- Integration: consumes the **same mask PNG** inside the same crop loop (respect its 16 MP / 30 MB per-call cap — Verified). No second segmentation system.
-- **Mandatory preconditions before it carries production traffic:** (1) written per-credit price from Jasper/Clipdrop (no public API price exists — Verified), (2) written confirmation of commercial use of outputs in a consumer photo app, (3) it passes the §3 harness at `quality` mode.
-- Routing is a server config flag (`PROCESSOR=primary|clipdrop`), never a client change.
-- If Clipdrop pricing/terms fail: fallback-of-fallback is queueing on the primary (degraded latency, honest in-app message) — never silently shipping a worse result. SnapEdit API is **not** a production dependency (vendor self-benchmarks only, invite access, unpublished keep-control/resolution/terms — `research/technical-image-processing.md` §3.6); it may be run as a Phase 0 bonus arm only.
+- **There is no external fallback engine.** The own pipeline (§6.4) is the only processor in every environment (Modal for development, RunPod Serverless for production).
+- If processing fails, or the primary endpoint is down/overloaded, the job **queues on the primary** and retries there (degraded latency, honest in-app message). It never fails over to a third-party service, and a worse result is never silently shipped.
+- Fill-engine choice *inside* the pipeline (the pipeline's own engines, e.g. LaMa / MAT-class fill, diffusion tile pass for hard crops) is a server config flag, never a client change.
+- **Decision record:** Clipdrop Cleanup (quality mode) was the pre-decided fallback and Phase 0 comparison arm until **2026-10-13, when the owner removed it completely**. Its written per-credit price and commercial/no-training terms were never published by the vendor, and the product must not depend on an unpriced third-party photo processor. Do not reintroduce any third-party processing vendor without an ADR + a new owner decision. SnapEdit API is likewise **not** a production dependency (vendor self-benchmarks only, invite access, unpublished keep-control/resolution/terms — `research/technical-image-processing.md` §3.6).
 
 ### 6.6 Explicitly rejected approaches (do not revisit without an ADR + new evidence)
 
@@ -329,7 +327,7 @@ remove.bg and PhotoRoom API (they do background *removal/cutout*, not inpainting
 - **Offline at pick time:** photo stays local; the job is queued in-app and starts when connectivity returns. Nothing is lost; no credit/save is touched.
 - **Upload failure / timeout:** automatic retry with backoff (3 attempts); the job ID is **idempotent** (client-generated per photo-hash + settings) — a retry never creates a second billable job (§8).
 - **Stage timeout:** analysis > 30 s or processing > 90 s → the app shows the failure state with Retry; the server job may still complete — on Retry, poll the same job ID first before creating a new job.
-- **Server down / overloaded:** jobs queue server-side with position-free honest copy ("Busy — your photo is in line"). If both primary and fallback are down, queue; never fabricate a result.
+- **Server down / overloaded:** jobs queue server-side with position-free honest copy ("Busy — your photo is in line"). If the primary is down, jobs stay queued — there is no fallback processor (§6.5); never fabricate a result.
 - **App killed mid-job:** on relaunch, resume polling the open job ID; completed results remain downloadable 24 h (§7.4).
 
 ---
@@ -352,7 +350,7 @@ There are **no user accounts** (§5 FR-19). Identity = anonymous-auth install ID
 |---|---|---|
 | `installs` | `id` (anonymous auth uid), `platform`, `app_version`, `created_at`, `consent_version` + `consent_at` | One row per install. No email, no name, ever. |
 | `credits_ledger` | `install_id`, `period` (`YYYY-MM`, UTC), `free_saves_used`, `pro_status` (cache of RevenueCat), `pro_source`, `fair_use_saves_used` | The **only** source of truth for saves balance. Decrement atomically **at save time** (§9.1); refund automatically if delivery of the result file fails. |
-| `jobs` | `id` (client-generated idempotency ID), `install_id`, `status` (queued/analysing/awaiting_confirm/processing/done/failed/expired), `people_count`, `removed_count`, `mask_area_ratio`, `gpu_seconds`, `cost_estimate_usd`, `retry_count`, `ghost_check_fired` (bool), `processor` (primary/clipdrop), `created_at`, `expires_at` | **Metadata only. No image data, no image URLs beyond expiry.** Powers §12 metrics and §8 cost accounting. |
+| `jobs` | `id` (client-generated idempotency ID), `install_id`, `status` (queued/analysing/awaiting_confirm/processing/done/failed/expired), `people_count`, `removed_count`, `mask_area_ratio`, `gpu_seconds`, `cost_estimate_usd`, `retry_count`, `ghost_check_fired` (bool), `processor` (own fill engine: mat/lama), `created_at`, `expires_at` | **Metadata only. No image data, no image URLs beyond expiry.** Powers §12 metrics and §8 cost accounting. |
 | `reports` | `id`, `job_id`, `install_id`, `note`, `has_user_attached_image` (bool), `created_at` | Report-this-result (§11 CMP-06). Attachment stored only if the user explicitly attached it; 30-day retention. |
 | `consent_records` | `install_id`, `consent_version`, `accepted_at`, `provider_name_shown` | Evidence for §11 CMP-03. |
 
@@ -512,7 +510,7 @@ All items are **CMP** requirements — a release is blocked until every applicab
 - **CMP-04 Store data declarations (cloud design — declare, do not argue "transient").** Play Data Safety: Photos = **Collected**, purpose **App Functionality**, encrypted in transit = Yes, deletion available = Yes; Diagnostics (first-party job telemetry, §12) = Collected, App Functionality/Analytics as the form requires at submission. Apple App Privacy (Phase 2): User Content → Photos or Videos (App Functionality); Diagnostics. Exact answers live in `docs/compliance/store-forms.md` and must be updated in the same change as any data-behaviour change.
 - **CMP-05 Retention & deletion implemented as code** per §7.4 (TTL jobs + deletion logging), processing buckets excluded from long-cycle backups.
 - **CMP-06 Report this result (Play AI-content policy).** S7 carries a report control usable **without leaving the app**; submissions land in `reports` (§7.2). The result screen also carries the persistent disclosure line (§4.2 S7).
-- **CMP-07 No-training commitment (publish verbatim in privacy policy + listings + consent copy):** *"Your photos are never used to train, fine-tune, or improve AI models — ours or anyone else's."* Make it true: our own worker runs open models on our infrastructure (no vendor training surface); any future vendor (e.g. Clipdrop fallback) requires a written no-training/commercial-terms confirmation **before** carrying traffic (§6.5), recorded in `docs/compliance/record-of-processing.md`.
+- **CMP-07 No-training commitment (publish verbatim in privacy policy + listings + consent copy):** *"Your photos are never used to train, fine-tune, or improve AI models — ours or anyone else's."* Make it true: our own worker runs open models on our infrastructure (no vendor training surface); any future vendor requires a written no-training/commercial-terms confirmation **before** carrying traffic (§6.5), recorded in `docs/compliance/record-of-processing.md`.
 - **CMP-08 Third parties in photos.** The app never identifies, names, or biometrically processes any person (detection = anonymous instance masks only). EXIF/GPS stripped on save (FR-15) and never read from uploads for any feature.
 - **CMP-09 Data rights.** Settings → Delete my data (FR-24) + a privacy-policy URL live before submission (Play requirement) + the GDPR-standard posture run globally (one standard everywhere: access/deletion via the in-app endpoint, no per-region forks).
 - **CMP-10 Watermark/logo ban.** No feature, keyword, screenshot, or copy may market watermark or logo removal (Apple 5.2 / Play IP + deceptive-behaviour exposure). Run the metadata lint (`tools/metadata_lint.md`) over all listing text before every submission.
@@ -596,7 +594,7 @@ The Phase 0 frozen 30-photo set (§3.2) **is** the regression set. It lives in `
 ### Phase 0 — Quality gate (no app yet) — §3
 - **0.1 Worker prototype:** containerised pipeline (§6.4) callable as `process(photo, keep) → result + metadata`, running on RunPod Serverless. *Done when:* it processes a 24 MP photo end-to-end and returns a native-res result + GPU-second log.
 - **0.2 Model licence pack:** licences for detector checkpoint, SAM 2.1, big-lama archived in `docs/licences/`; YOLO excluded. *Done when:* every shipped weight has a licence file + a one-line commercial-use note.
-- **0.3 Test set + harness:** 30 photos frozen with ground truth (§3.2); batch runner + blind-review page built; Clipdrop arm wired (free dev credits). *Done when:* a dry run produces blinded A/B pairs for all 30.
+- **0.3 Test set + harness:** 30 photos frozen with ground truth (§3.2); batch runner + blind-review page built. *Done when:* a dry run produces blinded A/B pairs for all 30.
 - **0.4 Blind test + decision:** 5–10 raters score per §3.3; apply the §3.4 rule **as written**. *Done when:* a signed decision note (GO / ITERATE-with-named-swap / STOP) is in `docs/architecture/`. **If STOP: the project ends here and the finding is reported — do not proceed to Phase 1.**
 
 ### Phase 1 — App scaffold + mock golden path
@@ -662,7 +660,7 @@ The Phase 0 frozen 30-photo set (§3.2) **is** the regression set. It lives in `
 | R2 | SnapEdit ships a people-mode with subject protection first | High | Launch speed; own the exact phrase early; differentiate on full-res free saves + honest pricing, which it does not offer. |
 | R3 | Platform-limit erosion (Apple extends Clean Up down-market; Google lifts the 10-save cap) | High, uncontrollable | Accepted — it is why speed matters and why pricing/quality must stand without the gap. Re-verify caps before launch (they are Oct 2026 facts). |
 | R4 | Model-weight licence surprise (big-lama / detector checkpoint) | Medium | Blocking licence task in Phase 0 (§3.1); YOLO excluded; licences archived before release. |
-| R5 | Clipdrop fallback unusable (no written price / terms refused) | Medium | Fallback-of-fallback = queue on primary (§6.5); fallback is failover, not a launch dependency. |
+| R5 | Clipdrop fallback dependency | Closed 2026-10-13 | Owner removed Clipdrop completely (§6.5) — the own pipeline is the only processor, failures queue on the primary; there is no third-party failover left to be unusable. |
 | R6 | API/GPU cost abuse (farms, retry loops) | Medium | §8.2 controls are launch requirements, incl. circuit breakers and idempotency. |
 | R7 | Anonymous-identity limits (reinstall/device change vs ledger/restore edge cases) | Low–Medium | Store-account-based restore via RevenueCat for paid entitlement; residual free-tier reset risk accepted and capped by velocity rules + attestation slow-queue. |
 | R8 | Cold-start latency on serverless GPU hurts first-job experience | Medium | FlashBoot on; proposal-first UX (Stage A feels fast); honest progress states (S6); measure NFR-01 in Phase 2. |
