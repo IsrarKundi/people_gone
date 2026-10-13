@@ -15,12 +15,26 @@ class ConsentSheet extends StatelessWidget {
     required this.bodyKey,
     required this.onContinue,
     required this.onCancel,
+    this.bodyParams,
+    this.continueLabelKey = AppStrings.commonContinue,
+    this.footerKey,
+    this.onFooterTap,
   });
 
   final String titleKey;
   final String bodyKey;
+
+  /// Interpolation params for the body (e.g. the provider display name
+  /// from AppConfig — §11.2A wording is config-driven, never hard-coded).
+  final Map<String, String>? bodyParams;
   final VoidCallback onContinue;
   final VoidCallback onCancel;
+  final String continueLabelKey;
+
+  /// Optional link row under the body (e.g. "Full details: Privacy
+  /// Policy", §11.2A).
+  final String? footerKey;
+  final VoidCallback? onFooterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -45,12 +59,25 @@ class ConsentSheet extends StatelessWidget {
         children: <Widget>[
           Text(titleKey.tr, style: context.textStyles.titleLg),
           SizedBox(height: s.md),
-          Text(bodyKey.tr, style: context.textStyles.bodyMd),
-          SizedBox(height: s.xxl),
-          PrimaryButton(
-            labelKey: AppStrings.commonContinue,
-            onPressed: onContinue,
+          Text(
+            bodyParams == null ? bodyKey.tr : bodyKey.trParams(bodyParams!),
+            style: context.textStyles.bodyMd,
           ),
+          if (footerKey != null && onFooterTap != null) ...<Widget>[
+            SizedBox(height: s.md),
+            GestureDetector(
+              onTap: onFooterTap,
+              child: Text(
+                footerKey!.tr,
+                style: context.textStyles.bodyMd.copyWith(
+                  color: p.secondary,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+          SizedBox(height: s.xxl),
+          PrimaryButton(labelKey: continueLabelKey, onPressed: onContinue),
           SizedBox(height: s.sm),
           Center(
             child: TextButton(
