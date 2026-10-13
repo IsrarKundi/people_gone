@@ -1,0 +1,225 @@
+{
+  "input_dimensions": [
+    4423,
+    6635
+  ],
+  "output_dimensions": [
+    4423,
+    6635
+  ],
+  "persons_detected": 15,
+  "keeper_ids": [
+    0,
+    1
+  ],
+  "removed_ids": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "persons": [
+    {
+      "id": 0,
+      "box": [
+        1401,
+        3661,
+        2335,
+        6181
+      ],
+      "score": 0.9469307661056519,
+      "is_keeper": true
+    },
+    {
+      "id": 1,
+      "box": [
+        2220,
+        3800,
+        3133,
+        6124
+      ],
+      "score": 0.9254661202430725,
+      "is_keeper": true
+    },
+    {
+      "id": 2,
+      "box": [
+        3336,
+        3656,
+        3691,
+        4621
+      ],
+      "score": 0.8886095285415649,
+      "is_keeper": false
+    },
+    {
+      "id": 3,
+      "box": [
+        3711,
+        3579,
+        4094,
+        4632
+      ],
+      "score": 0.8518968820571899,
+      "is_keeper": false
+    },
+    {
+      "id": 4,
+      "box": [
+        4163,
+        3649,
+        4423,
+        4599
+      ],
+      "score": 0.8298305869102478,
+      "is_keeper": false
+    },
+    {
+      "id": 5,
+      "box": [
+        417,
+        3688,
+        716,
+        4464
+      ],
+      "score": 0.812136173248291,
+      "is_keeper": false
+    },
+    {
+      "id": 6,
+      "box": [
+        3027,
+        3600,
+        3298,
+        4257
+      ],
+      "score": 0.7443158626556396,
+      "is_keeper": false
+    },
+    {
+      "id": 7,
+      "box": [
+        264,
+        3708,
+        430,
+        4193
+      ],
+      "score": 0.4901501536369324,
+      "is_keeper": false
+    },
+    {
+      "id": 8,
+      "box": [
+        750,
+        3653,
+        903,
+        4159
+      ],
+      "score": 0.4749409258365631,
+      "is_keeper": false
+    },
+    {
+      "id": 9,
+      "box": [
+        878,
+        3647,
+        1032,
+        4178
+      ],
+      "score": 0.44494014978408813,
+      "is_keeper": false
+    },
+    {
+      "id": 10,
+      "box": [
+        1424,
+        3640,
+        1668,
+        4244
+      ],
+      "score": 0.4194771349430084,
+      "is_keeper": false
+    },
+    {
+      "id": 11,
+      "box": [
+        2315,
+        3566,
+        2703,
+        4227
+      ],
+      "score": 0.4158668518066406,
+      "is_keeper": false
+    },
+    {
+      "id": 12,
+      "box": [
+        58,
+        3653,
+        227,
+        4160
+      ],
+      "score": 0.4099568724632263,
+      "is_keeper": false
+    },
+    {
+      "id": 13,
+      "box": [
+        674,
+        3645,
+        781,
+        4130
+      ],
+      "score": 0.38452938199043274,
+      "is_keeper": false
+    },
+    {
+      "id": 14,
+      "box": [
+        1323,
+        3665,
+        1504,
+        4295
+      ],
+      "score": 0.3689934313297272,
+      "is_keeper": false
+    }
+  ],
+  "crops_inpainted": 13,
+  "timings_ms": {
+    "load_ms": 363.1439219999999,
+    "detection_ms": 9632.7666,
+    "segmentation_ms": 5802.463879000001,
+    "keeper_ms": 284.37384899999785,
+    "mask_prep_ms": 545.8552080000026,
+    "inpaint_ms": 58641.32257199999,
+    "ghost_check_ms": 66479.106703,
+    "total_e2e_ms": 141749.097546
+  },
+  "total_seconds": 141.7491,
+  "total_gpu_seconds": 141.7491,
+  "cost_estimate_usd": 0.02268,
+  "ghost_check_fired": true,
+  "retry_count": 1,
+  "fallbacks_used": [],
+  "model_versions": {
+    "detector": "PekingU/rtdetr_r50vd",
+    "segmentor": "facebook/sam2.1-hiera-tiny",
+    "inpainter": "big-lama-v1",
+    "pipeline": "peoplegone-v1-phase0"
+  },
+  "engine_requested": "mat",
+  "engine_used": "mat",
+  "_wall_seconds": 156.2,
+  "_ok": true,
+  "_image_base64_len": 8197584
+}

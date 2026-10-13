@@ -49,8 +49,10 @@ Fields:
 - `engine` — optional, default `"mat"`. One of:
   - `"mat"` — MAT fill (default; best texture fills, never invents objects)
   - `"lama"` — LaMa fill (original pipeline engine)
-  - `"auto"` — currently maps to MAT; will race PowerPaint on large patches
-    once that stage lands.
+  - `"auto"` — RacingInpainter: MAT vs PowerPaint raced on large patches
+    only (mask ratio >= 0.15 of crop AND >= 40,000 px), ghost-check
+    residual picks the winner; `meta.crop_engines` records every crop.
+    See RACING_NOTES.md for live verification results.
 - `keep` — optional, comma-separated person ids to keep, e.g. `"0,3"`.
   Empty = automatic keeper choice (largest / most central subject).
 
@@ -94,12 +96,25 @@ stage raises server-side — the worker never returns a silently faked result.
 - Do NOT hardcode the base URL in the app; read it from remote config / a
   constants file per environment (dev Modal URL today).
 
-## Not in v1 (planned, in this order)
-1. PowerPaint racing on large patches behind `engine="auto"` + ghost-check pick.
-2. Proposal endpoints: `POST /detect` (persons + proposed keeper, no fill)
-   so the proposal screen doesn't need a full process call.
-3. Auth: a shared API key header (Modal Secret) — REQUIRED before the URL is
-   shared beyond the dev team, otherwise anyone with the URL can spend the
-   workspace's credits.
-4. Production move: same container contract on RunPod Serverless behind the
+## Auth (added 2026-10-14)
+`POST /process`, `POST /detect` and `POST /touchup` require header
+`X-Worker-Key` matching the `peoplegone-worker` Modal Secret
+(constant-time compare; missing/wrong → `401 {"ok": false,
+"error": "unauthorized"}`; fails closed if the secret is unset).
+`GET /health` stays public. `/process` also accepts optional gateway
+fields (`callback_url`, `callback_token`, `job_id`,
+`result_upload_url`) for asynchronous result collection by the
+Supabase gateway.
+
+## POST /touchup  (multipart/form-data, added 2026-10-14; FR-09)
+Brush-fix: re-inpaints only the crop around a user-painted mask.
+Fields: `file` (photo, required), `mask_png` (PNG mask, white = fill
+region, required), `engine` (optional, default `"mat"`; `"auto"` maps
+to MAT here — racing is a /process path only). Response mirrors
+/process: `{"ok": true, "image_base64": ..., "meta": {...}}` with
+meta carrying `touched`, `mask_area_px`, `mask_resized`,
+`total_seconds`, `engine_used`. Output dimensions == input dimensions.
+
+## Not in v1 (planned)
+1. Production move: same container contract on RunPod Serverless behind the
    Supabase gateway (credit ledger, 24 h photo TTL) per PEOPLEGONE_REQUIREMENTS.

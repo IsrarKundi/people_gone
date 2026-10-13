@@ -67,7 +67,7 @@ First call after idle = cold start; allow up to ~5 minutes once.
   - `POST /process` (no key) → 401 (same body)
   - `POST /process` (with key, mosque photo, engine=mat) → 200,
     ok:true, persons_detected=13, keeper_ids=[0], removed_ids=12
-    entries, engine_used=mat, total_seconds=188.95 (CPU worker).
+    entries, engine_used=mat (CPU worker; wall time ~2-3 min). (Corrected 2026-10-14: a total_seconds figure transcribed earlier for this run proved unreliable; the verified facts are ok:true, 13 persons, keeper [0], 12 removed.)
 
 ## 2026-10-14 — /touchup endpoint (Task C, worker half; FR-09, §6.4)
 

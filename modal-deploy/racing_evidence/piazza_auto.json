@@ -1,0 +1,487 @@
+{
+  "input_dimensions": [
+    4423,
+    6635
+  ],
+  "output_dimensions": [
+    4423,
+    6635
+  ],
+  "persons_detected": 15,
+  "keeper_ids": [
+    0,
+    1
+  ],
+  "removed_ids": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "persons": [
+    {
+      "id": 0,
+      "box": [
+        1401,
+        3661,
+        2335,
+        6181
+      ],
+      "score": 0.9469308853149414,
+      "is_keeper": true
+    },
+    {
+      "id": 1,
+      "box": [
+        2220,
+        3800,
+        3133,
+        6124
+      ],
+      "score": 0.9254661202430725,
+      "is_keeper": true
+    },
+    {
+      "id": 2,
+      "box": [
+        3336,
+        3656,
+        3691,
+        4621
+      ],
+      "score": 0.8886093497276306,
+      "is_keeper": false
+    },
+    {
+      "id": 3,
+      "box": [
+        3711,
+        3579,
+        4094,
+        4632
+      ],
+      "score": 0.8518969416618347,
+      "is_keeper": false
+    },
+    {
+      "id": 4,
+      "box": [
+        4163,
+        3649,
+        4423,
+        4599
+      ],
+      "score": 0.8298308849334717,
+      "is_keeper": false
+    },
+    {
+      "id": 5,
+      "box": [
+        417,
+        3688,
+        716,
+        4464
+      ],
+      "score": 0.8121362924575806,
+      "is_keeper": false
+    },
+    {
+      "id": 6,
+      "box": [
+        3027,
+        3600,
+        3298,
+        4257
+      ],
+      "score": 0.7443158626556396,
+      "is_keeper": false
+    },
+    {
+      "id": 7,
+      "box": [
+        264,
+        3708,
+        430,
+        4193
+      ],
+      "score": 0.4901502728462219,
+      "is_keeper": false
+    },
+    {
+      "id": 8,
+      "box": [
+        750,
+        3653,
+        903,
+        4159
+      ],
+      "score": 0.47494059801101685,
+      "is_keeper": false
+    },
+    {
+      "id": 9,
+      "box": [
+        878,
+        3647,
+        1032,
+        4178
+      ],
+      "score": 0.44493988156318665,
+      "is_keeper": false
+    },
+    {
+      "id": 10,
+      "box": [
+        1424,
+        3640,
+        1668,
+        4244
+      ],
+      "score": 0.4194769561290741,
+      "is_keeper": false
+    },
+    {
+      "id": 11,
+      "box": [
+        2315,
+        3566,
+        2703,
+        4227
+      ],
+      "score": 0.41586732864379883,
+      "is_keeper": false
+    },
+    {
+      "id": 12,
+      "box": [
+        58,
+        3653,
+        227,
+        4160
+      ],
+      "score": 0.4099568724632263,
+      "is_keeper": false
+    },
+    {
+      "id": 13,
+      "box": [
+        674,
+        3645,
+        781,
+        4130
+      ],
+      "score": 0.38452908396720886,
+      "is_keeper": false
+    },
+    {
+      "id": 14,
+      "box": [
+        1323,
+        3665,
+        1504,
+        4295
+      ],
+      "score": 0.36899349093437195,
+      "is_keeper": false
+    }
+  ],
+  "crops_inpainted": 13,
+  "timings_ms": {
+    "load_ms": 296.70182899999986,
+    "detection_ms": 5576.846047999999,
+    "segmentation_ms": 3831.5156859999993,
+    "keeper_ms": 159.65091500000028,
+    "mask_prep_ms": 391.19361100000026,
+    "inpaint_ms": 39250.964186000005,
+    "ghost_check_ms": 267037.95918500004,
+    "total_e2e_ms": 316544.9733409999
+  },
+  "total_seconds": 316.545,
+  "total_gpu_seconds": 316.545,
+  "cost_estimate_usd": 0.050647,
+  "ghost_check_fired": true,
+  "retry_count": 1,
+  "fallbacks_used": [],
+  "model_versions": {
+    "detector": "PekingU/rtdetr_r50vd",
+    "segmentor": "facebook/sam2.1-hiera-tiny",
+    "inpainter": "big-lama-v1",
+    "pipeline": "peoplegone-v1-phase0"
+  },
+  "engine_requested": "auto",
+  "engine_used": "auto",
+  "crop_engines": [
+    {
+      "mask_ratio": 0.08114,
+      "mask_area_px": 227533,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 5750.1,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.092059,
+      "mask_area_px": 249200,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2846.0,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.10586,
+      "mask_area_px": 162303,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2926.2,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.052246,
+      "mask_area_px": 116262,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 3018.3,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.052319,
+      "mask_area_px": 114470,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2582.5,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.0381,
+      "mask_area_px": 55108,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2603.5,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.035437,
+      "mask_area_px": 65128,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2616.9,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.0309,
+      "mask_area_px": 58207,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2637.5,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.04097,
+      "mask_area_px": 85364,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2544.9,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.058509,
+      "mask_area_px": 147312,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2517.1,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.056942,
+      "mask_area_px": 65262,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2556.8,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.025728,
+      "mask_area_px": 44621,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2570.7,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.036217,
+      "mask_area_px": 74362,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2639.1,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.122745,
+      "mask_area_px": 344201,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2877.3,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.144453,
+      "mask_area_px": 391027,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2728.9,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.150258,
+      "mask_area_px": 230374,
+      "raced": true,
+      "winner": "mat",
+      "mat_residual": 2.398773103952408,
+      "pp_residual": 2.6829801499843597,
+      "mat_ms": 2665.2,
+      "pp_ms": 219395.4
+    },
+    {
+      "mask_ratio": 0.087802,
+      "mask_area_px": 195383,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2797.6,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.085185,
+      "mask_area_px": 186380,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2818.6,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.058941,
+      "mask_area_px": 85252,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2700.2,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.054712,
+      "mask_area_px": 100552,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2763.3,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.049427,
+      "mask_area_px": 93107,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2719.3,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.064009,
+      "mask_area_px": 133367,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2800.5,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.08598,
+      "mask_area_px": 216479,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2735.2,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.087479,
+      "mask_area_px": 100261,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2777.9,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.042786,
+      "mask_area_px": 74205,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2803.5,
+      "pp_ms": null
+    },
+    {
+      "mask_ratio": 0.060904,
+      "mask_area_px": 125051,
+      "raced": false,
+      "winner": "mat",
+      "mat_residual": null,
+      "pp_residual": null,
+      "mat_ms": 2829.6,
+      "pp_ms": null
+    }
+  ],
+  "_wall_seconds": 334.3,
+  "_ok": true,
+  "_image_base64_len": 8201020
+}
