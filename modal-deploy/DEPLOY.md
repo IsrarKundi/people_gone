@@ -45,3 +45,26 @@ First call after idle = cold start; allow up to ~5 minutes once.
   is on the order of a few tenths of a cent at T4 rates (measure from `meta`
   timings after the first real runs; do not treat this as a quote).
 - Rollback/stop: `modal app stop peoplegone-worker`.
+
+## 2026-10-14 — API key gate (Task A)
+
+- Modal secret `peoplegone-worker` created from the worker API key held
+  outside the repo; the `web()` function now loads it via
+  `secrets=[modal.Secret.from_name("peoplegone-worker")]`.
+- `/process` and `/detect` require header `X-Worker-Key` matching the
+  secret (constant-time compare). Missing/wrong key → `401`
+  `{"ok": false, "error": "unauthorized"}`. If the secret is unset in
+  the function, the gate fails closed (401). `/health` stays public.
+- `/process` also accepts optional gateway fields (`callback_url`,
+  `callback_token`, `job_id`, `result_upload_url`): when present the
+  result JPEG is PUT to `result_upload_url` and a JSON notification is
+  POSTed to `callback_url`; failures are logged server-side only and
+  the normal JSON response is returned regardless.
+- Deployed from the repo package and verified live (after ~60 s wait):
+  - `GET /health` (no key) → 200 `{"ok": true, "service": "peoplegone-worker"}`
+  - `POST /detect` (no key) → 401 `{"ok": false, "error": "unauthorized"}`
+  - `POST /detect` (wrong key) → 401 (same body)
+  - `POST /process` (no key) → 401 (same body)
+  - `POST /process` (with key, mosque photo, engine=mat) → 200,
+    ok:true, persons_detected=13, keeper_ids=[0], removed_ids=12
+    entries, engine_used=mat, total_seconds=188.95 (CPU worker).
