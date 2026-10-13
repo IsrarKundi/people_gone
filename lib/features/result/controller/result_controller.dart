@@ -95,8 +95,19 @@ class ResultController extends GetxController {
     final id = 'save_${DateTime.now().microsecondsSinceEpoch}';
     final adopted = await localStore.adoptIntoHistory(outcome.resultPath, id);
     if (adopted case Success<String>(:final value)) {
+      String? adoptedOrig;
+      final origResult =
+          await localStore.adoptOriginalIntoHistory(outcome.originalPath, id);
+      if (origResult case Success<String>(value: final origPath)) {
+        adoptedOrig = origPath;
+      }
       await localStore.addHistory(
-        HistoryEntry(id: id, localPath: value, savedAt: DateTime.now()),
+        HistoryEntry(
+          id: id,
+          localPath: value,
+          savedAt: DateTime.now(),
+          originalPath: adoptedOrig ?? outcome.originalPath,
+        ),
       );
       await localStore.consumeFreeSave();
       savesLeft.value = savesLeft.value - 1;

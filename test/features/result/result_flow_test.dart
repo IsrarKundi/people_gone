@@ -56,6 +56,12 @@ class TrackingStore implements LocalStore {
   ) async => Success<String>('/history/$id.jpg');
 
   @override
+  Future<Result<String>> adoptOriginalIntoHistory(
+    String originalPath,
+    String id,
+  ) async => Success<String>('/history/${id}_orig.jpg');
+
+  @override
   Future<Result<void>> addHistory(HistoryEntry entry) async {
     added.add(entry);
     return const Success<void>(null);

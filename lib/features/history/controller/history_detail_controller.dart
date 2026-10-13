@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -7,8 +9,8 @@ import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../services/storage/local_store.dart';
 
-/// One saved clean, full-screen: share it, or delete it (photo + entry,
-/// permanent — the confirm says so, §4 S-History).
+/// One saved clean, full-screen: compare before/after (if original exists),
+/// share it, or delete it (photo + entry, permanent).
 class HistoryDetailController extends GetxController {
   HistoryDetailController({
     required this.localStore,
@@ -19,6 +21,18 @@ class HistoryDetailController extends GetxController {
   final Future<void> Function(List<XFile> files) _shareFiles;
 
   late final HistoryEntry entry;
+
+  final compareMode = false.obs;
+  final showOriginal = false.obs;
+
+  bool get hasOriginal {
+    final orig = entry.originalPath;
+    return orig != null && File(orig).existsSync();
+  }
+
+  void toggleCompare() {
+    compareMode.value = !compareMode.value;
+  }
 
   @override
   void onInit() {

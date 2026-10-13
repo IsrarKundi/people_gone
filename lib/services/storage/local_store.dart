@@ -25,6 +25,13 @@ abstract interface class LocalStore {
   /// history files are never shared with the session).
   Future<Result<String>> adoptIntoHistory(String sessionPath, String id);
 
+  /// Copies the original photo into the history folder so before/after
+  /// comparison remains available when viewing history items (FR-19).
+  Future<Result<String>> adoptOriginalIntoHistory(
+    String originalPath,
+    String id,
+  );
+
   /// Writes processed result bytes to a session file and returns its
   /// path. Session files are working copies (share/save source), not
   /// history.
@@ -60,6 +67,7 @@ class HistoryEntry {
     required this.id,
     required this.localPath,
     required this.savedAt,
+    this.originalPath,
   });
 
   factory HistoryEntry.fromJson(Map<String, dynamic> json) {
@@ -67,16 +75,19 @@ class HistoryEntry {
       id: json['id'] as String,
       localPath: json['localPath'] as String,
       savedAt: DateTime.parse(json['savedAt'] as String),
+      originalPath: json['originalPath'] as String?,
     );
   }
 
   final String id;
   final String localPath;
   final DateTime savedAt;
+  final String? originalPath;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'id': id,
     'localPath': localPath,
     'savedAt': savedAt.toIso8601String(),
+    if (originalPath != null) 'originalPath': originalPath,
   };
 }

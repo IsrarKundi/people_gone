@@ -41,6 +41,12 @@ class FakeStore implements LocalStore {
   ) async => Success<String>(sessionPath);
 
   @override
+  Future<Result<String>> adoptOriginalIntoHistory(
+    String originalPath,
+    String id,
+  ) async => Success<String>(originalPath);
+
+  @override
   Future<Result<String>> writeSessionResult(Uint8List bytes) async =>
       const Success<String>('/session/result.jpg');
 

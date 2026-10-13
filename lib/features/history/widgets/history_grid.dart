@@ -68,15 +68,21 @@ class _HistoryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(s.radiusMd),
-                child: Image.file(
-                  File(entry.localPath),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  errorBuilder: (_, _, _) => Container(
-                    color: p.surfaceVariant,
-                    child: Icon(Icons.broken_image_outlined, color: p.border),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(s.radiusMd),
+                  border: Border.all(color: p.border),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(s.radiusMd - 1),
+                  child: Image.file(
+                    File(entry.localPath),
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (_, _, _) => Container(
+                      color: p.surfaceVariant,
+                      child: Icon(Icons.broken_image_outlined, color: p.border),
+                    ),
                   ),
                 ),
               ),

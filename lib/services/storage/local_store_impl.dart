@@ -125,6 +125,10 @@ class LocalStoreImpl implements LocalStore {
       for (final entry in entries.where((e) => e.id == id)) {
         final file = File(entry.localPath);
         if (await file.exists()) await file.delete();
+        if (entry.originalPath != null) {
+          final orig = File(entry.originalPath!);
+          if (await orig.exists()) await orig.delete();
+        }
       }
       entries.removeWhere((e) => e.id == id);
       await _writeIndex(entries);
@@ -140,6 +144,25 @@ class LocalStoreImpl implements LocalStore {
       final dir = await _historyDir();
       final target = File('${dir.path}/$id.jpg');
       await File(sessionPath).copy(target.path);
+      return Success<String>(target.path);
+    } catch (e) {
+      return _storageFailure<String>(e);
+    }
+  }
+
+  @override
+  Future<Result<String>> adoptOriginalIntoHistory(
+    String originalPath,
+    String id,
+  ) async {
+    try {
+      final origFile = File(originalPath);
+      if (!await origFile.exists()) {
+        return Success<String>(originalPath);
+      }
+      final dir = await _historyDir();
+      final target = File('${dir.path}/${id}_orig.jpg');
+      await origFile.copy(target.path);
       return Success<String>(target.path);
     } catch (e) {
       return _storageFailure<String>(e);

@@ -30,7 +30,15 @@ class EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: s.iconLg, color: p.textTertiary),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: p.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: s.iconLg, color: p.primary),
+            ),
             SizedBox(height: s.md),
             Text(
               messageKey.tr,
