@@ -52,10 +52,11 @@ class HomeView extends GetView<HomeController> {
             children: <Widget>[
               PrimaryButton(
                 labelKey: AppStrings.homePickPhoto,
+                icon: Icons.add_photo_alternate_rounded,
                 isLoading: controller.isPicking,
                 onPressed: controller.onPickPhoto,
               ),
-              SizedBox(height: s.sm),
+              SizedBox(height: s.md),
               SavesIndicator(
                 savesLeft: controller.savesLeft.value,
                 of: HomeController.freeSavesPerMonth,
@@ -83,10 +84,13 @@ class HomeView extends GetView<HomeController> {
                   shrinkWrap: true,
                   onTap: (_) => controller.openHistory(),
                 ),
+                SizedBox(height: s.xxl),
+                const InteractiveDemoCard(),
               ],
             ],
           ),
         );
+
       }),
     );
   }

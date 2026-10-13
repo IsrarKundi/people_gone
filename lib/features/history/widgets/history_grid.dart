@@ -72,17 +72,55 @@ class _HistoryTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(s.radiusMd),
                   border: Border.all(color: p.border),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: p.scrim.withValues(alpha: 0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(s.radiusMd - 1),
-                  child: Image.file(
-                    File(entry.localPath),
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (_, _, _) => Container(
-                      color: p.surfaceVariant,
-                      child: Icon(Icons.broken_image_outlined, color: p.border),
-                    ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      Image.file(
+                        File(entry.localPath),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (_, _, _) => Container(
+                          color: p.surfaceVariant,
+                          child: Icon(Icons.broken_image_outlined, color: p.border),
+                        ),
+                      ),
+                      Positioned(
+                        top: s.xs,
+                        right: s.xs,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(s.radiusSm),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(Icons.check_circle, size: 9, color: p.overlayKept),
+                              const SizedBox(width: 2),
+                              Text(
+                                'Cleaned',
+                                style: context.textStyles.labelMd.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -90,11 +128,15 @@ class _HistoryTile extends StatelessWidget {
             SizedBox(height: s.xs),
             Text(
               dateLabel,
-              style: context.textStyles.bodySm.copyWith(color: p.textSecondary),
+              style: context.textStyles.bodySm.copyWith(
+                color: p.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
       ),
     );
+
   }
 }

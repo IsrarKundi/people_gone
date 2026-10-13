@@ -20,20 +20,49 @@ class SavesIndicator extends StatelessWidget {
     final label = AppStrings.homeSavesLeft.trParams(<String, String>{
       'count': '$savesLeft',
     });
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(label, style: context.textStyles.labelLg),
-        SizedBox(height: s.sm),
-        Semantics(
-          label: label,
-          child: LinearProgressIndicator(
-            value: of == 0 ? 0 : savesLeft / of,
-            color: p.primary,
-            backgroundColor: p.surfaceVariant,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: s.md, vertical: s.sm + 2),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(s.radiusMd),
+        border: Border.all(color: p.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(
+                label,
+                style: context.textStyles.labelLg.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Icon(
+                Icons.shield_outlined,
+                size: s.iconSm,
+                color: p.textTertiary,
+              ),
+            ],
           ),
-        ),
-      ],
+          SizedBox(height: s.xs + 2),
+          Semantics(
+            label: label,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(s.radiusSm),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: of == 0 ? 0 : savesLeft / of,
+                color: p.primary,
+                backgroundColor: p.surfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+

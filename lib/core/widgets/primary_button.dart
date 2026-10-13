@@ -12,6 +12,7 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.labelParams,
+    this.icon,
   });
 
   /// String key; buttons are named by their outcome (Design Direction §1).
@@ -19,6 +20,7 @@ class PrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final Map<String, String>? labelParams;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +37,14 @@ class PrimaryButton extends StatelessWidget {
           foregroundColor: p.onPrimary,
           disabledBackgroundColor: p.surfaceVariant,
           disabledForegroundColor: p.textTertiary,
-          elevation: 0,
+          elevation: disabled ? 0 : 2,
+          shadowColor: p.primary.withValues(alpha: 0.35),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(s.radiusMd),
+            borderRadius: BorderRadius.circular(s.radiusLg),
           ),
-          textStyle: context.textStyles.labelLg,
+          textStyle: context.textStyles.labelLg.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         child: isLoading
             ? SizedBox(
@@ -50,8 +55,19 @@ class PrimaryButton extends StatelessWidget {
                   color: p.onPrimary,
                 ),
               )
-            : Text(labelParams != null ? labelKey.trParams(labelParams!) : labelKey.tr),
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  if (icon != null) ...<Widget>[
+                    Icon(icon, size: s.iconSm, color: p.onPrimary),
+                    SizedBox(width: s.sm),
+                  ],
+                  Text(labelParams != null ? labelKey.trParams(labelParams!) : labelKey.tr),
+                ],
+              ),
       ),
     );
   }
 }
+
