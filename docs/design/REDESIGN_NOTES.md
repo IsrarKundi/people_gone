@@ -78,13 +78,49 @@ The previous design system dogmatically confused "calm and honest" with "sterile
   - Maintained compliance access: tap on "Processing details" opens the full §11.2A trust sheet.
   - Respects calm disclosure rules without exposing raw internal worker identifiers.
 
-### S4 Proposal Screen & Visual Keeper Selection (Next)
-- Extending worker with `/detect` endpoint and person bounding boxes.
-- Building proposal screen with face/crop avatars so users visually distinguish subjects from bystanders.
+### S4 Proposal Screen & Visual Keeper Selection (Fixed)
+- **Problem Fixed:** S4 proposal screen was missing from the app flow; users had no way to inspect or correct detection before processing; "Kept the wrong person?" sheet used abstract labels ("Person 1", "Person 2") with no visual indication of who was who.
+- **Solution:**
+  - Extended worker pipeline with `/detect` endpoint returning normalized person bounding boxes (`[ymin, xmin, ymax, xmax]`), label, confidence, and `is_primary_subject` heuristic.
+  - Extended Flutter `ProcessingApi` with `detectPersons(...)` and graceful single-call fallback if the server only provides `/process`.
+  - Built `ProposalView` and `ProposalController`:
+    - Canvas overlays detected person boxes with emerald (kept subject) and crimson (removed bystander) indicators.
+    - Horizontal tray of `PersonThumbnail` chips: custom-painted face/upper-body crops directly from the decoded photo in GPU memory. Users can instantly identify each person visually.
+    - Tap on chip or box toggles keeper status. Clear action: "Clean photo (removes N people)".
+  - Updated S7's "Kept the wrong person?" sheet (`WrongKeeperSheet`) to use the exact same `PersonThumbnail` visual face crops, completely eliminating the keeper identification flaw everywhere.
 
-### S3/S6 Processing (Next)
-- Harmonizing photo canvas background, staged progress cues, and honest ~2-minute copy.
+### S3/S6 Processing Screen (Fixed)
+- **Problem Fixed:** Letterbox/scrim mismatch with harsh background cuts; claustrophobic waiting experience; lack of clear expectation setting for the ~2 minute CPU processing time.
+- **Solution:**
+  - Implemented deep photographic studio darkroom canvas (`#0B0D11`) matching photo aspect ratios without jarring letterboxing.
+  - Truthful staging: explicit upload bytes tracking (real percentage) vs serverless processing (indeterminate spinner with staged status messages: "Uploading photo...", "Analyzing and inpainting...", "Finalizing photo...").
+  - Honest copy: "Takes about 2 minutes on our processing pipeline. We're removing background people at full original resolution." (Strict adherence to the 2-minute CPU processing fact; zero fake speed claims).
 
-### S7 Result Screen (Next)
-- Streamlining top navigation bar, floating compare capsule, and reorganizing disclosures above a full-width Save button.
+### S7 Result Screen (Fixed)
+- **Problem Fixed:** Floating chrome colliding with photo details; disclosure pile-up creating visual clutter below the image; cramped action row.
+- **Solution:**
+  - Replaced floating ad-hoc badges with a clean photographic top bar: close button, quick zoom toggle, and interactive before/after compare toggle.
+  - Interactive split slider / hold-to-compare overlay directly on the canvas.
+  - Disclosure reorganization: Replaced the vertical stack of bullet points with a clean, scannable trust capsule:
+    - Primary summary: "N people removed · Free save (X of 10 remaining)".
+    - Expandable info sheet: Preserves all mandatory §11.2B facts (location metadata preserved, temporary server copies auto-deleted within 24h, feedback/report option).
+  - Primary "Save photo" button is full-width, dominant, and elevated, accompanied by secondary share/options.
+  - "Kept the wrong person?" button cleanly opens the visual keeper correction sheet.
+
+---
+
+## 4. Verification & Health
+
+- **Flutter Analyze:** 0 issues found (clean).
+- **Flutter Tests:** 65 / 65 tests passing.
+- **Golden / Review Screenshots Captured:**
+  - `s1_home_light.png` & `s1_home_dark.png` (empty state with interactive demo card)
+  - `s1_home_history.png` (with-history state)
+  - `s1_home_textscale130.png` (accessibility at 1.3x text scale)
+  - `s2_consent.png` (structured trust pillars)
+  - `s4_proposal_light.png` & `s4_proposal_dark.png` (visual face chips & proposal canvas)
+  - `s6_processing.png` (darkroom studio & honest timing)
+  - `s7_result.png`, `s7_result_compare.png`, `s7_wrong_keeper_sheet.png` (result chrome, compare slider, visual face chips)
+  - `s9_history.png` & `s9_history_detail.png` (history list & interactive compare slider)
+  - `s10_settings.png` (elevated grouped cards)
 

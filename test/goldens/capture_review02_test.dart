@@ -32,13 +32,14 @@ import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
 import 'package:people_gone/features/picker/controller/picker_controller.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
+import 'package:people_gone/features/proposal/model/proposal_args.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
 
 const String _originalPath =
-    '/home/hatch/workspace/peoplegone/phase0-run/results/user-photo/input.jpg';
+    '/Users/mc/people_gone/assets/images/demo_original.jpg';
 const String _resultPath =
-    '/home/hatch/workspace/peoplegone/modal-deploy/smoke_output.jpg';
+    '/Users/mc/people_gone/assets/images/demo_result.jpg';
 
 final bool _capture = Platform.environment['PG_CAPTURE'] == '1';
 final bool _photosExist =
@@ -490,5 +491,79 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await snap(tester, 's10_settings.png');
+  });
+
+  testWidgets('S4 Proposal, light and dark', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    final proposal = DetectionProposal(
+      photoPath: _originalPath,
+      personsDetected: 3,
+      keeperIds: const <int>[0],
+      removedIds: const <int>[1, 2],
+      persons: const <DetectedPerson>[
+        DetectedPerson(id: 0, box: <int>[500, 300, 700, 800], score: 0.95, isKeeper: true),
+        DetectedPerson(id: 1, box: <int>[200, 400, 350, 750], score: 0.88, isKeeper: false),
+        DetectedPerson(id: 2, box: <int>[800, 420, 950, 720], score: 0.82, isKeeper: false),
+      ],
+      inputDimensions: const <int>[1200, 900],
+    );
+    await primeImages(tester);
+    await pumpApp(tester, mode: ThemeMode.light);
+    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    await settleFrames(tester);
+    await snap(tester, 's4_proposal_light.png');
+
+    await pumpApp(tester, mode: ThemeMode.dark);
+    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    await settleFrames(tester);
+    await snap(tester, 's4_proposal_dark.png');
+  });
+
+  testWidgets('S7 Result, wrong keeper sheet with visual crops', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    await primeImages(tester);
+    await pumpApp(tester);
+    Get.offNamed<void>(
+      Routes.result,
+      arguments: const ProcessingOutcome(
+        originalPath: _originalPath,
+        resultPath: _resultPath,
+        personsDetected: 2,
+        keeperIds: <int>[0],
+        removedIds: <int>[1],
+        totalSeconds: 4.2,
+        engineUsed: 'mat',
+        persons: <DetectedPerson>[
+          DetectedPerson(id: 0, box: <int>[500, 300, 700, 800], score: 0.95, isKeeper: true),
+          DetectedPerson(id: 1, box: <int>[200, 400, 350, 750], score: 0.88, isKeeper: false),
+        ],
+      ),
+    );
+    await settleFrames(tester);
+    await tester.tap(find.text('Kept the wrong person?'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await snap(tester, 's7_wrong_keeper_sheet.png');
+    Get.back<void>();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('S9 History Detail with before/after compare slider', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    await primeImages(tester);
+    await pumpApp(tester);
+    Get.toNamed<void>(
+      Routes.historyDetail,
+      arguments: HistoryEntry(
+        id: 'hist_1',
+        localPath: _resultPath,
+        originalPath: _originalPath,
+        savedAt: DateTime.utc(2026, 10, 14),
+      ),
+    );
+    await settleFrames(tester);
+    await snap(tester, 's9_history_detail.png');
   });
 }
