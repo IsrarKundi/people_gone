@@ -157,6 +157,29 @@ class CaptureApi implements ProcessingApi {
 
   @override
   void cancelOngoing() {}
+
+  @override
+  Future<Result<TouchupOutcome>> touchupPhoto({
+    required String localPath,
+    required Uint8List maskPng,
+    void Function(double fraction)? onUploadProgress,
+  }) async => const Failure<TouchupOutcome>(
+    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+  );
+
+  @override
+  Future<Result<SaveCreditDecision>> consumeSaveCredit({
+    required String idempotencyKey,
+  }) async => const Failure<SaveCreditDecision>(
+    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+  );
+
+  @override
+  Future<Result<void>> refundSaveCredit({
+    required String idempotencyKey,
+  }) async => const Failure<void>(
+    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+  );
 }
 
 class CaptureBinding extends Bindings {
@@ -496,26 +519,34 @@ void main() {
   testWidgets('S4 Proposal, light and dark', (tester) async {
     if (!_capture) return;
     if (!_photosExist) return;
+    // Boxes are REAL pixel coordinates on the current demo pair
+    // (cafe photo, 639x360): keeper in the armchair + 3 background
+    // people, matching the live worker's /detect output for this asset.
     final proposal = DetectionProposal(
       photoPath: _originalPath,
-      personsDetected: 3,
+      personsDetected: 4,
       keeperIds: const <int>[0],
-      removedIds: const <int>[1, 2],
+      removedIds: const <int>[1, 2, 3],
       persons: const <DetectedPerson>[
-        DetectedPerson(id: 0, box: <int>[500, 300, 700, 800], score: 0.95, isKeeper: true),
-        DetectedPerson(id: 1, box: <int>[200, 400, 350, 750], score: 0.88, isKeeper: false),
-        DetectedPerson(id: 2, box: <int>[800, 420, 950, 720], score: 0.82, isKeeper: false),
+        DetectedPerson(id: 0, box: <int>[250, 100, 495, 360], score: 0.95, isKeeper: true),
+        DetectedPerson(id: 1, box: <int>[210, 135, 295, 270], score: 0.88, isKeeper: false),
+        DetectedPerson(id: 2, box: <int>[138, 150, 196, 258], score: 0.84, isKeeper: false),
+        DetectedPerson(id: 3, box: <int>[428, 38, 548, 150], score: 0.81, isKeeper: false),
       ],
-      inputDimensions: const <int>[1200, 900],
+      inputDimensions: const <int>[639, 360],
     );
     await primeImages(tester);
     await pumpApp(tester, mode: ThemeMode.light);
     Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    // 400ms: let the route transition finish (a 100ms settle captures
+    // the fade-in mid-flight and the whole screen reads washed out).
+    await tester.pump(const Duration(milliseconds: 400));
     await settleFrames(tester);
     await snap(tester, 's4_proposal_light.png');
 
     await pumpApp(tester, mode: ThemeMode.dark);
     Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    await tester.pump(const Duration(milliseconds: 400));
     await settleFrames(tester);
     await snap(tester, 's4_proposal_dark.png');
   });
@@ -536,8 +567,8 @@ void main() {
         totalSeconds: 4.2,
         engineUsed: 'mat',
         persons: <DetectedPerson>[
-          DetectedPerson(id: 0, box: <int>[500, 300, 700, 800], score: 0.95, isKeeper: true),
-          DetectedPerson(id: 1, box: <int>[200, 400, 350, 750], score: 0.88, isKeeper: false),
+          DetectedPerson(id: 0, box: <int>[250, 100, 495, 360], score: 0.95, isKeeper: true),
+          DetectedPerson(id: 1, box: <int>[210, 135, 295, 270], score: 0.88, isKeeper: false),
         ],
       ),
     );
@@ -565,5 +596,217 @@ void main() {
     );
     await settleFrames(tester);
     await snap(tester, 's9_history_detail.png');
+  });
+
+  // ---- Review 04 evidence: dark set, 1.30 set, delete dialog, S4 states ----
+
+  testWidgets('S6 Processing, dark', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    api.gate = Completer<Result<ProcessedPhoto>>();
+    await primeImages(tester);
+    await pumpApp(tester, mode: ThemeMode.dark);
+    Get.toNamed<void>(
+      Routes.processing,
+      arguments: const ProcessingArgs(photoPath: _originalPath),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 2));
+    await settleFrames(tester);
+    await snap(tester, 's6_processing_dark.png');
+    api.gate!.complete(
+      const Failure<ProcessedPhoto>(
+        AppFailure(
+          code: 'server',
+          userMessageKey: AppStrings.errorProcessingFailed,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('S7 Result, dark', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    await primeImages(tester);
+    await pumpApp(tester, mode: ThemeMode.dark);
+    Get.offNamed<void>(
+      Routes.result,
+      arguments: const ProcessingOutcome(
+        originalPath: _originalPath,
+        resultPath: _resultPath,
+        personsDetected: 13,
+        keeperIds: <int>[0],
+        removedIds: <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        totalSeconds: 120.2,
+        engineUsed: 'mat',
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's7_result_dark.png');
+  });
+
+  testWidgets('S9 History, dark', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    store.entries = sampleEntries();
+    await primeImages(tester);
+    await pumpApp(tester, mode: ThemeMode.dark);
+    Get.toNamed<void>(Routes.history);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's9_history_dark.png');
+  });
+
+  testWidgets('S10 Settings, dark', (tester) async {
+    if (!_capture) return;
+    store.used = 3;
+    await pumpApp(tester, mode: ThemeMode.dark);
+    Get.toNamed<void>(Routes.settings);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await snap(tester, 's10_settings_dark.png');
+  });
+
+  testWidgets('S2 Consent sheet, text scale 1.30', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    store.consent = null;
+    await pumpApp(tester, textScale: 1.30);
+    await tester.tap(find.text('Pick a photo'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Before your photo is uploaded'), findsOneWidget);
+    await snap(tester, 's2_consent_textscale130.png');
+    await tester.tap(find.text('Cancel'));
+    await tester.pump(const Duration(milliseconds: 250));
+  });
+
+  testWidgets('S6 Processing, text scale 1.30', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    api.gate = Completer<Result<ProcessedPhoto>>();
+    await primeImages(tester);
+    await pumpApp(tester, textScale: 1.30);
+    Get.toNamed<void>(
+      Routes.processing,
+      arguments: const ProcessingArgs(photoPath: _originalPath),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 2));
+    await settleFrames(tester);
+    await snap(tester, 's6_processing_textscale130.png');
+    api.gate!.complete(
+      const Failure<ProcessedPhoto>(
+        AppFailure(
+          code: 'server',
+          userMessageKey: AppStrings.errorProcessingFailed,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('S7 Result, text scale 1.30', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    await primeImages(tester);
+    await pumpApp(tester, textScale: 1.30);
+    Get.offNamed<void>(
+      Routes.result,
+      arguments: const ProcessingOutcome(
+        originalPath: _originalPath,
+        resultPath: _resultPath,
+        personsDetected: 13,
+        keeperIds: <int>[0],
+        removedIds: <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        totalSeconds: 120.2,
+        engineUsed: 'mat',
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's7_result_textscale130.png');
+  });
+
+  testWidgets('S10 Settings, text scale 1.30', (tester) async {
+    if (!_capture) return;
+    store.used = 3;
+    await pumpApp(tester, textScale: 1.30);
+    Get.toNamed<void>(Routes.settings);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await snap(tester, 's10_settings_textscale130.png');
+  });
+
+  testWidgets('S9 Delete confirmation dialog', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    await primeImages(tester);
+    await pumpApp(tester);
+    Get.toNamed<void>(
+      Routes.historyDetail,
+      arguments: HistoryEntry(
+        id: 'hist_1',
+        localPath: _resultPath,
+        originalPath: _originalPath,
+        savedAt: DateTime.utc(2026, 10, 14),
+      ),
+    );
+    await settleFrames(tester);
+    await tester.tap(find.text('Delete'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await settleFrames(tester);
+    await snap(tester, 's9_delete_dialog.png');
+    await tester.tap(find.text('Cancel'));
+    await tester.pump(const Duration(milliseconds: 200));
+  });
+
+  testWidgets('S4 Proposal, keep-all state', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    final proposal = DetectionProposal(
+      photoPath: _originalPath,
+      personsDetected: 4,
+      keeperIds: const <int>[0, 1, 2, 3],
+      removedIds: const <int>[],
+      persons: const <DetectedPerson>[
+        DetectedPerson(id: 0, box: <int>[250, 100, 495, 360], score: 0.95, isKeeper: true),
+        DetectedPerson(id: 1, box: <int>[210, 135, 295, 270], score: 0.88, isKeeper: true),
+        DetectedPerson(id: 2, box: <int>[138, 150, 196, 258], score: 0.84, isKeeper: true),
+        DetectedPerson(id: 3, box: <int>[428, 38, 548, 150], score: 0.81, isKeeper: true),
+      ],
+      inputDimensions: const <int>[639, 360],
+    );
+    await primeImages(tester);
+    await pumpApp(tester);
+    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    await snap(tester, 's4_proposal_keepall.png');
+  });
+
+  testWidgets('S4 Proposal, no people state', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) return;
+    final proposal = DetectionProposal(
+      photoPath: _originalPath,
+      personsDetected: 0,
+      keeperIds: const <int>[],
+      removedIds: const <int>[],
+      persons: const <DetectedPerson>[],
+      inputDimensions: const <int>[639, 360],
+    );
+    await primeImages(tester);
+    await pumpApp(tester);
+    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    await settleFrames(tester);
+    await snap(tester, 's4_proposal_nopeople.png');
   });
 }

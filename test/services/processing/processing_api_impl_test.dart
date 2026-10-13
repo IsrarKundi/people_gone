@@ -75,6 +75,9 @@ void main() {
       consentVersion: 1,
       supportEmail: 'support@example.com',
       privacyPolicyUrl: 'https://example.invalid/privacy',
+      useGateway: false,
+      supabaseUrl: '',
+      supabaseAnonKey: '',
     );
   });
 

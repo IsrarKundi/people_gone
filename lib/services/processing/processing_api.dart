@@ -32,6 +32,33 @@ abstract interface class ProcessingApi {
     void Function(double fraction)? onUploadProgress,
   });
 
+  /// Brush touch-up (FR-09 / S5): inpaints ONLY the region painted in
+  /// [maskPng] (a PNG the size of the photo at [localPath]) on that
+  /// photo and returns the updated photo. Pixels outside the mask are
+  /// returned identical (composite-only paste, §6.4 step 6 pattern).
+  /// A touch-up never consumes a save (it repairs the current result).
+  Future<Result<TouchupOutcome>> touchupPhoto({
+    required String localPath,
+    required Uint8List maskPng,
+    void Function(double fraction)? onUploadProgress,
+  });
+
+  /// The save-time credit gate (§7.3): atomically consumes ONE save
+  /// credit for the result the user is saving, in the SERVER ledger.
+  /// Processing, cancelling and failed jobs never consume (§9.1).
+  /// [idempotencyKey] makes a retried Save consume at most once.
+  /// Only the gateway implementation has a ledger; the direct dev
+  /// implementation fails loudly so a misconfigured build can never
+  /// silently skip the gate.
+  Future<Result<SaveCreditDecision>> consumeSaveCredit({
+    required String idempotencyKey,
+  });
+
+  /// Compensates a credit consumed by [consumeSaveCredit] when the
+  /// local save it paid for could not be completed (§7.2: a failed
+  /// delivery refunds automatically). Idempotent on the same key.
+  Future<Result<void>> refundSaveCredit({required String idempotencyKey});
+
   /// Cancels the in-flight processing or detection call, if any.
   /// Cancelling consumes nothing (FR-07). The app runs one job at a time.
   void cancelOngoing();
@@ -117,4 +144,38 @@ class ProcessedPhoto {
 
   /// Detected person instances with bounding boxes, if returned by server.
   final List<DetectedPerson> persons;
+}
+
+/// Outcome of a brush touch-up (S5 / FR-09): the updated photo bytes,
+/// written over the current result by the caller (session file pattern,
+/// same as [ProcessedPhoto]).
+class TouchupOutcome {
+  const TouchupOutcome({
+    required this.resultBytes,
+    required this.engineUsed,
+    required this.totalSeconds,
+  });
+
+  /// Full-resolution result JPEG bytes; dimensions equal the input's.
+  final Uint8List resultBytes;
+  final String engineUsed;
+  final double totalSeconds;
+}
+
+/// The server ledger's answer at Save time (§7.3): the credit was
+/// consumed ([allowed]) or the user must pay first
+/// ([paymentRequired] -> S8). [savesLeft] is the server's free-tier
+/// count AFTER the decision; null for Pro (fair-use governed, §9.4).
+class SaveCreditDecision {
+  const SaveCreditDecision({
+    required this.allowed,
+    required this.paymentRequired,
+    required this.isPro,
+    this.savesLeft,
+  });
+
+  final bool allowed;
+  final bool paymentRequired;
+  final bool isPro;
+  final int? savesLeft;
 }

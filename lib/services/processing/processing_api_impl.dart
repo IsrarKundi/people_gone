@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
@@ -172,6 +173,137 @@ class ProcessingApiImpl implements ProcessingApi {
     // Unreachable — the loop always returns — but the compiler needs it.
     return const Failure<ProcessedPhoto>(
       AppFailure(code: 'unknown', userMessageKey: AppStrings.errorGeneric),
+    );
+  }
+
+
+  @override
+  Future<Result<TouchupOutcome>> touchupPhoto({
+    required String localPath,
+    required Uint8List maskPng,
+    void Function(double fraction)? onUploadProgress,
+  }) async {
+    if (_config.apiBaseUrl.isEmpty) {
+      return const Failure<TouchupOutcome>(
+        AppFailure(
+          code: 'misconfigured',
+          userMessageKey: AppStrings.errorNotImplemented,
+          detail: 'API base URL is empty.',
+        ),
+      );
+    }
+    final file = File(localPath);
+    if (!await file.exists()) {
+      return const Failure<TouchupOutcome>(
+        AppFailure(
+          code: 'missing_file',
+          userMessageKey: AppStrings.errorGeneric,
+          detail: 'Photo to touch up no longer exists on disk.',
+        ),
+      );
+    }
+
+    // Same retry-once contract guidance as /process (cold starts).
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final token = CancelToken();
+      _currentToken = token;
+      try {
+        final form = FormData.fromMap(<String, dynamic>{
+          'file': await MultipartFile.fromFile(
+            localPath,
+            filename: localPath.split('/').last,
+          ),
+          'mask_png': MultipartFile.fromBytes(
+            maskPng,
+            filename: 'mask.png',
+          ),
+          'engine': 'mat',
+        });
+        final response = await _dio.post<dynamic>(
+          '/touchup',
+          data: form,
+          cancelToken: token,
+          onSendProgress: (sent, total) {
+            if (onUploadProgress == null || total <= 0) return;
+            final fraction = sent / total;
+            onUploadProgress(fraction.clamp(0.0, 1.0));
+          },
+        );
+        return _parseTouchupResponse(response.data);
+      } on DioException catch (e) {
+        final failure = _mapError<TouchupOutcome>(e);
+        if (attempt == 0 && _isRetryable(e)) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          continue;
+        }
+        return failure;
+      } finally {
+        if (identical(_currentToken, token)) _currentToken = null;
+      }
+    }
+    return const Failure<TouchupOutcome>(
+      AppFailure(code: 'unknown', userMessageKey: AppStrings.errorGeneric),
+    );
+  }
+
+  Result<TouchupOutcome> _parseTouchupResponse(dynamic data) {
+    try {
+      final map = data as Map<String, dynamic>;
+      if (map['ok'] != true) {
+        return const Failure<TouchupOutcome>(
+          AppFailure(
+            code: 'server',
+            userMessageKey: AppStrings.errorProcessingFailed,
+            detail: 'Worker returned ok != true.',
+          ),
+        );
+      }
+      final bytes = base64Decode(map['image_base64'] as String);
+      final meta = map['meta'] as Map<String, dynamic>? ?? <String, dynamic>{};
+      return Success<TouchupOutcome>(
+        TouchupOutcome(
+          resultBytes: bytes,
+          engineUsed: meta['engine_used'] as String? ?? '',
+          totalSeconds: (meta['total_seconds'] as num?)?.toDouble() ?? 0,
+        ),
+      );
+    } catch (e) {
+      return Failure<TouchupOutcome>(
+        AppFailure(
+          code: 'bad_response',
+          userMessageKey: AppStrings.errorProcessingFailed,
+          detail: 'Unparseable worker touchup response: $e',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<SaveCreditDecision>> consumeSaveCredit({
+    required String idempotencyKey,
+  }) async {
+    // The direct dev worker has no ledger. Failing loudly (never a
+    // fake "allowed") keeps a misconfigured build from skipping the
+    // save-time credit gate (§7.3); production uses the gateway.
+    return const Failure<SaveCreditDecision>(
+      AppFailure(
+        code: 'requires_gateway',
+        userMessageKey: AppStrings.errorNotImplemented,
+        detail: 'Save-credit gate exists only on the gateway path (§7.3).',
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> refundSaveCredit({
+    required String idempotencyKey,
+  }) async {
+    return const Failure<void>(
+      AppFailure(
+        code: 'requires_gateway',
+        userMessageKey: AppStrings.errorNotImplemented,
+        detail: 'Save-credit refunds exist only on the gateway path (§7.2).',
+      ),
     );
   }
 

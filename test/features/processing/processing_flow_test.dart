@@ -72,6 +72,29 @@ class FakeProcessingApi implements ProcessingApi {
 
   @override
   void cancelOngoing() {}
+
+  @override
+  Future<Result<TouchupOutcome>> touchupPhoto({
+    required String localPath,
+    required Uint8List maskPng,
+    void Function(double fraction)? onUploadProgress,
+  }) async => const Failure<TouchupOutcome>(
+    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+  );
+
+  @override
+  Future<Result<SaveCreditDecision>> consumeSaveCredit({
+    required String idempotencyKey,
+  }) async => const Failure<SaveCreditDecision>(
+    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+  );
+
+  @override
+  Future<Result<void>> refundSaveCredit({
+    required String idempotencyKey,
+  }) async => const Failure<void>(
+    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+  );
 }
 
 class FakeLocalStore implements LocalStore {
@@ -147,6 +170,9 @@ class TestBinding extends Bindings {
         consentVersion: 1,
         supportEmail: 'support@example.com',
         privacyPolicyUrl: 'https://example.invalid/privacy',
+        useGateway: false,
+        supabaseUrl: '',
+        supabaseAnonKey: '',
       ),
     );
   }
