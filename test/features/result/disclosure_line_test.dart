@@ -11,13 +11,12 @@ void main() {
   tearDown(Get.reset);
 
   /// The rendered paragraph whose plain text contains [needle].
-  Finder richContaining(String needle) =>
-      find.byWidgetPredicate((widget) {
-        if (widget is RichText) {
-          return widget.text.toPlainText().contains(needle);
-        }
-        return false;
-      });
+  Finder richContaining(String needle) => find.byWidgetPredicate((widget) {
+    if (widget is RichText) {
+      return widget.text.toPlainText().contains(needle);
+    }
+    return false;
+  });
 
   Future<void> pumpLine(
     WidgetTester tester, {

@@ -35,8 +35,10 @@ class FakeStore implements LocalStore {
       const Success<void>(null);
 
   @override
-  Future<Result<String>> adoptIntoHistory(String sessionPath, String id) async =>
-      Success<String>(sessionPath);
+  Future<Result<String>> adoptIntoHistory(
+    String sessionPath,
+    String id,
+  ) async => Success<String>(sessionPath);
 
   @override
   Future<Result<String>> writeSessionResult(Uint8List bytes) async =>
@@ -98,9 +100,7 @@ void main() {
   ) async {
     await pumpSettings(tester, FakeStore());
     final label = tester.getRect(find.text('Processing provider'));
-    final value = tester.getRect(
-      find.text("PeopleGone's processing servers"),
-    );
+    final value = tester.getRect(find.text("PeopleGone's processing servers"));
     expect(value.left - label.right, greaterThanOrEqualTo(8));
   });
 }

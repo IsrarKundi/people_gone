@@ -115,7 +115,10 @@ void main() {
 
     test('reset date rolls over the year boundary', () async {
       now = DateTime.utc(2026, 12, 20);
-      expect(unwrap(await store.freeSavesResetDate()), DateTime.utc(2027, 1, 1));
+      expect(
+        unwrap(await store.freeSavesResetDate()),
+        DateTime.utc(2027, 1, 1),
+      );
     });
   });
 

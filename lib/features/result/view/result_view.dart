@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/photo_surface.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../controller/result_controller.dart';
@@ -77,79 +78,99 @@ class ResultView extends GetView<ResultController> {
     return Obx(() {
       final comparing = controller.compareMode.value;
       final holding = controller.showOriginal.value;
-      return Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          if (comparing)
-            CompareSlider(
-              originalPath: outcome.originalPath,
-              resultPath: outcome.resultPath,
-            )
-          else
-            GestureDetector(
-              onLongPressStart: (_) => controller.showOriginal.value = true,
-              onLongPressEnd: (_) => controller.showOriginal.value = false,
-              onLongPressCancel: () => controller.showOriginal.value = false,
-              child: Image.file(
-                File(holding ? outcome.originalPath : outcome.resultPath),
-                fit: BoxFit.contain,
-                cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-            ),
-          Positioned(
-            left: s.screenPadding,
-            right: s.screenPadding,
-            top: s.screenPadding,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                _chromeButton(
-                  context,
-                  icon: Icons.close,
-                  onPressed: controller.goHome,
+      final shownPath = holding && !comparing
+          ? outcome.originalPath
+          : outcome.resultPath;
+      return PhotoSurface(
+        imageProvider: ResizeImage(
+          FileImage(File(shownPath)),
+          width: MediaQuery.sizeOf(context).width.toInt(),
+        ),
+        builder: (context, band) => Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            if (comparing)
+              CompareSlider(
+                originalPath: outcome.originalPath,
+                resultPath: outcome.resultPath,
+              )
+            else
+              GestureDetector(
+                onLongPressStart: (_) => controller.showOriginal.value = true,
+                onLongPressEnd: (_) => controller.showOriginal.value = false,
+                onLongPressCancel: () => controller.showOriginal.value = false,
+                child: Image.file(
+                  File(shownPath),
+                  fit: BoxFit.contain,
+                  cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
-                if (holding && !comparing)
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: s.md,
-                      vertical: s.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: p.photoChromeBg,
-                      borderRadius: BorderRadius.circular(s.radiusPill),
-                    ),
-                    child: Text(
-                      AppStrings.resultOriginal.tr,
-                      style: context.textStyles.labelMd.copyWith(
-                        color: p.photoChromeFg,
-                      ),
-                    ),
-                  )
-                else
+              ),
+            // Chrome pins to the PHOTO band's top corners, on the
+            // photo — never floating in the letterbox (Review 02
+            // F3/A3).
+            Positioned(
+              left: band.left + s.sm,
+              top: band.top + s.sm,
+              width: (band.width - s.sm * 2).clamp(0.0, double.infinity),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
                   _chromeButton(
                     context,
-                    icon: Icons.compare,
-                    onPressed: controller.toggleCompare,
+                    icon: Icons.close,
+                    onPressed: controller.goHome,
                   ),
-              ],
+                  if (holding && !comparing)
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: s.md,
+                        vertical: s.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: p.photoChromeBg,
+                        borderRadius: BorderRadius.circular(s.radiusPill),
+                      ),
+                      child: Text(
+                        AppStrings.resultOriginal.tr,
+                        style: context.textStyles.labelMd.copyWith(
+                          color: p.photoChromeFg,
+                        ),
+                      ),
+                    )
+                  else
+                    _chromeButton(
+                      context,
+                      icon: Icons.compare,
+                      onPressed: controller.toggleCompare,
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
 
+  /// Exactly 48dp of photoChrome (Review 02 F3) — the size is a
+  /// token (`giant`), never whatever an unconstrained IconButton
+  /// happens to lay out at.
   Widget _chromeButton(
     BuildContext context, {
     required IconData icon,
     required VoidCallback onPressed,
   }) {
     final p = context.palette;
+    final s = context.sizes;
     return Container(
+      width: s.giant,
+      height: s.giant,
       decoration: BoxDecoration(color: p.photoChromeBg, shape: BoxShape.circle),
       child: IconButton(
-        icon: Icon(icon, color: p.photoChromeFg),
+        icon: Icon(icon, color: p.photoChromeFg, size: s.iconMd),
+        padding: EdgeInsets.zero,
+        constraints: BoxConstraints.tightFor(width: s.giant, height: s.giant),
         onPressed: onPressed,
       ),
     );

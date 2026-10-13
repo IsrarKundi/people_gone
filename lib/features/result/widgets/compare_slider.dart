@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../core/widgets/photo_surface.dart';
 
 /// Before/after slider compare (FR-13, Design Direction §4 S7): the
 /// original on the left of the divider, the result on the right. Both
@@ -69,63 +70,73 @@ class _CompareSliderState extends State<CompareSlider> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final height = constraints.maxHeight;
-        final dividerX = _fraction * width;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: (d) => _setFromX(d.localPosition.dx, width),
-          onTapDown: (d) => _setFromX(d.localPosition.dx, width),
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              _image(context, widget.resultPath),
-              ClipRect(
-                clipper: _FractionClip(_fraction),
-                child: _image(context, widget.originalPath),
-              ),
-              Positioned(
-                left: dividerX - 1,
-                top: 0,
-                bottom: 0,
-                child: Container(width: 2, color: p.photoChromeFg),
-              ),
-              Positioned(
-                left: s.md,
-                top: s.md,
-                child: _label(context, AppStrings.resultBefore),
-              ),
-              Positioned(
-                right: s.md,
-                top: s.md,
-                child: _label(context, AppStrings.resultAfter),
-              ),
-              Positioned(
-                left: dividerX - s.giant / 2,
-                top: height / 2 - s.giant / 2,
-                child: Semantics(
-                  value: '${(_fraction * 100).round()}%',
-                  increasedValue: '${((_fraction + 0.1) * 100).round()}%',
-                  decreasedValue: '${((_fraction - 0.1) * 100).round()}%',
-                  onIncrease: () => _nudge(0.1),
-                  onDecrease: () => _nudge(-0.1),
-                  child: Container(
-                    width: s.giant,
-                    height: s.giant,
-                    decoration: BoxDecoration(
-                      color: p.photoChromeBg,
-                      shape: BoxShape.circle,
+    return PhotoSurface(
+      imageProvider: ResizeImage(
+        FileImage(File(widget.resultPath)),
+        width: MediaQuery.sizeOf(context).width.toInt(),
+      ),
+      builder: (context, band) => LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+          final dividerX = _fraction * width;
+          // Before/After pills sit at the photo band's top corners
+          // BELOW the chrome row (48dp + gap) — labels never overlay
+          // the close/compare controls (Review 02 F7/A7).
+          final pillsTop = band.top + s.sm + s.giant + s.sm;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragUpdate: (d) => _setFromX(d.localPosition.dx, width),
+            onTapDown: (d) => _setFromX(d.localPosition.dx, width),
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                _image(context, widget.resultPath),
+                ClipRect(
+                  clipper: _FractionClip(_fraction),
+                  child: _image(context, widget.originalPath),
+                ),
+                Positioned(
+                  left: dividerX - 1,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(width: 2, color: p.photoChromeFg),
+                ),
+                Positioned(
+                  left: band.left + s.sm,
+                  top: pillsTop,
+                  child: _label(context, AppStrings.resultBefore),
+                ),
+                Positioned(
+                  right: width - band.right + s.sm,
+                  top: pillsTop,
+                  child: _label(context, AppStrings.resultAfter),
+                ),
+                Positioned(
+                  left: dividerX - s.giant / 2,
+                  top: height / 2 - s.giant / 2,
+                  child: Semantics(
+                    value: '${(_fraction * 100).round()}%',
+                    increasedValue: '${((_fraction + 0.1) * 100).round()}%',
+                    decreasedValue: '${((_fraction - 0.1) * 100).round()}%',
+                    onIncrease: () => _nudge(0.1),
+                    onDecrease: () => _nudge(-0.1),
+                    child: Container(
+                      width: s.giant,
+                      height: s.giant,
+                      decoration: BoxDecoration(
+                        color: p.photoChromeBg,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.compare_arrows, color: p.photoChromeFg),
                     ),
-                    child: Icon(Icons.compare_arrows, color: p.photoChromeFg),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

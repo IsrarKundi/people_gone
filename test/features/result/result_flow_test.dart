@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -270,5 +271,64 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('Before'), findsOneWidget);
     expect(find.text('After'), findsOneWidget);
+  });
+
+  /// Lets the photo's intrinsic size resolve (real file IO) so
+  /// PhotoSurface reports the true photo band.
+  Future<void> settlePhotoBand(WidgetTester tester) async {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pump();
+  }
+
+  /// Primes the image cache with the exact provider ResultView uses.
+  /// File-image loads started inside the fake-async zone never
+  /// resolve (the capture harness hit the same trap), so the load
+  /// must complete in runAsync BEFORE the app mounts.
+  Future<void> primePhoto(WidgetTester tester, String path) async {
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.expand()));
+    final context = tester.element(find.byType(SizedBox));
+    final provider = ResizeImage(FileImage(File(path)), width: 800);
+    await tester.runAsync(() async {
+      final stream = provider.resolve(createLocalImageConfiguration(context));
+      final done = Completer<void>();
+      late ImageStreamListener listener;
+      listener = ImageStreamListener((_, _) {
+        stream.removeListener(listener);
+        done.complete();
+      }, onError: (_, _) => done.complete());
+      stream.addListener(listener);
+      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
+    });
+  }
+
+  Finder chromeButton(IconData icon) =>
+      find.ancestor(of: find.byIcon(icon), matching: find.byType(IconButton));
+
+  testWidgets('chrome is exactly 48dp, pinned to the photo band (F3)', (
+    tester,
+  ) async {
+    await primePhoto(tester, resultFile.path);
+    await pumpResult(tester);
+    await settlePhotoBand(tester);
+    final close = chromeButton(Icons.close);
+    expect(tester.getSize(close), const Size(48, 48));
+    final rect = tester.getRect(close);
+    // The 1x1 test photo pillarboxes in the wide photo area, so a
+    // band-pinned button sits far from the screen edge (the old
+    // layout floated it at the area's corner: left 16, top 16).
+    expect(rect.left, greaterThan(100));
+    expect(rect.top, lessThan(16));
+  });
+
+  testWidgets('compare pills sit below the chrome row (F7)', (tester) async {
+    await pumpResult(tester);
+    await tester.tap(find.byIcon(Icons.compare));
+    await tester.pump(const Duration(milliseconds: 50));
+    await settlePhotoBand(tester);
+    final chrome = tester.getRect(chromeButton(Icons.close));
+    final before = tester.getRect(find.text('Before'));
+    expect(before.top, greaterThanOrEqualTo(chrome.bottom - 1));
   });
 }
