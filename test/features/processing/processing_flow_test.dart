@@ -101,6 +101,24 @@ class FakeLocalStore implements LocalStore {
   FakeLocalStore(this.dir);
   final Directory dir;
 
+
+  GatewayJobRecord? gatewayJobRecord;
+
+  @override
+  Future<Result<void>> saveGatewayJob(GatewayJobRecord record) async {
+    gatewayJobRecord = record;
+    return const Success<void>(null);
+  }
+
+  @override
+  Future<Result<GatewayJobRecord?>> gatewayJob() async =>
+      Success<GatewayJobRecord?>(gatewayJobRecord);
+
+  @override
+  Future<Result<void>> clearGatewayJob() async {
+    gatewayJobRecord = null;
+    return const Success<void>(null);
+  }
   @override
   Future<Result<String>> writeSessionResult(Uint8List bytes) async {
     final file = File('${dir.path}/session_result.jpg');

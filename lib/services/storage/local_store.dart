@@ -59,6 +59,63 @@ abstract interface class LocalStore {
 
   /// Records acceptance of [version].
   Future<Result<void>> setAcceptedConsentVersion(int version);
+
+  /// Persists the single in-flight gateway job (§6.7 resumable jobs),
+  /// replacing any previous record.
+  Future<Result<void>> saveGatewayJob(GatewayJobRecord record);
+
+  /// The in-flight gateway job, or null if none is recorded.
+  Future<Result<GatewayJobRecord?>> gatewayJob();
+
+  /// Clears the in-flight gateway job record.
+  Future<Result<void>> clearGatewayJob();
+}
+
+/// One in-flight gateway job, recorded so a relaunch can reattach to a
+/// processing job or confirm an analysed one (§6.7 / §7.3). [stage] is
+/// 'awaitingConfirm' or 'processing'.
+class GatewayJobRecord {
+  const GatewayJobRecord({
+    required this.jobId,
+    required this.photoFingerprint,
+    required this.photoPath,
+    required this.stage,
+    required this.updatedAt,
+  });
+
+  factory GatewayJobRecord.fromJson(Map<String, dynamic> json) {
+    return GatewayJobRecord(
+      jobId: json['jobId'] as String,
+      photoFingerprint: json['photoFingerprint'] as String,
+      photoPath: json['photoPath'] as String,
+      stage: json['stage'] as String,
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+    );
+  }
+
+  final String jobId;
+  final String photoFingerprint;
+  final String photoPath;
+  final String stage;
+  final DateTime updatedAt;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'jobId': jobId,
+    'photoFingerprint': photoFingerprint,
+    'photoPath': photoPath,
+    'stage': stage,
+    'updatedAt': updatedAt.toIso8601String(),
+  };
+
+  GatewayJobRecord copyWith({String? stage, DateTime? updatedAt}) {
+    return GatewayJobRecord(
+      jobId: jobId,
+      photoFingerprint: photoFingerprint,
+      photoPath: photoPath,
+      stage: stage ?? this.stage,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 /// One saved clean photo in on-device history.

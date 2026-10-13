@@ -272,4 +272,45 @@ class LocalStoreImpl implements LocalStore {
       return _storageFailure<void>(e);
     }
   }
+
+  // --- Gateway job --------------------------------------------------------
+
+  Future<File> _gatewayJobFile() async =>
+      File('${(await _historyDir()).path}/gateway_job.json');
+
+  @override
+  Future<Result<void>> saveGatewayJob(GatewayJobRecord record) async {
+    try {
+      final file = await _gatewayJobFile();
+      await file.writeAsString(jsonEncode(record.toJson()));
+      return const Success<void>(null);
+    } catch (e) {
+      return _storageFailure<void>(e);
+    }
+  }
+
+  @override
+  Future<Result<GatewayJobRecord?>> gatewayJob() async {
+    try {
+      final file = await _gatewayJobFile();
+      if (!await file.exists()) return const Success<GatewayJobRecord?>(null);
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) return const Success<GatewayJobRecord?>(null);
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return Success<GatewayJobRecord?>(GatewayJobRecord.fromJson(decoded));
+    } catch (e) {
+      return _storageFailure<GatewayJobRecord?>(e);
+    }
+  }
+
+  @override
+  Future<Result<void>> clearGatewayJob() async {
+    try {
+      final file = await _gatewayJobFile();
+      if (await file.exists()) await file.delete();
+      return const Success<void>(null);
+    } catch (e) {
+      return _storageFailure<void>(e);
+    }
+  }
 }

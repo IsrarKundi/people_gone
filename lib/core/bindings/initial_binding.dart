@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../config/app_config.dart';
+import '../../services/processing/gateway_processing_api.dart';
 import '../../services/processing/processing_api.dart';
 import '../../services/processing/processing_api_impl.dart';
 import '../../services/storage/local_store.dart';
@@ -17,7 +18,15 @@ class InitialBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<AppConfig>(config, permanent: true);
-    Get.put<ProcessingApi>(ProcessingApiImpl(config: config), permanent: true);
     Get.put<LocalStore>(LocalStoreImpl(), permanent: true);
+    Get.put<ProcessingApi>(
+      config.useGateway
+          ? GatewayProcessingApi(
+              config: config,
+              localStore: Get.find<LocalStore>(),
+            )
+          : ProcessingApiImpl(config: config),
+      permanent: true,
+    );
   }
 }

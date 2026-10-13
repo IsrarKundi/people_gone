@@ -15,6 +15,24 @@ class FakeStore implements LocalStore {
   int used = 0;
   DateTime reset = DateTime.utc(2026, 11, 1);
 
+
+  GatewayJobRecord? gatewayJobRecord;
+
+  @override
+  Future<Result<void>> saveGatewayJob(GatewayJobRecord record) async {
+    gatewayJobRecord = record;
+    return const Success<void>(null);
+  }
+
+  @override
+  Future<Result<GatewayJobRecord?>> gatewayJob() async =>
+      Success<GatewayJobRecord?>(gatewayJobRecord);
+
+  @override
+  Future<Result<void>> clearGatewayJob() async {
+    gatewayJobRecord = null;
+    return const Success<void>(null);
+  }
   @override
   Future<Result<int>> freeSavesUsed() async => Success<int>(used);
 
