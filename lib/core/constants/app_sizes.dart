@@ -1,62 +1,66 @@
-/// Layout tokens — the ONLY file with layout magic numbers
+/// Layout tokens — the ONLY place layout magic numbers live
 /// (FOLDER_STRUCTURE_AND_CONVENTIONS.md §6.3). Fixed logical pixels;
 /// `flutter_screenutil` and percentage sizing are forbidden (§6.4).
-abstract final class AppSizes {
+///
+/// Accessed via `context.sizes` (see core/theme/theme_ext.dart).
+class AppSizes {
+  const AppSizes();
+
   // Spacing scale (4-base).
-  static const double xxs = 2;
-  static const double xs = 4;
-  static const double sm = 8;
-  static const double md = 12;
-  static const double lg = 16;
-  static const double xl = 20;
-  static const double xxl = 24;
-  static const double xxxl = 32;
-  static const double huge = 40;
-  static const double giant = 48;
+  final double xxs = 2;
+  final double xs = 4;
+  final double sm = 8;
+  final double md = 12;
+  final double lg = 16;
+  final double xl = 20;
+  final double xxl = 24;
+  final double xxxl = 32;
+  final double huge = 40;
+  final double giant = 48;
 
   /// Screen padding at the compact breakpoint; [screenPaddingWide] at
   /// medium and up (§6.3).
-  static const double screenPadding = 16;
-  static const double screenPaddingWide = 20;
-  static const double cardPadding = 16;
+  final double screenPadding = 16;
+  final double screenPaddingWide = 20;
+  final double cardPadding = 16;
 
   // Radius.
-  static const double radiusSm = 8;
-  static const double radiusMd = 12;
-  static const double radiusLg = 16;
-  static const double radiusXl = 20;
-  static const double radiusSheet = 28;
-  static const double radiusPill = 999;
+  final double radiusSm = 8;
+  final double radiusMd = 12;
+  final double radiusLg = 16;
+  final double radiusXl = 20;
+  final double radiusSheet = 28;
+  final double radiusPill = 999;
 
   // Control heights.
-  static const double buttonPrimary = 52;
-  static const double buttonSecondary = 48;
-  static const double buttonCompact = 40;
-  static const double input = 52;
-  static const double listRowMin = 56;
-  static const double appBar = 56;
+  final double buttonPrimary = 52;
+  final double buttonSecondary = 48;
+  final double buttonCompact = 40;
+  final double input = 52;
+  final double listRowMin = 56;
+  final double appBar = 56;
 
   // Icon sizes.
-  static const double iconSm = 20;
-  static const double iconMd = 24;
-  static const double iconLg = 28;
+  final double iconSm = 20;
+  final double iconMd = 24;
+  final double iconLg = 28;
 
   /// Minimum touch target everywhere (§6.3).
-  static const double minTouchTarget = 48;
+  final double minTouchTarget = 48;
 
   // Breakpoints (Material window classes, §6.3).
-  static const double breakpointMedium = 600;
-  static const double breakpointExpanded = 840;
+  final double breakpointMedium = 600;
+  final double breakpointExpanded = 840;
 
   /// Content is centred and capped at this width (§6.3).
-  static const double contentMaxWidth = 640;
+  final double contentMaxWidth = 640;
 
-  // Motion durations in milliseconds (§6.3).
-  static const int motionFastMs = 120;
-  static const int motionNormalMs = 200;
-  static const int motionSlowMs = 320;
+  // Motion (§6.3).
+  final Duration motionFast = const Duration(milliseconds: 120);
+  final Duration motionNormal = const Duration(milliseconds: 200);
+  final Duration motionSlow = const Duration(milliseconds: 320);
 
   /// Screen padding for a given window width.
-  static double paddingFor(double width) =>
+  double paddingFor(double width) =>
       width >= breakpointMedium ? screenPaddingWide : screenPadding;
 }
