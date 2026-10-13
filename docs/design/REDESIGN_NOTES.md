@@ -124,3 +124,15 @@ The previous design system dogmatically confused "calm and honest" with "sterile
   - `s9_history.png` & `s9_history_detail.png` (history list & interactive compare slider)
   - `s10_settings.png` (elevated grouped cards)
 
+
+---
+
+## Correction — Home demo pair replaced (Muse, 2026-10-14, owner request)
+
+The arch pair (testset 08) is replaced as the Home demo. Reason: that output removed the
+photo's most prominent person, kept two background figures, and left a floating-bag
+artifact — a poor and misleading showcase. New pair: a Pexels dune photo (testset-pack 04)
+run through the live worker (MAT): 4 people detected, the couple kept, 2 removed, fill
+verified clean by eye. Assets: `assets/images/demo_original.jpg` / `demo_result.jpg`
+(1600px, the exact worker input/output). The "Real app output" caption is factual for
+this pair. Widget and asset loading verified by an isolated render probe (2026-10-14).
