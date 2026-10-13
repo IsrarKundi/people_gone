@@ -107,8 +107,7 @@ class ResultView extends GetView<ResultController> {
                 ),
               ),
             // Chrome pins to the PHOTO band's top corners, on the
-            // photo — never floating in the letterbox (Review 02
-            // F3/A3).
+            // Polished studio chrome anchored gracefully at the top of the photo band
             Positioned(
               left: band.left + s.sm,
               top: band.top + s.sm,
@@ -153,9 +152,6 @@ class ResultView extends GetView<ResultController> {
     });
   }
 
-  /// Exactly 48dp of photoChrome (Review 02 F3) — the size is a
-  /// token (`giant`), never whatever an unconstrained IconButton
-  /// happens to lay out at.
   Widget _chromeButton(
     BuildContext context, {
     required IconData icon,
@@ -181,38 +177,53 @@ class ResultView extends GetView<ResultController> {
     final s = context.sizes;
     final savedNow = controller.saved.value;
     final left = controller.savesLeft.value;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          AppStrings.resultSummary.trParams(<String, String>{
-            'removed': '${controller.removedCount}',
-            'total': '${controller.totalCount}',
-          }),
-          style: context.textStyles.bodyMd,
+        // Fact 1: People removed count with clean subject indicator
+        Row(
+          children: <Widget>[
+            Icon(Icons.check_circle_outline, size: 18, color: p.overlayKept),
+            SizedBox(width: s.xs),
+            Expanded(
+              child: Text(
+                AppStrings.resultSummary.trParams(<String, String>{
+                  'removed': '${controller.removedCount}',
+                  'total': '${controller.totalCount}',
+                }),
+                style: context.textStyles.bodyMd.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: s.sm),
-        if (!savedNow)
+        SizedBox(height: s.xs),
+        // Fact 2: Save quota cost & remaining
+        if (!savedNow) ...<Widget>[
           Text(
             left > 0
                 ? AppStrings.resultSaveUses.trParams(<String, String>{
                     'count': '${left - 1}',
                   })
                 : AppStrings.resultNoSaves.tr,
-            style: context.textStyles.bodyMd,
-          ),
-        if (!savedNow) ...<Widget>[
-          SizedBox(height: s.xs),
-          Text(
-            AppStrings.resultLocationNote.tr,
             style: context.textStyles.bodySm.copyWith(color: p.textSecondary),
           ),
+          SizedBox(height: 2),
+          // Fact 3: Location data removal
+          Text(
+            AppStrings.resultLocationNote.tr,
+            style: context.textStyles.caption.copyWith(color: p.textTertiary),
+          ),
         ],
-        SizedBox(height: s.lg),
+        SizedBox(height: s.md),
+        // Dominant action row with 75% primary save
         Row(
           children: <Widget>[
             Expanded(
+              flex: 3,
               child: PrimaryButton(
                 labelKey: savedNow
                     ? AppStrings.resultSaved
@@ -221,8 +232,9 @@ class ResultView extends GetView<ResultController> {
                 onPressed: savedNow ? null : controller.save,
               ),
             ),
-            SizedBox(width: s.md),
+            SizedBox(width: s.sm),
             Expanded(
+              flex: 1,
               child: SecondaryButton(
                 labelKey: AppStrings.resultShare,
                 onPressed: controller.share,
@@ -231,19 +243,21 @@ class ResultView extends GetView<ResultController> {
           ],
         ),
         if (controller.canCorrectKeeper) ...<Widget>[
-          SizedBox(height: s.sm),
+          SizedBox(height: s.xs),
           Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
+            alignment: Alignment.center,
+            child: TextButton.icon(
               onPressed: controller.openKeeperSheet,
-              child: Text(
+              icon: Icon(Icons.swap_horiz, size: 18, color: p.primary),
+              label: Text(
                 AppStrings.resultWrongKeeper.tr,
-                style: context.textStyles.labelLg.copyWith(color: p.primary),
+                style: context.textStyles.labelMd.copyWith(color: p.primary),
               ),
             ),
           ),
         ],
-        SizedBox(height: s.md),
+        SizedBox(height: s.xs),
+        // Fact 4 & 5: Verbatim §11.2B deletion & report disclosure
         DisclosureLine(onReport: controller.report),
       ],
     );

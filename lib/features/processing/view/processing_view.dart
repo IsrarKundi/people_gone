@@ -29,57 +29,76 @@ class ProcessingView extends GetView<ProcessingController> {
         if (error != null) {
           return ErrorView(messageKey: error, onRetry: controller.start);
         }
-        return Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            // The dim lives ON the photo band only: the blend applies
-            // to the image's own pixels, so the letterbox surround
-            // stays the scaffold's background token — the one surround
-            // rule shared with S7/S9 (Review 02 F1/A3).
-            Image.file(
-              File(controller.photoPath),
-              fit: BoxFit.contain,
-              cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-              color: p.scrim,
-              colorBlendMode: BlendMode.srcATop,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
-            ),
-            Positioned(
-              left: s.screenPadding,
-              right: s.screenPadding,
-              bottom: s.screenPadding,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  _progressBlock(context),
-                  SizedBox(height: s.md),
-                  // Cancel rides in a photoChrome pill (R1): with the
-                  // surround now the background token (F1), a bare
-                  // white text action would vanish on the light
-                  // letterbox whenever it lands off the photo band.
-                  TextButton(
-                    onPressed: controller.cancel,
-                    style: TextButton.styleFrom(
-                      backgroundColor: p.photoChromeBg,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: s.lg,
-                        vertical: s.sm,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(s.radiusPill),
-                      ),
+        return Container(
+          color: const Color(0xFF0B0D11), // Unified darkroom studio canvas
+          child: SafeArea(
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                // Framed photographic canvas without letterbox mismatch
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: s.screenPadding,
+                      vertical: s.xxl,
                     ),
-                    child: Text(
-                      AppStrings.commonCancel.tr,
-                      style: context.textStyles.labelLg.copyWith(
-                        color: p.photoChromeFg,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(s.radiusLg),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: <Widget>[
+                          Image.file(
+                            File(controller.photoPath),
+                            fit: BoxFit.contain,
+                            cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                          ),
+                          // Subtle darkroom exposure overlay
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withAlpha(90),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                // Bottom control and status tray
+                Positioned(
+                  left: s.screenPadding,
+                  right: s.screenPadding,
+                  bottom: s.screenPadding,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      _progressBlock(context),
+                      SizedBox(height: s.md),
+                      TextButton(
+                        onPressed: controller.cancel,
+                        style: TextButton.styleFrom(
+                          backgroundColor: p.photoChromeBg,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: s.xl,
+                            vertical: s.sm,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(s.radiusPill),
+                          ),
+                        ),
+                        child: Text(
+                          AppStrings.commonCancel.tr,
+                          style: context.textStyles.labelLg.copyWith(
+                            color: p.photoChromeFg,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       }),
     );
@@ -90,12 +109,21 @@ class ProcessingView extends GetView<ProcessingController> {
     final s = context.sizes;
     final uploading = controller.stage.value == ProcessingStage.uploading;
     final fraction = controller.uploadFraction.value;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(s.lg),
       decoration: BoxDecoration(
         color: p.photoChromeBg,
         borderRadius: BorderRadius.circular(s.radiusLg),
+        border: Border.all(color: Colors.white.withAlpha(20)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withAlpha(60),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -103,9 +131,10 @@ class ProcessingView extends GetView<ProcessingController> {
         children: <Widget>[
           LinearProgressIndicator(
             value: uploading ? fraction : null,
-            color: p.photoChromeFg,
-            backgroundColor: p.surfaceVariant,
+            color: p.primary,
+            backgroundColor: Colors.white.withAlpha(30),
             minHeight: 4,
+            borderRadius: BorderRadius.circular(2),
           ),
           SizedBox(height: s.md),
           Text(
@@ -113,13 +142,18 @@ class ProcessingView extends GetView<ProcessingController> {
                 ? '${AppStrings.processingUploading.tr} '
                       '${(fraction * 100).round()}%'
                 : AppStrings.processingFindingRemoving.tr,
-            style: context.textStyles.bodyMd.copyWith(color: p.photoChromeFg),
+            style: context.textStyles.bodyMd.copyWith(
+              color: p.photoChromeFg,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           SizedBox(height: s.xs),
           Text(
             '${AppStrings.processingElapsed.trParams(<String, String>{'time': Formatters.elapsed(controller.elapsed.value)})}'
             ' · ${AppStrings.processingExpectation.tr}',
-            style: context.textStyles.bodySm.copyWith(color: p.photoChromeFg),
+            style: context.textStyles.caption.copyWith(
+              color: p.photoChromeFg.withAlpha(200),
+            ),
           ),
         ],
       ),

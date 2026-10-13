@@ -98,6 +98,7 @@ class ProcessingController extends GetxController {
             removedIds: photo.removedIds,
             totalSeconds: photo.totalSeconds,
             engineUsed: photo.engineUsed,
+            persons: photo.persons,
           ),
         );
       case Failure<String>():

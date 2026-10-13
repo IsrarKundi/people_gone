@@ -137,7 +137,7 @@ class AppTranslations extends Translations {
       AppStrings.processingFindingRemoving: 'Finding people and removing them…',
       AppStrings.processingElapsed: 'Elapsed @time',
       AppStrings.processingExpectation:
-          'This can take a few minutes. Keep the app open while we work.',
+          'High-resolution processing takes ~2 minutes. Keep the app open while we work.',
       AppStrings.processingCancelTitle: 'Cancel this clean?',
       AppStrings.processingCancelBody:
           'Nothing will be charged to your free saves.',

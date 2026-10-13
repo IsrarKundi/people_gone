@@ -1,3 +1,5 @@
+import '../../../services/processing/processing_api.dart';
+
 /// Route payloads for the processing flow. These DTOs are the navigation
 /// boundary between Home → Processing → Result (and Result → Processing
 /// for a keeper re-run); they carry file paths and job metadata only,
@@ -22,6 +24,7 @@ class ProcessingOutcome {
     required this.removedIds,
     required this.totalSeconds,
     required this.engineUsed,
+    this.persons = const <DetectedPerson>[],
   });
 
   final String originalPath;
@@ -33,6 +36,7 @@ class ProcessingOutcome {
   final List<int> removedIds;
   final double totalSeconds;
   final String engineUsed;
+  final List<DetectedPerson> persons;
 
   /// True when the pipeline found nobody to take out (FR-06): the
   /// result screen shows the plain message and no save is possible.
