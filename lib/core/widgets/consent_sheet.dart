@@ -5,6 +5,12 @@ import '../strings/app_strings.dart';
 import '../theme/theme_ext.dart';
 import 'primary_button.dart';
 
+/// The two sanctioned ConsentSheet variants (Design Direction §4
+/// S2/S10, Review 02 A4). *consent* asks the question — Continue /
+/// Cancel, pre-upload only. *readOnly* only informs — a single Close;
+/// two dismiss actions on one sheet is a reject.
+enum ConsentSheetVariant { consent, readOnly }
+
 /// Consent sheet SHELL only (Conventions §6.7). The wording comes from
 /// strings/config and is versioned by `AppConfig.consentVersion`
 /// (Requirements §11.2) — this widget owns layout, never copy.
@@ -14,7 +20,8 @@ class ConsentSheet extends StatelessWidget {
     required this.titleKey,
     required this.bodyKey,
     required this.onContinue,
-    required this.onCancel,
+    this.onCancel,
+    this.variant = ConsentSheetVariant.consent,
     this.bodyParams,
     this.continueLabelKey = AppStrings.commonContinue,
     this.footerKey,
@@ -28,7 +35,11 @@ class ConsentSheet extends StatelessWidget {
   /// from AppConfig — §11.2A wording is config-driven, never hard-coded).
   final Map<String, String>? bodyParams;
   final VoidCallback onContinue;
-  final VoidCallback onCancel;
+
+  /// Consent variant only — the read-only variant has no Cancel
+  /// (Review 02 F5).
+  final VoidCallback? onCancel;
+  final ConsentSheetVariant variant;
   final String continueLabelKey;
 
   /// Optional link row under the body (e.g. "Full details: Privacy
@@ -78,18 +89,21 @@ class ConsentSheet extends StatelessWidget {
           ],
           SizedBox(height: s.xxl),
           PrimaryButton(labelKey: continueLabelKey, onPressed: onContinue),
-          SizedBox(height: s.sm),
-          Center(
-            child: TextButton(
-              onPressed: onCancel,
-              child: Text(
-                AppStrings.commonCancel.tr,
-                style: context.textStyles.labelLg.copyWith(
-                  color: p.textSecondary,
+          if (variant == ConsentSheetVariant.consent &&
+              onCancel != null) ...<Widget>[
+            SizedBox(height: s.sm),
+            Center(
+              child: TextButton(
+                onPressed: onCancel,
+                child: Text(
+                  AppStrings.commonCancel.tr,
+                  style: context.textStyles.labelLg.copyWith(
+                    color: p.textSecondary,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

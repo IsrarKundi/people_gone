@@ -45,18 +45,18 @@ class SettingsController extends GetxController {
   void openPrivacyPolicy() => _openLink(Uri.parse(config.privacyPolicyUrl));
 
   /// "How your photos are handled" re-opens the exact consent wording,
-  /// read-only (its Continue button reads "Close" here).
+  /// read-only: a single "Close" action, no Cancel (Review 02 F5/A4).
   void showPhotoHandling() {
     AppSheet.show(
       ConsentSheet(
         titleKey: AppStrings.consentTitle,
         bodyKey: AppStrings.consentBody,
         bodyParams: <String, String>{'provider': config.providerDisplayName},
+        variant: ConsentSheetVariant.readOnly,
         continueLabelKey: AppStrings.commonClose,
         footerKey: AppStrings.consentPrivacyLink,
         onFooterTap: openPrivacyPolicy,
         onContinue: () => Get.back<void>(),
-        onCancel: () => Get.back<void>(),
       ),
     );
   }
