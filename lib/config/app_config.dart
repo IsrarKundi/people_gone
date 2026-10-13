@@ -13,17 +13,21 @@ class AppConfig {
     required this.privacyPolicyUrl,
   });
 
-  /// Loads config from dart-define values, with development defaults that
-  /// point nowhere real (the gateway is wired in Phase 2, Task 2.1).
+  /// Loads config from dart-define values. The development default base
+  /// URL is our own dev processing worker (Modal), which stands in for
+  /// the Supabase gateway until Phase 2, Task 2.1 — the URL lives ONLY
+  /// here (and in the dart-define override), never in feature code
+  /// (API Contract v1, modal-deploy/API_CONTRACT.md).
   factory AppConfig.fromEnvironment() {
     return const AppConfig(
       apiBaseUrl: String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'https://example.invalid/api',
+        defaultValue:
+            'https://israrkundi--peoplegone-worker-web.us-east.modal.run',
       ),
       providerDisplayName: String.fromEnvironment(
         'PROVIDER_DISPLAY_NAME',
-        defaultValue: 'PeopleGone processing',
+        defaultValue: "PeopleGone's processing servers",
       ),
       consentVersion: int.fromEnvironment('CONSENT_VERSION', defaultValue: 1),
       supportEmail: String.fromEnvironment(
