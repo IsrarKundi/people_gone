@@ -1,29 +1,91 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:get/get.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/photo_surface.dart';
 import '../../../services/processing/processing_api.dart';
 
-/// Renders the photo with visual bounding box outlines and status pills
-/// for each detected person. Tapping a person's region toggles their state.
+/// Maps a person's full-resolution PIXEL box into the displayed photo
+/// band (Review 04 F2). Pure geometry — unit-tested. [imageSize] is
+/// the photo's intrinsic size (DetectionProposal.inputDimensions);
+/// [bandSize] is the size the contain-fit photo actually paints into.
+Rect scalePersonBoxToBand({
+  required List<int> box,
+  required Size imageSize,
+  required Size bandSize,
+}) {
+  if (box.length < 4 || imageSize.isEmpty || bandSize.isEmpty) {
+    return Rect.zero;
+  }
+  final scaleX = bandSize.width / imageSize.width;
+  final scaleY = bandSize.height / imageSize.height;
+  return Rect.fromLTRB(
+    box[0] * scaleX,
+    box[1] * scaleY,
+    box[2] * scaleX,
+    box[3] * scaleY,
+  );
+}
+
+/// Hit-tests a tap point given in BAND coordinates against every
+/// person's scaled box (Review 04 F2). On overlapping boxes the
+/// SMALLEST containing box wins — a distant small person in front of
+/// a large one stays tappable. Returns the person's id, or null.
+int? personIdAtBandPoint({
+  required List<DetectedPerson> persons,
+  required Offset point,
+  required Size imageSize,
+  required Size bandSize,
+}) {
+  int? bestId;
+  var bestArea = double.infinity;
+  for (final person in persons) {
+    final rect = scalePersonBoxToBand(
+      box: person.box,
+      imageSize: imageSize,
+      bandSize: bandSize,
+    );
+    if (rect.isEmpty || !rect.contains(point)) continue;
+    final area = rect.width * rect.height;
+    if (area < bestArea) {
+      bestArea = area;
+      bestId = person.id;
+    }
+  }
+  return bestId;
+}
+
+/// Renders the photo with per-person bounding-box outlines + low-alpha
+/// fills in the removal/keeper overlay tokens (Review 04 F2). Boxes
+/// arrive in full-resolution pixels and are scaled into the photo
+/// band for BOTH painting and hit-testing; a tap inside a person's
+/// box toggles them, and each box is a TalkBack element (direction R2).
 class ProposalPhotoCanvas extends StatelessWidget {
   const ProposalPhotoCanvas({
     super.key,
     required this.photoPath,
     required this.persons,
+    required this.imageSize,
     required this.onTogglePerson,
   });
 
   final String photoPath;
   final List<DetectedPerson> persons;
+
+  /// The photo's intrinsic size; null until detection has supplied it
+  /// (no overlays can be mapped before then, so none are painted).
+  final Size? imageSize;
   final void Function(int id) onTogglePerson;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final s = context.sizes;
     final file = File(photoPath);
 
     return PhotoSurface(
@@ -41,18 +103,31 @@ class ProposalPhotoCanvas extends StatelessWidget {
               cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
               errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
-            // Position overlays mapped to the photo band
-            if (band.width > 0 && band.height > 0)
+            if (imageSize != null && band.width > 0 && band.height > 0)
               Positioned(
                 left: band.left,
                 top: band.top,
                 width: band.width,
                 height: band.height,
-                child: CustomPaint(
-                  painter: _OverlayPainter(
-                    persons: persons,
-                    photoBandSize: Size(band.width, band.height),
-                    palette: p,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) {
+                    final id = personIdAtBandPoint(
+                      persons: persons,
+                      point: details.localPosition,
+                      imageSize: imageSize!,
+                      bandSize: band.size,
+                    );
+                    if (id != null) onTogglePerson(id);
+                  },
+                  child: CustomPaint(
+                    painter: _OverlayPainter(
+                      persons: persons,
+                      imageSize: imageSize!,
+                      palette: p,
+                      cornerRadius: s.radiusSm,
+                      onTogglePerson: onTogglePerson,
+                    ),
                   ),
                 ),
               ),
@@ -66,47 +141,83 @@ class ProposalPhotoCanvas extends StatelessWidget {
 class _OverlayPainter extends CustomPainter {
   const _OverlayPainter({
     required this.persons,
-    required this.photoBandSize,
+    required this.imageSize,
     required this.palette,
+    required this.cornerRadius,
+    required this.onTogglePerson,
   });
 
   final List<DetectedPerson> persons;
-  final Size photoBandSize;
-  final dynamic palette;
+  final Size imageSize;
+  final AppPalette palette;
+  final double cornerRadius;
+  final void Function(int id) onTogglePerson;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (persons.isEmpty) return;
 
     for (final person in persons) {
-      if (person.box.length < 4) continue;
-      final bx1 = person.box[0].toDouble();
-      final by1 = person.box[1].toDouble();
-      final bx2 = person.box[2].toDouble();
-      final by2 = person.box[3].toDouble();
+      final rect = scalePersonBoxToBand(
+        box: person.box,
+        imageSize: imageSize,
+        bandSize: size,
+      );
+      if (rect.isEmpty) continue;
 
-      // We approximate mapping to canvas size if normalized or pixel dimensions
-      // Assuming pixel coordinates from high-res image, scale to band size:
-      // Note: person chips are the primary tap targets for precision.
-      final color = person.isKeeper ? AppColors.emerald : AppColors.crimson;
+      // Overlay tokens only: a solid-token stroke and a low-alpha
+      // fill of the same token (Conventions §6.1 overlay roles).
+      final token = person.isKeeper
+          ? palette.overlayKept
+          : palette.overlayRemoved;
       final strokePaint = Paint()
-        ..color = color.withAlpha(200)
+        ..color = token.withValues(alpha: 1)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
-
       final fillPaint = Paint()
-        ..color = color.withAlpha(35)
+        ..color = token.withValues(alpha: 0.25)
         ..style = PaintingStyle.fill;
 
-      // Draw subtle indicators if box within range
-      if (bx2 <= size.width && by2 <= size.height) {
-        final rect = Rect.fromLTRB(bx1, by1, bx2, by2);
-        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(8)), fillPaint);
-        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(8)), strokePaint);
-      }
+      final rounded = RRect.fromRectAndRadius(
+        rect,
+        Radius.circular(cornerRadius),
+      );
+      canvas.drawRRect(rounded, fillPaint);
+      canvas.drawRRect(rounded, strokePaint);
     }
   }
 
+  /// TalkBack (direction R2): every person is a focusable element
+  /// whose activation toggles them, with the action named by outcome.
   @override
-  bool shouldRepaint(covariant _OverlayPainter oldDelegate) => true;
+  SemanticsBuilderCallback get semanticsBuilder {
+    return (Size size) {
+      return <CustomPainterSemantics>[
+        for (final person in persons)
+          CustomPainterSemantics(
+            rect: scalePersonBoxToBand(
+              box: person.box,
+              imageSize: imageSize,
+              bandSize: size,
+            ),
+            properties: SemanticsProperties(
+              textDirection: TextDirection.ltr,
+              label: person.isKeeper
+                  ? AppStrings.proposalPersonProtected.trParams(
+                      <String, String>{'n': '${person.id + 1}'},
+                    )
+                  : AppStrings.proposalPersonMarkedRemove.trParams(
+                      <String, String>{'n': '${person.id + 1}'},
+                    ),
+              button: true,
+              onTap: () => onTogglePerson(person.id),
+            ),
+          ),
+      ];
+    };
+  }
+
+  @override
+  bool shouldRepaint(covariant _OverlayPainter oldDelegate) =>
+      oldDelegate.persons != persons || oldDelegate.imageSize != imageSize;
 }

@@ -1,26 +1,83 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/routes/app_routes.dart';
+import '../../../core/utils/result.dart';
 import '../../../services/processing/processing_api.dart';
+import '../../brush/model/brush_args.dart';
 import '../../processing/model/processing_args.dart';
 import '../model/proposal_args.dart';
 
 /// Proposal (S4) Controller: manages keeper/removal selections,
 /// live removal count, and overlap quality warnings (Requirements §4 S4).
+///
+/// Entry (Review 04 F1): when only a photo path arrives, the controller
+/// runs the analysing state itself — ProcessingApi.detectPersons fills
+/// the proposal; on failure it falls back to the single-call processing
+/// path so the user is never stranded on a dead screen.
 class ProposalController extends GetxController {
+  ProposalController({required this.processingApi});
+
+  final ProcessingApi processingApi;
+
   late final ProposalArgs args;
 
   final persons = <DetectedPerson>[].obs;
 
-  String get photoPath => args.proposal.photoPath;
+  /// True while detectPersons runs on entry (the analysing state).
+  final isAnalyzing = false.obs;
+
+  DetectionProposal? _detection;
+  String _photoPath = '';
+
+  String get photoPath => _detection?.photoPath ?? _photoPath;
+
+  /// The detected photo's intrinsic size, from the proposal's
+  /// inputDimensions — the coordinate space person boxes live in.
+  /// Null until detection completes (or for a malformed proposal).
+  Size? get imageSize {
+    final dims = _detection?.inputDimensions;
+    if (dims == null || dims.length < 2 || dims[0] <= 0 || dims[1] <= 0) {
+      return null;
+    }
+    return Size(dims[0].toDouble(), dims[1].toDouble());
+  }
 
   @override
   void onInit() {
     super.onInit();
     args = Get.arguments as ProposalArgs;
-    persons.assignAll(args.proposal.persons);
+    final seeded = args.proposal;
+    if (seeded != null) {
+      _detection = seeded;
+      _photoPath = seeded.photoPath;
+      persons.assignAll(seeded.persons);
+    } else {
+      _photoPath = args.photoPath ?? '';
+      unawaited(_analyze());
+    }
+  }
+
+  /// The analysing state (F1): detect, populate, or fall back to the
+  /// old single-call processing route — never a dead end, never a
+  /// fake proposal.
+  Future<void> _analyze() async {
+    isAnalyzing.value = true;
+    final result = await processingApi.detectPersons(localPath: _photoPath);
+    isAnalyzing.value = false;
+    switch (result) {
+      case Success<DetectionProposal>(:final value):
+        _detection = value;
+        persons.assignAll(value.persons);
+      case Failure<DetectionProposal>():
+        Get.offNamed<void>(
+          Routes.processing,
+          arguments: ProcessingArgs(photoPath: _photoPath),
+        );
+    }
   }
 
   int get removeCount => persons.where((p) => !p.isKeeper).length;
@@ -60,7 +117,8 @@ class ProposalController extends GetxController {
     persons[index] = person.copyWith(isKeeper: !person.isKeeper);
   }
 
-  /// User confirms the proposal and starts the clean (S6).
+  /// User confirms the proposal and starts the clean (S6), carrying
+  /// the KEPT person ids as the keeper override.
   void confirmProposal() {
     final keepIds = persons.where((p) => p.isKeeper).map((p) => p.id).toList();
 
@@ -68,6 +126,36 @@ class ProposalController extends GetxController {
       Routes.processing,
       arguments: ProcessingArgs(photoPath: photoPath, keepIds: keepIds),
     );
+  }
+
+  /// Keep-all state (Review 04 F3): every detected person is kept, so
+  /// the job completes LOCALLY with the original photo as the result.
+  /// No processPhoto call and no save credit — Result's nobodyRemoved
+  /// handling renders it from there (§7.3).
+  void completeKeepAll() {
+    Get.offNamed<void>(
+      Routes.result,
+      arguments: ProcessingOutcome(
+        originalPath: photoPath,
+        resultPath: photoPath,
+        personsDetected: persons.length,
+        keeperIds: persons.map((p) => p.id).toList(),
+        removedIds: const <int>[],
+        totalSeconds: 0,
+        engineUsed: '',
+        persons: persons.toList(),
+      ),
+    );
+  }
+
+  /// No-people state (Review 04 F3): pick a different photo instead —
+  /// the flow restarts from Home.
+  void chooseDifferentPhoto() => Get.offAllNamed<void>(Routes.home);
+
+  /// No-people state (FR-06): Brush mode is offered even when
+  /// detection found nobody — the user paints what should go.
+  void openBrush() {
+    Get.toNamed<void>(Routes.brush, arguments: BrushArgs(imagePath: photoPath));
   }
 
   void goHome() => Get.offAllNamed<void>(Routes.home);

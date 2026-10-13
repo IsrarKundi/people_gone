@@ -47,6 +47,19 @@ abstract final class AppStrings {
   static const String proposalSubjectKept = 'proposal_subject_kept';
   static const String proposalPersonToRemove = 'proposal_person_to_remove';
   static const String proposalAnalyzing = 'proposal_analyzing';
+  static const String proposalKeepAllAction = 'proposal_keep_all_action';
+  static const String proposalChooseDifferentPhoto =
+      'proposal_choose_different_photo';
+  static const String proposalOpenBrush = 'proposal_open_brush';
+  static const String proposalStatusRemoved = 'proposal_status_removed';
+  static const String proposalStatusRemovedOne = 'proposal_status_removed_one';
+  static const String proposalStatusProtected = 'proposal_status_protected';
+  static const String proposalStatusProtectedOne =
+      'proposal_status_protected_one';
+  static const String proposalPeopleCount = 'proposal_people_count';
+  static const String proposalPersonMarkedRemove =
+      'proposal_person_marked_remove';
+  static const String proposalPersonProtected = 'proposal_person_protected';
 
   // Result (S7).
   static const String resultSummary = 'result_summary';
@@ -99,6 +112,7 @@ abstract final class AppStrings {
   static const String settingsSavesLeft = 'settings_saves_left';
   static const String settingsProcessingProvider =
       'settings_processing_provider';
+  static const String settingsProcessingPrivacy = 'settings_processing_privacy';
   static const String settingsHowHandled = 'settings_how_handled';
   static const String settingsPrivacyPolicy = 'settings_privacy_policy';
 
@@ -156,12 +170,25 @@ class AppTranslations extends Translations {
       AppStrings.proposalRemoveCount: 'Remove @count people',
       AppStrings.proposalRemoveOne: 'Remove 1 person',
       AppStrings.proposalKeepAll: 'Keep all (nobody to remove)',
-      AppStrings.proposalNoPeople: "There's nobody in the background to remove.",
+      AppStrings.proposalNoPeople:
+          "There's nobody in the background to remove.",
       AppStrings.proposalOverlapWarning:
           'This person overlaps your subject — edges may need a touch-up.',
       AppStrings.proposalSubjectKept: 'Subject (keep)',
       AppStrings.proposalPersonToRemove: 'Remove',
       AppStrings.proposalAnalyzing: 'Analyzing photo…',
+      AppStrings.proposalKeepAllAction: 'Keep photo as it is',
+      AppStrings.proposalChooseDifferentPhoto: 'Choose a different photo',
+      AppStrings.proposalOpenBrush: 'Open brush',
+      AppStrings.proposalStatusRemoved: '@count people will be removed',
+      AppStrings.proposalStatusRemovedOne: '1 person will be removed',
+      AppStrings.proposalStatusProtected: '@count people protected',
+      AppStrings.proposalStatusProtectedOne: '1 person protected',
+      AppStrings.proposalPeopleCount: '@count people',
+      AppStrings.proposalPersonMarkedRemove:
+          'Person @n, marked to remove. Double-tap to keep.',
+      AppStrings.proposalPersonProtected:
+          'Person @n, protected. Double-tap to remove.',
       AppStrings.resultSummary:
           '@removed of @total people removed. Your subject stays untouched.',
       AppStrings.resultSave: 'Save photo',

@@ -23,7 +23,6 @@ class FakeStore implements LocalStore {
   int used = 0;
   List<HistoryEntry> entries = <HistoryEntry>[];
 
-
   GatewayJobRecord? gatewayJobRecord;
 
   @override
@@ -41,6 +40,7 @@ class FakeStore implements LocalStore {
     gatewayJobRecord = null;
     return const Success<void>(null);
   }
+
   @override
   Future<Result<int?>> acceptedConsentVersion() async => Success<int?>(consent);
 
@@ -95,6 +95,7 @@ class FakeStore implements LocalStore {
 
 class FakeProcessingApi implements ProcessingApi {
   int calls = 0;
+  int detectCalls = 0;
 
   @override
   Future<Result<ProcessedPhoto>> processPhoto({
@@ -121,6 +122,7 @@ class FakeProcessingApi implements ProcessingApi {
     required String localPath,
     void Function(double fraction)? onUploadProgress,
   }) async {
+    detectCalls++;
     return Success<DetectionProposal>(
       DetectionProposal(
         photoPath: localPath,
@@ -128,8 +130,18 @@ class FakeProcessingApi implements ProcessingApi {
         keeperIds: const <int>[0],
         removedIds: const <int>[1],
         persons: const <DetectedPerson>[
-          DetectedPerson(id: 0, box: <int>[10, 10, 50, 90], score: 0.95, isKeeper: true),
-          DetectedPerson(id: 1, box: <int>[60, 20, 90, 80], score: 0.85, isKeeper: false),
+          DetectedPerson(
+            id: 0,
+            box: <int>[10, 10, 50, 90],
+            score: 0.95,
+            isKeeper: true,
+          ),
+          DetectedPerson(
+            id: 1,
+            box: <int>[60, 20, 90, 80],
+            score: 0.85,
+            isKeeper: false,
+          ),
         ],
         inputDimensions: const <int>[100, 100],
       ),
@@ -145,21 +157,30 @@ class FakeProcessingApi implements ProcessingApi {
     required Uint8List maskPng,
     void Function(double fraction)? onUploadProgress,
   }) async => const Failure<TouchupOutcome>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+    AppFailure(
+      code: 'not_implemented',
+      userMessageKey: AppStrings.errorGeneric,
+    ),
   );
 
   @override
   Future<Result<SaveCreditDecision>> consumeSaveCredit({
     required String idempotencyKey,
   }) async => const Failure<SaveCreditDecision>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+    AppFailure(
+      code: 'not_implemented',
+      userMessageKey: AppStrings.errorGeneric,
+    ),
   );
 
   @override
   Future<Result<void>> refundSaveCredit({
     required String idempotencyKey,
   }) async => const Failure<void>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+    AppFailure(
+      code: 'not_implemented',
+      userMessageKey: AppStrings.errorGeneric,
+    ),
   );
 }
 
@@ -226,7 +247,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  testWidgets('first pick shows consent; continuing processes the photo', (
+  testWidgets('first pick shows consent; continuing opens the proposal', (
     tester,
   ) async {
     await pumpHome(tester);
@@ -246,10 +267,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     await tester.pump(const Duration(milliseconds: 250));
     expect(store.consent, 1);
-    expect(api.calls, 1);
+    // Review 04 F1: the golden path is pick -> consent -> Proposal,
+    // whose analysing state calls detectPersons — processPhoto only
+    // runs after the user confirms a proposal.
+    expect(api.detectCalls, 1);
+    expect(api.calls, 0);
   });
 
-  testWidgets('consent already given: pick goes straight to processing', (
+  testWidgets('consent already given: pick goes straight to the proposal', (
     tester,
   ) async {
     store.consent = 1;
@@ -259,7 +284,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('Before your photo is uploaded'), findsNothing);
-    expect(api.calls, 1);
+    expect(api.detectCalls, 1);
+    expect(api.calls, 0);
   });
 
   testWidgets('history on Home shows the section, not the teaching line', (

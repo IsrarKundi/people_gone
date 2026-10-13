@@ -9,12 +9,13 @@ import '../../../core/widgets/app_sheet.dart';
 import '../../../core/widgets/consent_sheet.dart';
 import '../../../services/storage/local_store.dart';
 import '../../picker/controller/picker_controller.dart';
-import '../../processing/model/processing_args.dart';
+import '../../proposal/model/proposal_args.dart';
 
 /// Home (S1): the saves indicator, the one primary action (Pick a
 /// photo), and the recent-history section. Picking runs the consent
 /// gate first (first run only, §4.2) and then hands the photo to
-/// Processing. The on-device save counter is a display hint — the
+/// Proposal (S4), whose analysing state detects people before any
+/// removal is confirmed (Review 04 F1). The on-device save counter is a display hint — the
 /// server ledger is the production truth (§7.2).
 class HomeController extends GetxController {
   HomeController({
@@ -69,7 +70,7 @@ class HomeController extends GetxController {
           _showConsent(value);
           return;
         }
-        await _openProcessing(value);
+        await _openProposal(value);
     }
   }
 
@@ -95,17 +96,20 @@ class HomeController extends GetxController {
         onContinue: () async {
           await localStore.setAcceptedConsentVersion(config.consentVersion);
           Get.back<void>();
-          await _openProcessing(photoPath);
+          await _openProposal(photoPath);
         },
         onCancel: () => Get.back<void>(),
       ),
     );
   }
 
-  Future<void> _openProcessing(String photoPath) async {
+  /// Golden path (Review 04 F1): pick → consent → Proposal. The
+  /// proposal screen runs detection itself and only routes onward to
+  /// Processing once the user confirms who is removed.
+  Future<void> _openProposal(String photoPath) async {
     await Get.toNamed<void>(
-      Routes.processing,
-      arguments: ProcessingArgs(photoPath: photoPath),
+      Routes.proposal,
+      arguments: ProposalArgs.forPhoto(photoPath: photoPath),
     );
     await reloadData();
   }
