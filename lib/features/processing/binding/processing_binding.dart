@@ -1,9 +1,19 @@
 import 'package:get/get.dart';
 
-/// Processing feature binding (Phase 1 Task 1.1 scaffold). Controllers are
-/// registered here — and only here — as the feature is built
-/// (Conventions §7 rule 2).
+import '../../../services/processing/processing_api.dart';
+import '../../../services/storage/local_store.dart';
+import '../controller/processing_controller.dart';
+
+/// Processing feature binding — the ONLY place [ProcessingController] is
+/// registered (Conventions §7 rule 2).
 class ProcessingBinding extends Bindings {
   @override
-  void dependencies() {}
+  void dependencies() {
+    Get.lazyPut<ProcessingController>(
+      () => ProcessingController(
+        processingApi: Get.find<ProcessingApi>(),
+        localStore: Get.find<LocalStore>(),
+      ),
+    );
+  }
 }

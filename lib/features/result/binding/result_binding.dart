@@ -1,9 +1,12 @@
 import 'package:get/get.dart';
 
-/// Result feature binding (Phase 1 Task 1.1 scaffold). Controllers are
-/// registered here — and only here — as the feature is built
-/// (Conventions §7 rule 2).
+import '../controller/result_controller.dart';
+
+/// Result feature binding — the ONLY place [ResultController] is
+/// registered (Conventions §7 rule 2).
 class ResultBinding extends Bindings {
   @override
-  void dependencies() {}
+  void dependencies() {
+    Get.lazyPut<ResultController>(() => ResultController());
+  }
 }
