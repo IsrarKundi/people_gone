@@ -4,6 +4,7 @@
 **Author:** UI/UX design agent (PeopleGone)
 **Status:** DECIDED direction for MVP UI implementation. All §9 questions ANSWERED 2026-10-13 (see §9). Design/UX authority: design lead (see §10 governance). Binding where it restates `PEOPLEGONE_REQUIREMENTS.md` (product truth) or `FOLDER_STRUCTURE_AND_CONVENTIONS.md` (tokens/code truth). Where this document and those two conflict, they win and this document must be amended.
 **Evidence basis:** `DESIGN_RESEARCH.md` (same folder). Every major decision cites the pattern it comes from; anything without a source is labelled **[Inference]**.
+**Redesign overlay (2026-10-14):** the owner adopted an independent audit (`DESIGN_AUDIT.md`, repo root) as a redesign brief, implemented by Antigravity and logged in `REDESIGN_NOTES.md`. Where the redesign and this document conflict, the reconciliation in **§11** governs; Review 04 (`REVIEW_04_s4_and_redesign.md`) is the review of record for the redesign and for S4.
 **Hard rules honoured throughout:** picker-only photo access; full-resolution output always, never silently downscaled; no watermark ever; the two banned competitor feature names never appear in any proposed in-app copy below; no product features invented beyond the requirements — genuine gaps are scope questions for the owner (§10), never designed in silently.
 
 ---
@@ -298,3 +299,16 @@ A build/screenshot is **rejected** if any item fails. Reviewer (this design role
 - Copy changes are approved by the design lead in review (see governance). Mechanical string fixes (typos, truncation) need no separate approval.
 - Any builder proposal that adds a screen, a navigation level, or a component not in §5 is treated as a **product/scope change**: it returns to the owner as a question, never as a design fait accompli. (Design authority is not scope authority.)
 - This document's specs assume the pipeline and API as they stand (Contract v1: one finished photo per job — §9 item 7). An engine or API change that alters what a screen can show (e.g. partial results, materially different job timings) triggers a design-lead re-check of the affected screens (§4-S3/S6 first), recorded as a direction amendment.
+
+---
+
+## 11. Redesign reconciliation (2026-10-14, Review 04)
+
+The owner adopted the independent audit as the redesign brief (see status note). These rulings reconcile this document with the redesign as built; each supersession is by the owner's adoption decision, recorded here so the documents stop contradicting each other.
+
+- **D1 — Palette:** the redesign tokens (cobalt `#2563EB` / `#60A5FA`, obsidian `#0B0D11`, porcelain `#F8F9FA`, emerald/crimson overlays at 60%) are the current token truth — see `REDESIGN_NOTES.md` §2. Earlier palette values in this document are superseded.
+- **D2 — Photo surround:** A3's principle (one surround rule across photo screens) stands and is now satisfied differently: S3/S6 use the always-dark darkroom canvas; S7 keeps the photo band on the theme canvas with band-pinned chrome.
+- **D3 — Home:** action-first hierarchy (Pick → saves card → teaching line → interactive demo card), the saves meter as a card, and the demo card (real pipeline output only, honestly captioned) are the approved S1, superseding Review 02 layout details where they conflict.
+- **D4 — Consent format:** structured trust cards are approved **conditional on fact-completeness** against requirements §11.2A (verified in Review 04). Any future consent copy edit re-triggers the fact check.
+- **D5 — S4 identification:** the face-chip tray is the primary identification surface; on-photo boxes remain required as the photo-space half of the redundant-encoding rule (R2), as outlines + low-alpha fills. The live status sentence (§4-S4) remains required above the tray.
+- **D6 — S7 composition:** dominant Save + secondary Share, status-icon summary, centred keeper link — approved as built. Standing rule: the §11.2B disclosure stays visible without interaction.
