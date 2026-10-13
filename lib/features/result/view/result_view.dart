@@ -224,28 +224,70 @@ class ResultView extends GetView<ResultController> {
           ),
         ],
         SizedBox(height: s.md),
-        // Dominant action row with 75% primary save
-        Row(
-          children: <Widget>[
-            Expanded(
-              flex: 3,
-              child: PrimaryButton(
-                labelKey: savedNow
-                    ? AppStrings.resultSaved
-                    : AppStrings.resultSave,
-                isLoading: controller.isSaving.value,
-                onPressed: savedNow ? null : controller.save,
-              ),
-            ),
-            SizedBox(width: s.sm),
-            Expanded(
-              flex: 1,
-              child: SecondaryButton(
-                labelKey: AppStrings.resultShare,
-                onPressed: controller.share,
-              ),
-            ),
-          ],
+        // Dominant action row: Save takes 75%, Share 25%. When both
+        // labels cannot fit their slots at the current text scale the
+        // row stacks (Save full-width, Share full-width beneath) —
+        // Review 04 F7: button words never break (§8 item 19).
+        LayoutBuilder(
+          builder: (rowContext, constraints) {
+            final saveButton = PrimaryButton(
+              labelKey: savedNow
+                  ? AppStrings.resultSaved
+                  : AppStrings.resultSave,
+              isLoading: controller.isSaving.value,
+              onPressed: savedNow ? null : controller.save,
+            );
+            final shareButton = SecondaryButton(
+              labelKey: AppStrings.resultShare,
+              onPressed: controller.share,
+            );
+            final labelStyle = rowContext.textStyles.labelLg.copyWith(
+              fontWeight: FontWeight.w600,
+            );
+            final scaler = MediaQuery.textScalerOf(rowContext);
+            double labelWidth(String key) {
+              final painter = TextPainter(
+                text: TextSpan(text: key.tr, style: labelStyle),
+                textScaler: scaler,
+                textDirection: Directionality.of(rowContext),
+                maxLines: 1,
+              )..layout();
+              return painter.width;
+            }
+
+            // Horizontal content padding inside the Material buttons
+            // (both sides): filled/elevated 24dp, outlined 16dp.
+            const savePadding = 48.0;
+            const sharePadding = 32.0;
+            final saveSlot = (constraints.maxWidth - s.sm) * 3 / 4;
+            final shareSlot = (constraints.maxWidth - s.sm) / 4;
+            final fits =
+                labelWidth(
+                      savedNow
+                          ? AppStrings.resultSaved
+                          : AppStrings.resultSave,
+                    ) +
+                        savePadding <=
+                    saveSlot &&
+                labelWidth(AppStrings.resultShare) + sharePadding <= shareSlot;
+            if (fits) {
+              return Row(
+                children: <Widget>[
+                  Expanded(flex: 3, child: saveButton),
+                  SizedBox(width: s.sm),
+                  Expanded(flex: 1, child: shareButton),
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                saveButton,
+                SizedBox(height: s.sm),
+                shareButton,
+              ],
+            );
+          },
         ),
         SizedBox(height: s.sm),
         Row(
