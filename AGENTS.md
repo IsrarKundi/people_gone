@@ -9,7 +9,7 @@ Standing rules for any AI coding agent working in this repo. **Read this file fi
 Authority order: `PEOPLEGONE_REQUIREMENTS.md` → `FOLDER_STRUCTURE_AND_CONVENTIONS.md` → this file. If they conflict, the higher one wins and the conflict is reported, never silently resolved.
 
 ## Toolchain
-- Flutter version (FVM pin, `.fvmrc`): _record the exact version here in Build Task 1.1 and keep it in sync with CI._
+- Flutter version (FVM pin, `.fvmrc`): **3.47.7** (stable channel, Dart 3.13.5) — pinned in `.fvmrc` in Build Task 1.1; keep in sync with CI.
 - Every requirement with an ID (`FR-xx`, `NFR-xx`, `CMP-xx`) is testable. A task is done only when its acceptance criteria (Requirements §13) pass.
 - Never invent a decision the requirements already make. If something is genuinely unspecified, choose the option that is (a) simpler, (b) cheaper to run, (c) more private — in that order — and record it in `docs/architecture/` as an ADR.
 
