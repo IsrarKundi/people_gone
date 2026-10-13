@@ -84,6 +84,7 @@ class PeopleGonePipeline:
                 "persons_detected": 0,
                 "keeper_ids": [],
                 "removed_ids": [],
+                "persons": [],
                 "crops_inpainted": 0,
                 "timings_ms": timings,
                 "total_seconds": round(total_time_s, 4),
@@ -115,6 +116,15 @@ class PeopleGonePipeline:
                 "persons_detected": len(persons),
                 "keeper_ids": sorted(list(keeper_ids)),
                 "removed_ids": [],
+                "persons": [
+                    {
+                        "id": p["id"],
+                        "box": [int(b) for b in p["box"]],
+                        "score": float(p.get("score", 1.0)),
+                        "is_keeper": p["id"] in keeper_ids,
+                    }
+                    for p in persons
+                ],
                 "crops_inpainted": 0,
                 "timings_ms": timings,
                 "total_seconds": round(total_time_s, 4),
@@ -212,6 +222,15 @@ class PeopleGonePipeline:
             "persons_detected": len(persons),
             "keeper_ids": sorted(list(keeper_ids)),
             "removed_ids": sorted(list(remove_ids)),
+            "persons": [
+                {
+                    "id": p["id"],
+                    "box": [int(b) for b in p["box"]],
+                    "score": float(p.get("score", 1.0)),
+                    "is_keeper": p["id"] in keeper_ids,
+                }
+                for p in persons
+            ],
             "crops_inpainted": crops_inpainted,
             "timings_ms": timings,
             "total_seconds": round(total_time_s, 4),
@@ -224,6 +243,49 @@ class PeopleGonePipeline:
         }
 
         return output_bytes, metadata
+
+    def detect(
+        self,
+        photo: Union[str, bytes, np.ndarray, Image.Image],
+    ) -> Dict[str, Any]:
+        """Runs detection (Stage A) and keeper heuristic without inpainting."""
+        orig_pil = self._load_image(photo)
+        orig_rgb = np.array(orig_pil)
+        h, w = orig_rgb.shape[:2]
+
+        persons = self.detector.detect_persons(orig_rgb)
+        if not persons:
+            return {
+                "ok": True,
+                "input_dimensions": [w, h],
+                "persons_detected": 0,
+                "keeper_ids": [],
+                "removed_ids": [],
+                "persons": [],
+            }
+
+        keeper_ids, remove_ids, _ = classify_keepers_and_removals(
+            orig_rgb, persons, explicit_keep_ids=None
+        )
+
+        formatted_persons = [
+            {
+                "id": p["id"],
+                "box": [int(b) for b in p["box"]],
+                "score": float(p.get("score", 1.0)),
+                "is_keeper": p["id"] in keeper_ids,
+            }
+            for p in persons
+        ]
+
+        return {
+            "ok": True,
+            "input_dimensions": [w, h],
+            "persons_detected": len(persons),
+            "keeper_ids": sorted(list(keeper_ids)),
+            "removed_ids": sorted(list(remove_ids)),
+            "persons": formatted_persons,
+        }
 
     def _load_image(self, photo: Union[str, bytes, np.ndarray, Image.Image]) -> Image.Image:
         if isinstance(photo, Image.Image):

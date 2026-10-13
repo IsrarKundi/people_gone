@@ -47,6 +47,68 @@ class ProcessingApiImpl implements ProcessingApi {
   }
 
   @override
+  Future<Result<DetectionProposal>> detectPersons({
+    required String localPath,
+    void Function(double fraction)? onUploadProgress,
+  }) async {
+    if (_config.apiBaseUrl.isEmpty) {
+      return const Failure<DetectionProposal>(
+        AppFailure(
+          code: 'misconfigured',
+          userMessageKey: AppStrings.errorNotImplemented,
+          detail: 'API base URL is empty.',
+        ),
+      );
+    }
+    final file = File(localPath);
+    if (!await file.exists()) {
+      return const Failure<DetectionProposal>(
+        AppFailure(
+          code: 'missing_file',
+          userMessageKey: AppStrings.errorGeneric,
+          detail: 'Picked photo no longer exists on disk.',
+        ),
+      );
+    }
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final token = CancelToken();
+      _currentToken = token;
+      try {
+        final form = FormData.fromMap(<String, dynamic>{
+          'file': await MultipartFile.fromFile(
+            localPath,
+            filename: localPath.split('/').last,
+          ),
+        });
+        final response = await _dio.post<dynamic>(
+          '/detect',
+          data: form,
+          cancelToken: token,
+          onSendProgress: (sent, total) {
+            if (onUploadProgress == null || total <= 0) return;
+            final fraction = sent / total;
+            onUploadProgress(fraction.clamp(0.0, 1.0));
+          },
+        );
+        return _parseDetectionResponse(response.data, localPath);
+      } on DioException catch (e) {
+        final failure = _mapError<DetectionProposal>(e);
+        if (attempt == 0 && _isRetryable(e)) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          continue;
+        }
+        return failure;
+      } finally {
+        if (identical(_currentToken, token)) _currentToken = null;
+      }
+    }
+    return const Failure<DetectionProposal>(
+      AppFailure(code: 'unknown', userMessageKey: AppStrings.errorGeneric),
+    );
+  }
+
+  @override
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
     List<int>? keepIds,
@@ -97,7 +159,7 @@ class ProcessingApiImpl implements ProcessingApi {
         );
         return _parseResponse(response.data);
       } on DioException catch (e) {
-        final failure = _mapError(e);
+        final failure = _mapError<ProcessedPhoto>(e);
         if (attempt == 0 && _isRetryable(e)) {
           await Future<void>.delayed(const Duration(seconds: 2));
           continue;
@@ -124,6 +186,65 @@ class ProcessingApiImpl implements ProcessingApi {
         return status == 502 || status == 503 || status == 504;
       default:
         return false;
+    }
+  }
+
+  List<DetectedPerson> _parsePersons(dynamic rawList) {
+    if (rawList is! List) return const <DetectedPerson>[];
+    return rawList.map((dynamic item) {
+      final m = item as Map<String, dynamic>;
+      final rawBox = m['box'] as List<dynamic>? ?? <dynamic>[];
+      return DetectedPerson(
+        id: (m['id'] as num?)?.toInt() ?? 0,
+        box: rawBox.map((dynamic b) => (b as num).toInt()).toList(),
+        score: (m['score'] as num?)?.toDouble() ?? 1.0,
+        isKeeper: m['is_keeper'] == true,
+      );
+    }).toList();
+  }
+
+  Result<DetectionProposal> _parseDetectionResponse(
+    dynamic data,
+    String localPath,
+  ) {
+    try {
+      final map = data as Map<String, dynamic>;
+      if (map['ok'] != true) {
+        return const Failure<DetectionProposal>(
+          AppFailure(
+            code: 'server',
+            userMessageKey: AppStrings.errorProcessingFailed,
+            detail: 'Worker returned ok != true.',
+          ),
+        );
+      }
+      List<int> ids(String key) {
+        final raw = map[key] as List<dynamic>? ?? <dynamic>[];
+        return raw.map((dynamic v) => (v as num).toInt()).toList();
+      }
+
+      final dims = (map['input_dimensions'] as List<dynamic>? ?? <dynamic>[])
+          .map((dynamic v) => (v as num).toInt())
+          .toList();
+
+      return Success<DetectionProposal>(
+        DetectionProposal(
+          photoPath: localPath,
+          personsDetected: (map['persons_detected'] as num?)?.toInt() ?? 0,
+          keeperIds: ids('keeper_ids'),
+          removedIds: ids('removed_ids'),
+          persons: _parsePersons(map['persons']),
+          inputDimensions: dims,
+        ),
+      );
+    } catch (e) {
+      return Failure<DetectionProposal>(
+        AppFailure(
+          code: 'bad_response',
+          userMessageKey: AppStrings.errorProcessingFailed,
+          detail: 'Unparseable worker detect response: $e',
+        ),
+      );
     }
   }
 
@@ -156,6 +277,7 @@ class ProcessingApiImpl implements ProcessingApi {
           cropsInpainted: (meta['crops_inpainted'] as num?)?.toInt() ?? 0,
           totalSeconds: (meta['total_seconds'] as num?)?.toDouble() ?? 0,
           engineUsed: meta['engine_used'] as String? ?? '',
+          persons: _parsePersons(meta['persons']),
         ),
       );
     } catch (e) {
@@ -169,11 +291,11 @@ class ProcessingApiImpl implements ProcessingApi {
     }
   }
 
-  Failure<ProcessedPhoto> _mapError(DioException e) {
+  Failure<T> _mapError<T>(DioException e) {
     switch (e.type) {
       case DioExceptionType.cancel:
-        return const Failure<ProcessedPhoto>(
-          AppFailure(
+        return Failure<T>(
+          const AppFailure(
             code: 'cancelled',
             userMessageKey: AppStrings.errorGeneric,
             detail: 'Cancelled by the user.',
@@ -181,20 +303,29 @@ class ProcessingApiImpl implements ProcessingApi {
         );
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
-        return const Failure<ProcessedPhoto>(
-          AppFailure(code: 'timeout', userMessageKey: AppStrings.errorTimeout),
+        return Failure<T>(
+          const AppFailure(code: 'timeout', userMessageKey: AppStrings.errorTimeout),
         );
       case DioExceptionType.badResponse:
         final status = e.response?.statusCode ?? 0;
+        if (status == 404) {
+          return Failure<T>(
+            const AppFailure(
+              code: 'not_found',
+              userMessageKey: AppStrings.errorGeneric,
+              detail: 'Endpoint not found (HTTP 404).',
+            ),
+          );
+        }
         if (status == 413) {
-          return const Failure<ProcessedPhoto>(
-            AppFailure(
+          return Failure<T>(
+            const AppFailure(
               code: 'too_large',
               userMessageKey: AppStrings.errorPhotoTooLarge,
             ),
           );
         }
-        return Failure<ProcessedPhoto>(
+        return Failure<T>(
           AppFailure(
             code: 'server',
             userMessageKey: AppStrings.errorProcessingFailed,
@@ -203,14 +334,14 @@ class ProcessingApiImpl implements ProcessingApi {
         );
       case DioExceptionType.connectionError:
       case DioExceptionType.sendTimeout:
-        return const Failure<ProcessedPhoto>(
-          AppFailure(
+        return Failure<T>(
+          const AppFailure(
             code: 'network',
             userMessageKey: AppStrings.errorUploadFailed,
           ),
         );
       default:
-        return Failure<ProcessedPhoto>(
+        return Failure<T>(
           AppFailure(
             code: 'unknown',
             userMessageKey: AppStrings.errorGeneric,

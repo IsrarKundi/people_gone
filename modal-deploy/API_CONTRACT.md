@@ -10,6 +10,39 @@ Flutter app changing.
 ## GET /health
 → `200 {"ok": true, "service": "peoplegone-worker"}`
 
+## POST /detect  (multipart/form-data)
+Stage A analysis endpoint for the Proposal screen (S4). Runs person detection (RT-DETR)
+and the keeper heuristic without inpainting, returning bounding boxes and the initial
+keep/remove classification.
+
+Fields:
+- `file` — the photo (JPEG/PNG), required.
+
+Response `200` JSON:
+```json
+{
+  "ok": true,
+  "input_dimensions": [1920, 1080],
+  "persons_detected": 3,
+  "keeper_ids": [0],
+  "removed_ids": [1, 2],
+  "persons": [
+    {
+      "id": 0,
+      "box": [120, 80, 450, 900],
+      "score": 0.94,
+      "is_keeper": true
+    },
+    {
+      "id": 1,
+      "box": [800, 200, 920, 600],
+      "score": 0.82,
+      "is_keeper": false
+    }
+  ]
+}
+```
+
 ## POST /process  (multipart/form-data)
 Fields:
 - `file` — the photo (JPEG/PNG), required.
@@ -30,6 +63,14 @@ Response `200` JSON:
     "persons_detected": 13,
     "keeper_ids": [0],
     "removed_ids": [1, 2, 3],
+    "persons": [
+      {
+        "id": 0,
+        "box": [120, 80, 450, 900],
+        "score": 0.94,
+        "is_keeper": true
+      }
+    ],
     "crops_inpainted": 12,
     "total_seconds": 4.21,
     "engine_requested": "mat",

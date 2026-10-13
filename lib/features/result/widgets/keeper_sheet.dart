@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../core/widgets/person_thumbnail.dart';
 
 /// Keeper-correction sheet (S7): every detected person with its
-/// protected/removed state in words — never colour alone (Design
-/// Direction R2). Choosing a removed person re-runs the clean keeping
+/// protected/removed state in words and visual face thumbnail.
+/// Choosing a removed person re-runs the clean keeping
 /// only them; re-runs are always free (FR-11).
 class KeeperSheet extends StatelessWidget {
-  const KeeperSheet({super.key, required this.people, required this.onChoose});
+  const KeeperSheet({
+    super.key,
+    required this.people,
+    required this.onChoose,
+    this.imagePath,
+    this.personBoxes = const <int, List<int>>{},
+  });
 
   final List<({int id, bool kept})> people;
   final void Function(int id) onChoose;
+  final String? imagePath;
+  final Map<int, List<int>> personBoxes;
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +53,25 @@ class KeeperSheet extends StatelessWidget {
             ),
             SizedBox(height: s.md),
             for (final person in people)
-              SizedBox(
-                height: s.listRowMin,
+              Container(
+                margin: EdgeInsets.only(bottom: s.sm),
+                padding: EdgeInsets.all(s.sm),
+                decoration: BoxDecoration(
+                  color: p.surfaceVariant.withAlpha(60),
+                  borderRadius: BorderRadius.circular(s.radiusLg),
+                  border: Border.all(
+                    color: person.kept ? AppColors.emerald.withAlpha(100) : p.border,
+                  ),
+                ),
                 child: Row(
                   children: <Widget>[
+                    PersonThumbnail(
+                      imagePath: imagePath ?? '',
+                      box: personBoxes[person.id] ?? const <int>[],
+                      isKeeper: person.kept,
+                      size: 46,
+                    ),
+                    SizedBox(width: s.md),
                     Expanded(
                       child: Text(
                         (person.kept
@@ -55,7 +80,9 @@ class KeeperSheet extends StatelessWidget {
                             .trParams(<String, String>{
                               'n': '${person.id + 1}',
                             }),
-                        style: context.textStyles.bodyMd,
+                        style: context.textStyles.bodyMd.copyWith(
+                          fontWeight: person.kept ? FontWeight.w600 : FontWeight.w400,
+                        ),
                       ),
                     ),
                     if (!person.kept)

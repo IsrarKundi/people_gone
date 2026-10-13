@@ -132,6 +132,29 @@ class CaptureApi implements ProcessingApi {
   }
 
   @override
+  Future<Result<DetectionProposal>> detectPersons({
+    required String localPath,
+    void Function(double fraction)? onUploadProgress,
+  }) {
+    onUploadProgress?.call(1.0);
+    return Future<Result<DetectionProposal>>.value(
+      Success<DetectionProposal>(
+        DetectionProposal(
+          photoPath: localPath,
+          personsDetected: 2,
+          keeperIds: const <int>[0],
+          removedIds: const <int>[1],
+          persons: const <DetectedPerson>[
+            DetectedPerson(id: 0, box: <int>[10, 10, 50, 90], score: 0.95, isKeeper: true),
+            DetectedPerson(id: 1, box: <int>[60, 20, 90, 80], score: 0.85, isKeeper: false),
+          ],
+          inputDimensions: const <int>[100, 100],
+        ),
+      ),
+    );
+  }
+
+  @override
   void cancelOngoing() {}
 }
 

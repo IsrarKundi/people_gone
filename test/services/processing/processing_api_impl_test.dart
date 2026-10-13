@@ -194,4 +194,40 @@ void main() {
     expect((result as Failure<ProcessedPhoto>).failure.code, 'missing_file');
     expect(adapter.requests, isEmpty);
   });
+
+  test('detectPersons parses contract detect response with persons array', () async {
+    final adapter = FakeAdapter((options, call) async {
+      expect(options.path, '/detect');
+      return jsonBody(<String, dynamic>{
+        'ok': true,
+        'input_dimensions': <int>[1920, 1080],
+        'persons_detected': 2,
+        'keeper_ids': <int>[0],
+        'removed_ids': <int>[1],
+        'persons': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 0,
+            'box': <int>[100, 100, 400, 800],
+            'score': 0.95,
+            'is_keeper': true,
+          },
+          <String, dynamic>{
+            'id': 1,
+            'box': <int>[500, 200, 700, 600],
+            'score': 0.85,
+            'is_keeper': false,
+          },
+        ],
+      }, 200);
+    });
+    final result = await apiWith(adapter).detectPersons(localPath: photo.path);
+    expect(result, isA<Success<DetectionProposal>>());
+    final proposal = (result as Success<DetectionProposal>).value;
+    expect(proposal.personsDetected, 2);
+    expect(proposal.keeperIds, <int>[0]);
+    expect(proposal.removedIds, <int>[1]);
+    expect(proposal.persons, hasLength(2));
+    expect(proposal.persons.first.isKeeper, isTrue);
+    expect(proposal.persons.last.isKeeper, isFalse);
+  });
 }

@@ -146,7 +146,17 @@ class ResultController extends GetxController {
   /// Keeper correction sheet: every detected person with its state;
   /// choosing a removed person re-runs the clean keeping only them.
   void openKeeperSheet() {
-    AppSheet.show(KeeperSheet(people: people, onChoose: chooseKeeper));
+    final boxes = <int, List<int>>{
+      for (final p in outcome.persons) p.id: p.box,
+    };
+    AppSheet.show(
+      KeeperSheet(
+        people: people,
+        onChoose: chooseKeeper,
+        imagePath: outcome.originalPath,
+        personBoxes: boxes,
+      ),
+    );
   }
 
   /// Free re-run with a different keeper (FR-11) — never uses a save.

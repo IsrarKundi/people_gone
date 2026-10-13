@@ -55,6 +55,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color photoChromeBg;
   final Color photoChromeFg;
 
+  static const Color emerald = Color(0xFF10B981);
+  static const Color crimson = Color(0xFFEF4444);
+
   static const AppPalette light = AppPalette(
     primary: Color(0xFF2563EB),
     onPrimary: Color(0xFFFFFFFF),
@@ -186,3 +189,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
     );
   }
 }
+
+typedef AppColors = AppPalette;
+

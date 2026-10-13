@@ -8,6 +8,8 @@ import '../../features/home/view/home_view.dart';
 import '../../features/picker/binding/picker_binding.dart';
 import '../../features/processing/binding/processing_binding.dart';
 import '../../features/processing/view/processing_view.dart';
+import '../../features/proposal/binding/proposal_binding.dart';
+import '../../features/proposal/view/proposal_view.dart';
 import '../../features/result/binding/result_binding.dart';
 import '../../features/result/view/result_view.dart';
 import '../../features/settings/binding/settings_binding.dart';
@@ -24,15 +26,18 @@ class _HomeRouteBinding extends Bindings {
   }
 }
 
-/// All route wiring (Conventions §1.2). Proposal/brush/paywall routes
-/// join when their features exist (gateway /detect, Phase 2/3) — a
-/// route is never wired to a dead screen.
+/// All route wiring (Conventions §1.2).
 abstract final class AppPages {
   static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
     GetPage<dynamic>(
       name: Routes.home,
       page: () => const HomeView(),
       binding: _HomeRouteBinding(),
+    ),
+    GetPage<dynamic>(
+      name: Routes.proposal,
+      page: () => const ProposalView(),
+      binding: ProposalBinding(),
     ),
     GetPage<dynamic>(
       name: Routes.processing,

@@ -115,6 +115,10 @@ class Processor:
         meta["engine_used"] = "lama" if engine == "lama" else "mat"
         return jpeg, meta
 
+    @modal.method()
+    def detect(self, image_bytes: bytes):
+        return self.pipeline.detect(image_bytes)
+
 
 @app.function(image=modal.Image.debian_slim().pip_install("fastapi[standard]"))
 @modal.asgi_app()
@@ -129,6 +133,12 @@ def web():
     @api.get("/health")
     def health():
         return {"ok": True, "service": "peoplegone-worker"}
+
+    @api.post("/detect")
+    async def detect(file: UploadFile = File(...)):
+        data = await file.read()
+        res = Processor().detect.remote(data)
+        return JSONResponse(res)
 
     @api.post("/process")
     async def process(

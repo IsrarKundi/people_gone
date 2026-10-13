@@ -37,6 +37,17 @@ abstract final class AppStrings {
   static const String processingCancelBody = 'processing_cancel_body';
   static const String processingCancelConfirm = 'processing_cancel_confirm';
 
+  // Proposal (S4).
+  static const String proposalTitle = 'proposal_title';
+  static const String proposalRemoveCount = 'proposal_remove_count';
+  static const String proposalRemoveOne = 'proposal_remove_one';
+  static const String proposalKeepAll = 'proposal_keep_all';
+  static const String proposalNoPeople = 'proposal_no_people';
+  static const String proposalOverlapWarning = 'proposal_overlap_warning';
+  static const String proposalSubjectKept = 'proposal_subject_kept';
+  static const String proposalPersonToRemove = 'proposal_person_to_remove';
+  static const String proposalAnalyzing = 'proposal_analyzing';
+
   // Result (S7).
   static const String resultSummary = 'result_summary';
   static const String resultSave = 'result_save';
@@ -131,6 +142,16 @@ class AppTranslations extends Translations {
       AppStrings.processingCancelBody:
           'Nothing will be charged to your free saves.',
       AppStrings.processingCancelConfirm: 'Cancel clean',
+      AppStrings.proposalTitle: 'Review people to remove',
+      AppStrings.proposalRemoveCount: 'Remove @count people',
+      AppStrings.proposalRemoveOne: 'Remove 1 person',
+      AppStrings.proposalKeepAll: 'Keep all (nobody to remove)',
+      AppStrings.proposalNoPeople: "There's nobody in the background to remove.",
+      AppStrings.proposalOverlapWarning:
+          'This person overlaps your subject — edges may need a touch-up.',
+      AppStrings.proposalSubjectKept: 'Subject (keep)',
+      AppStrings.proposalPersonToRemove: 'Remove',
+      AppStrings.proposalAnalyzing: 'Analyzing photo…',
       AppStrings.resultSummary:
           '@removed of @total people removed. Your subject stays untouched.',
       AppStrings.resultSave: 'Save photo',

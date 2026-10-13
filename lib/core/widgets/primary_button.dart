@@ -11,12 +11,14 @@ class PrimaryButton extends StatelessWidget {
     required this.labelKey,
     required this.onPressed,
     this.isLoading = false,
+    this.labelParams,
   });
 
   /// String key; buttons are named by their outcome (Design Direction §1).
   final String labelKey;
   final VoidCallback? onPressed;
   final bool isLoading;
+  final Map<String, String>? labelParams;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +50,7 @@ class PrimaryButton extends StatelessWidget {
                   color: p.onPrimary,
                 ),
               )
-            : Text(labelKey.tr),
+            : Text(labelParams != null ? labelKey.trParams(labelParams!) : labelKey.tr),
       ),
     );
   }
