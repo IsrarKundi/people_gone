@@ -27,6 +27,10 @@ class SettingsController extends GetxController {
 
   final savesLeft = freeSavesPerMonth.obs;
 
+  /// When the free-saves counter resets (from LocalStore's counter
+  /// period — never a date invented in the UI; Review 02 A6).
+  final resetDate = Rxn<DateTime>();
+
   String get providerName => config.providerDisplayName;
 
   @override
@@ -38,6 +42,11 @@ class SettingsController extends GetxController {
           0,
           freeSavesPerMonth,
         );
+      }
+    });
+    localStore.freeSavesResetDate().then((result) {
+      if (result case Success<DateTime>(:final value)) {
+        resetDate.value = value;
       }
     });
   }

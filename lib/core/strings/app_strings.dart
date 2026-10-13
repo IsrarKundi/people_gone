@@ -75,6 +75,7 @@ abstract final class AppStrings {
   // Settings (S10).
   static const String settingsTitle = 'settings_title';
   static const String settingsYourPlan = 'settings_your_plan';
+  static const String settingsSavesLeft = 'settings_saves_left';
   static const String settingsProcessingProvider =
       'settings_processing_provider';
   static const String settingsHowHandled = 'settings_how_handled';
@@ -171,6 +172,8 @@ class AppTranslations extends Translations {
       AppStrings.historyDeletedSnackbar: 'Removed from history',
       AppStrings.settingsTitle: 'Settings',
       AppStrings.settingsYourPlan: 'Your plan',
+      AppStrings.settingsSavesLeft:
+          '@count of 10 free saves left — resets @date',
       AppStrings.settingsProcessingProvider: 'Processing provider',
       AppStrings.settingsHowHandled: 'How your photos are handled',
       AppStrings.settingsPrivacyPolicy: 'Privacy Policy',

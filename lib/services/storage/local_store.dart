@@ -37,6 +37,12 @@ abstract interface class LocalStore {
   /// Free saves consumed in the current calendar month (UTC).
   Future<Result<int>> freeSavesUsed();
 
+  /// When the free-saves counter resets: the first day of the next
+  /// calendar month (UTC) — the moment the counter's period key rolls
+  /// over. Settings displays this computed date (Design Direction
+  /// §4 S10; Review 02 A6).
+  Future<Result<DateTime>> freeSavesResetDate();
+
   /// Records one consumed free save (called ONLY at the moment of a
   /// successful save — never at processing, FR-16).
   Future<Result<void>> consumeFreeSave();

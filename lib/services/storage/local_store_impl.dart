@@ -208,6 +208,13 @@ class LocalStoreImpl implements LocalStore {
   }
 
   @override
+  Future<Result<DateTime>> freeSavesResetDate() async {
+    final now = _nowUtc();
+    // DateTime.utc normalises month 13 into January of the next year.
+    return Success<DateTime>(DateTime.utc(now.year, now.month + 1, 1));
+  }
+
+  @override
   Future<Result<void>> consumeFreeSave() async {
     try {
       final used = await _readUsed();

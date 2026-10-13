@@ -105,6 +105,18 @@ void main() {
       now = DateTime.utc(2026, 11, 1);
       expect(unwrap(await store.freeSavesUsed()), 0);
     });
+
+    test('reset date is the first of the next month (UTC)', () async {
+      expect(
+        unwrap(await store.freeSavesResetDate()),
+        DateTime.utc(2026, 11, 1),
+      );
+    });
+
+    test('reset date rolls over the year boundary', () async {
+      now = DateTime.utc(2026, 12, 20);
+      expect(unwrap(await store.freeSavesResetDate()), DateTime.utc(2027, 1, 1));
+    });
   });
 
   group('consent', () {

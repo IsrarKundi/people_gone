@@ -36,6 +36,10 @@ class FakeStore implements LocalStore {
   Future<Result<int>> freeSavesUsed() async => Success<int>(used);
 
   @override
+  Future<Result<DateTime>> freeSavesResetDate() async =>
+      Success<DateTime>(DateTime.utc(2026, 11, 1));
+
+  @override
   Future<Result<List<HistoryEntry>>> history() async =>
       Success<List<HistoryEntry>>(entries);
 

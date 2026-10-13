@@ -8,6 +8,12 @@ abstract final class Formatters {
   /// e.g. `Oct 13, 2026`.
   static String date(DateTime value) => _date.format(value);
 
+  static final DateFormat _dayMonth = DateFormat('d MMM');
+
+  /// e.g. `1 Nov` — the compact day-month the Settings plan line uses
+  /// for the free-saves reset date (Design Direction §4 S10).
+  static String dayMonth(DateTime value) => _dayMonth.format(value);
+
   /// e.g. `Oct 13, 2026 5:33 PM`.
   static String dateTime(DateTime value) => _dateTime.format(value);
 

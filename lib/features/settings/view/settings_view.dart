@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/section_header.dart';
 import '../controller/settings_controller.dart';
@@ -20,14 +21,22 @@ class SettingsView extends GetView<SettingsController> {
         padding: EdgeInsets.all(s.screenPadding),
         children: <Widget>[
           const SectionHeader(titleKey: AppStrings.settingsYourPlan),
-          Obx(
-            () => _row(
+          Obx(() {
+            final reset = controller.resetDate.value;
+            // The plan line carries the computed reset date (§4 S10);
+            // until LocalStore answers, the generic line stands.
+            return _row(
               context,
-              label: AppStrings.homeSavesLeft.trParams(<String, String>{
-                'count': '${controller.savesLeft.value}',
-              }),
-            ),
-          ),
+              label: reset == null
+                  ? AppStrings.homeSavesLeft.trParams(<String, String>{
+                      'count': '${controller.savesLeft.value}',
+                    })
+                  : AppStrings.settingsSavesLeft.trParams(<String, String>{
+                      'count': '${controller.savesLeft.value}',
+                      'date': Formatters.dayMonth(reset),
+                    }),
+            );
+          }),
           SizedBox(height: s.xxl),
           _row(
             context,
@@ -57,11 +66,15 @@ class SettingsView extends GetView<SettingsController> {
       child: Row(
         children: <Widget>[
           Expanded(child: Text(label, style: context.textStyles.bodyMd)),
-          if (value != null)
+          // A defined minimum gap: label and value must never sit
+          // flush against each other (Review 02 F8).
+          if (value != null) ...<Widget>[
+            SizedBox(width: s.sm),
             Text(
               value,
               style: context.textStyles.bodyMd.copyWith(color: p.textSecondary),
             ),
+          ],
         ],
       ),
     );
