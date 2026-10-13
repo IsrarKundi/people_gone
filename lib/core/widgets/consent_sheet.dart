@@ -51,6 +51,10 @@ class ConsentSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
+    final isConsentBody = bodyKey == AppStrings.consentBody;
+    final provider =
+        bodyParams?['provider'] ?? "PeopleGone's processing servers";
+
     return Container(
       decoration: BoxDecoration(
         color: p.surface,
@@ -60,50 +64,152 @@ class ConsentSheet extends StatelessWidget {
       ),
       padding: EdgeInsets.fromLTRB(
         s.screenPadding,
-        s.xxl,
+        s.xl,
         s.screenPadding,
-        s.xxl,
+        s.xl,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(titleKey.tr, style: context.textStyles.titleLg),
+              SizedBox(height: s.md),
+              if (isConsentBody)
+                _structuredBody(context, provider)
+              else
+                Text(
+                  bodyParams == null ? bodyKey.tr : bodyKey.trParams(bodyParams!),
+                  style: context.textStyles.bodyMd,
+                ),
+              if (footerKey != null && onFooterTap != null) ...<Widget>[
+                SizedBox(height: s.md),
+                GestureDetector(
+                  onTap: onFooterTap,
+                  child: Row(
+                    children: <Widget>[
+                      Icon(Icons.privacy_tip_outlined, size: s.iconSm, color: p.primary),
+                      SizedBox(width: s.xs),
+                      Text(
+                        footerKey!.tr,
+                        style: context.textStyles.bodySm.copyWith(
+                          color: p.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              SizedBox(height: s.xl),
+              PrimaryButton(labelKey: continueLabelKey, onPressed: onContinue),
+              if (variant == ConsentSheetVariant.consent &&
+                  onCancel != null) ...<Widget>[
+                SizedBox(height: s.sm),
+                Center(
+                  child: TextButton(
+                    onPressed: onCancel,
+                    child: Text(
+                      AppStrings.commonCancel.tr,
+                      style: context.textStyles.labelLg.copyWith(
+                        color: p.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _structuredBody(BuildContext context, String provider) {
+    final p = context.palette;
+    final s = context.sizes;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _trustItem(
+          context,
+          icon: Icons.lock_outline,
+          iconColor: p.primary,
+          title: 'Encrypted single-photo transfer',
+          desc:
+              'Sent to $provider over an encrypted connection. '
+              'Only this photo is sent — PeopleGone never accesses the rest of your photo library.',
+        ),
+        SizedBox(height: s.sm),
+        _trustItem(
+          context,
+          icon: Icons.shield_outlined,
+          iconColor: p.success,
+          title: 'Never used to train AI',
+          desc:
+              'Your photo is used solely to remove background people. '
+              'It is never used to train AI models.',
+        ),
+        SizedBox(height: s.sm),
+        _trustItem(
+          context,
+          icon: Icons.auto_delete_outlined,
+          iconColor: p.secondary,
+          title: 'Deleted within 24 hours',
+          desc:
+              'Permanently deleted from our servers when processing finishes, '
+              'and in all cases within 24 hours.',
+        ),
+      ],
+    );
+  }
+
+  Widget _trustItem(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String desc,
+  }) {
+    final p = context.palette;
+    final s = context.sizes;
+    return Container(
+      padding: EdgeInsets.all(s.md),
+      decoration: BoxDecoration(
+        color: p.surfaceVariant,
+        borderRadius: BorderRadius.circular(s.radiusMd),
+        border: Border.all(color: p.border),
+      ),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(titleKey.tr, style: context.textStyles.titleLg),
-          SizedBox(height: s.md),
-          Text(
-            bodyParams == null ? bodyKey.tr : bodyKey.trParams(bodyParams!),
-            style: context.textStyles.bodyMd,
+          Padding(
+            padding: EdgeInsets.only(top: s.xxs),
+            child: Icon(icon, color: iconColor, size: s.iconMd),
           ),
-          if (footerKey != null && onFooterTap != null) ...<Widget>[
-            SizedBox(height: s.md),
-            GestureDetector(
-              onTap: onFooterTap,
-              child: Text(
-                footerKey!.tr,
-                style: context.textStyles.bodyMd.copyWith(
-                  color: p.secondary,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ],
-          SizedBox(height: s.xxl),
-          PrimaryButton(labelKey: continueLabelKey, onPressed: onContinue),
-          if (variant == ConsentSheetVariant.consent &&
-              onCancel != null) ...<Widget>[
-            SizedBox(height: s.sm),
-            Center(
-              child: TextButton(
-                onPressed: onCancel,
-                child: Text(
-                  AppStrings.commonCancel.tr,
+          SizedBox(width: s.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
                   style: context.textStyles.labelLg.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: s.xxs),
+                Text(
+                  desc,
+                  style: context.textStyles.bodySm.copyWith(
                     color: p.textSecondary,
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );

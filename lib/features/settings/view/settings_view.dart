@@ -14,6 +14,7 @@ class SettingsView extends GetView<SettingsController> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     final s = context.sizes;
     return AppScaffold(
       titleKey: AppStrings.settingsTitle,
@@ -21,53 +22,91 @@ class SettingsView extends GetView<SettingsController> {
         padding: EdgeInsets.all(s.screenPadding),
         children: <Widget>[
           const SectionHeader(titleKey: AppStrings.settingsYourPlan),
-          Obx(() {
-            final reset = controller.resetDate.value;
-            // The plan line carries the computed reset date (§4 S10);
-            // until LocalStore answers, the generic line stands.
-            return _row(
-              context,
-              label: reset == null
-                  ? AppStrings.homeSavesLeft.trParams(<String, String>{
-                      'count': '${controller.savesLeft.value}',
-                    })
-                  : AppStrings.settingsSavesLeft.trParams(<String, String>{
-                      'count': '${controller.savesLeft.value}',
-                      'date': Formatters.dayMonth(reset),
-                    }),
-            );
-          }),
-          SizedBox(height: s.xxl),
-          _row(
+          SizedBox(height: s.sm),
+          _cardContainer(
             context,
-            label: AppStrings.settingsProcessingProvider.tr,
-            value: controller.providerName,
+            child: Obx(() {
+              final reset = controller.resetDate.value;
+              return _row(
+                context,
+                icon: Icons.savings_outlined,
+                label: reset == null
+                    ? AppStrings.homeSavesLeft.trParams(<String, String>{
+                        'count': '${controller.savesLeft.value}',
+                      })
+                    : AppStrings.settingsSavesLeft.trParams(<String, String>{
+                        'count': '${controller.savesLeft.value}',
+                        'date': Formatters.dayMonth(reset),
+                      }),
+              );
+            }),
           ),
-          _actionRow(
+          SizedBox(height: s.xl),
+          const SectionHeader(titleKey: AppStrings.consentTitle),
+          SizedBox(height: s.sm),
+          _cardContainer(
             context,
-            label: AppStrings.settingsHowHandled.tr,
-            onTap: controller.showPhotoHandling,
-          ),
-          _actionRow(
-            context,
-            label: AppStrings.settingsPrivacyPolicy.tr,
-            onTap: controller.openPrivacyPolicy,
+            child: Column(
+              children: <Widget>[
+                _row(
+                  context,
+                  icon: Icons.dns_outlined,
+                  label: AppStrings.settingsProcessingProvider.tr,
+                  value: controller.providerName,
+                ),
+                Divider(height: 1, color: p.border),
+                _actionRow(
+                  context,
+                  icon: Icons.shield_outlined,
+                  label: AppStrings.settingsHowHandled.tr,
+                  onTap: controller.showPhotoHandling,
+                ),
+                Divider(height: 1, color: p.border),
+                _actionRow(
+                  context,
+                  icon: Icons.privacy_tip_outlined,
+                  label: AppStrings.settingsPrivacyPolicy.tr,
+                  onTap: controller.openPrivacyPolicy,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _row(BuildContext context, {required String label, String? value}) {
+  Widget _cardContainer(BuildContext context, {required Widget child}) {
+    final p = context.palette;
+    final s = context.sizes;
+    return Container(
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(s.radiusMd),
+        border: Border.all(color: p.border),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: s.md),
+      child: child,
+    );
+  }
+
+  Widget _row(
+    BuildContext context, {
+    required String label,
+    IconData? icon,
+    String? value,
+  }) {
     final p = context.palette;
     final s = context.sizes;
     return SizedBox(
       height: s.listRowMin,
       child: Row(
         children: <Widget>[
+          if (icon != null) ...<Widget>[
+            Icon(icon, size: s.iconSm, color: p.primary),
+            SizedBox(width: s.sm),
+          ],
           Expanded(child: Text(label, style: context.textStyles.bodyMd)),
-          // A defined minimum gap: label and value must never sit
-          // flush against each other (Review 02 F8).
           if (value != null) ...<Widget>[
             SizedBox(width: s.sm),
             Text(
@@ -84,6 +123,7 @@ class SettingsView extends GetView<SettingsController> {
     BuildContext context, {
     required String label,
     required VoidCallback onTap,
+    IconData? icon,
   }) {
     final p = context.palette;
     final s = context.sizes;
@@ -93,6 +133,10 @@ class SettingsView extends GetView<SettingsController> {
         height: s.listRowMin,
         child: Row(
           children: <Widget>[
+            if (icon != null) ...<Widget>[
+              Icon(icon, size: s.iconSm, color: p.primary),
+              SizedBox(width: s.sm),
+            ],
             Expanded(child: Text(label, style: context.textStyles.bodyMd)),
             Icon(Icons.chevron_right, color: p.textSecondary),
           ],
