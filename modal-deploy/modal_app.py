@@ -3,8 +3,9 @@
 Engine policy (from the 2026-10-12/13 patch tests):
   default fill = MAT   (best texture fills, never invents objects, fast)
   fallback     = LaMa  (selectable via engine="lama"; original pipeline engine)
-  PowerPaint racing on large patches = next iteration (engine="auto" maps to
-  MAT until then).
+  engine="auto"        = RacingInpainter: MAT vs PowerPaint raced on large
+                         patches only, ghost-check residual picks the winner
+                         (see racing_inpainter.py / RACING_NOTES.md).
 
 Run (from this folder, after `modal token new`):
     modal deploy modal_app.py
@@ -35,6 +36,14 @@ image = (
         "fastapi[standard]",
     )
     .pip_install("simple-lama-inpainting==0.1.2", extra_options="--no-deps")
+    # PowerPaint racing stack (Step 3): versions match the Phase 0 harness
+    # env exactly (diffusers 0.30.3, mmengine 0.10.7, accelerate 0.34.2).
+    .pip_install(
+        "diffusers==0.30.3",
+        "mmengine==0.10.7",
+        "accelerate==0.34.2",
+        "safetensors",
+    )
     # sam2 the way that actually installs on this stack (no source builds)
     .run_commands(
         "pip install --no-deps --no-build-isolation "
@@ -47,6 +56,9 @@ image = (
             "MAT_CKPT": "/models/mat/Places_512_FullData.pkl",
             "MAT_REPO": "/app/MAT-repo",
             "PG_ALLOW_FALLBACKS": "0",
+            "PP_REPO": "/app/PowerPaint-repo",
+            "PP_CKPT_DIR": "/models/powerpaint",
+            "PP_STEPS": "30",
         }
     )
     # Bake model weights into the image so cold starts don't download GBs.
@@ -59,6 +71,21 @@ image = (
         "local_dir='/models/mat')\"",
         # LaMa weights (simple-lama fetches its TorchScript file on first use)
         "python -c \"from simple_lama_inpainting import SimpleLama; SimpleLama()\" || true",
+        # PowerPaint base model + trained task weights (racing, Step 3)
+        "python -c \""
+        "from huggingface_hub import snapshot_download, hf_hub_download; "
+        "snapshot_download('runwayml/stable-diffusion-inpainting'); "
+        "hf_hub_download('JunhaoZhuang/PowerPaint-v1', 'unet/unet.safetensors', "
+        "local_dir='/models/powerpaint'); "
+        "hf_hub_download('JunhaoZhuang/PowerPaint-v1', "
+        "'text_encoder/text_encoder.safetensors', local_dir='/models/powerpaint')\"",
+    )
+    # PowerPaint runtime code, pinned to the exact commit the Phase 0
+    # harness ran with (open-mmlab/PowerPaint @ 5b4c3d5, 2024-08-29).
+    .run_commands(
+        "git clone https://github.com/open-mmlab/PowerPaint.git /app/PowerPaint-repo"
+        " && cd /app/PowerPaint-repo"
+        " && git checkout 5b4c3d52291709fcec2a1870d987da693fd3549c"
     )
     # MAT runtime code, cloned at image-build time (same pattern as sam2
     # above) instead of copied from a build-machine folder, so this deploy
@@ -77,6 +104,8 @@ image = (
     # (copied from the Phase 0 harness; see server/README.md)
     .add_local_dir("server", remote_path="/app/server")
     .add_local_file("mat_inpainter.py", remote_path="/app/mat_inpainter.py")
+    .add_local_file("pp_inpainter.py", remote_path="/app/pp_inpainter.py")
+    .add_local_file("racing_inpainter.py", remote_path="/app/racing_inpainter.py")
 )
 
 app = modal.App(APP_NAME, image=image)
@@ -97,22 +126,38 @@ class Processor:
         sys.path.insert(0, "/app")
         from worker.pipeline import PeopleGonePipeline
         from mat_inpainter import MatInpainter
+        from pp_inpainter import PowerPaintInpainter
+        from racing_inpainter import RacingInpainter
 
         self.pipeline = PeopleGonePipeline()
         self._lama = self.pipeline.inpainter  # pipeline's own LaMa inpainter
         self._mat = MatInpainter()
+        # Racing inpainter for engine="auto": constructed here, but the
+        # PowerPaint weights load LAZILY on its first raced crop — building
+        # this object costs nothing and never loads PP at startup.
+        self._racing = RacingInpainter(
+            self._mat, PowerPaintInpainter(), self.pipeline.detector
+        )
 
     @modal.method()
     def process(self, image_bytes: bytes, engine: str = "mat", keep_ids: list = None):
         # Engine swap: the pipeline only calls inpainter.inpaint_crop(...)
         if engine == "lama":
             self.pipeline.inpainter = self._lama
-        else:  # "mat" (default) and "auto" (PP racing lands here later)
+            engine_used = "lama"
+        elif engine == "auto":
+            self._racing.records = []  # reset per call
+            self.pipeline.inpainter = self._racing
+            engine_used = "auto"
+        else:  # "mat" (default)
             self.pipeline.inpainter = self._mat
+            engine_used = "mat"
         jpeg, meta = self.pipeline.process(image_bytes, keep=keep_ids)
         meta = dict(meta)
         meta["engine_requested"] = engine
-        meta["engine_used"] = "lama" if engine == "lama" else "mat"
+        meta["engine_used"] = engine_used
+        if engine == "auto":
+            meta["crop_engines"] = list(self._racing.records)
         return jpeg, meta
 
     @modal.method()
@@ -121,10 +166,11 @@ class Processor:
 
     @modal.method()
     def touchup(self, image_bytes: bytes, mask_bytes: bytes, engine: str = "mat"):
-        # Same engine-swap pattern as process().
+        # Same engine-swap pattern as process(), except "auto" maps to
+        # MAT here: PowerPaint racing is a /process path only.
         if engine == "lama":
             self.pipeline.inpainter = self._lama
-        else:  # "mat" (default) and "auto" (PP racing lands here later)
+        else:  # "mat" (default) and "auto"
             self.pipeline.inpainter = self._mat
         jpeg, meta = self.pipeline.touchup(image_bytes, mask_bytes)
         meta = dict(meta)
