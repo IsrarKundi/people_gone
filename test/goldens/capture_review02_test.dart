@@ -538,16 +538,16 @@ void main() {
     await primeImages(tester);
     await pumpApp(tester, mode: ThemeMode.light);
     Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
-    // 400ms: let the route transition finish (a 100ms settle captures
-    // the fade-in mid-flight and the whole screen reads washed out).
-    await tester.pump(const Duration(milliseconds: 400));
-    await settleFrames(tester);
+    // pumpAndSettle, not fixed pumps: this route's transition runs
+    // long in the harness and a fixed settle captures the fade
+    // mid-flight (the whole screen reads washed out — harness
+    // artifact, not app appearance; verified Review 04).
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's4_proposal_light.png');
 
     await pumpApp(tester, mode: ThemeMode.dark);
     Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
-    await tester.pump(const Duration(milliseconds: 400));
-    await settleFrames(tester);
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's4_proposal_dark.png');
   });
 
@@ -574,7 +574,7 @@ void main() {
     );
     await settleFrames(tester);
     await tester.tap(find.text('Kept the wrong person?'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's7_wrong_keeper_sheet.png');
     Get.back<void>();
     await tester.pump(const Duration(milliseconds: 100));
@@ -762,8 +762,7 @@ void main() {
     );
     await settleFrames(tester);
     await tester.tap(find.text('Delete'));
-    await tester.pump(const Duration(milliseconds: 300));
-    await settleFrames(tester);
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's9_delete_dialog.png');
     await tester.tap(find.text('Cancel'));
     await tester.pump(const Duration(milliseconds: 200));
@@ -806,7 +805,7 @@ void main() {
     await primeImages(tester);
     await pumpApp(tester);
     Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
-    await settleFrames(tester);
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's4_proposal_nopeople.png');
   });
 }
