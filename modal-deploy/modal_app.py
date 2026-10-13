@@ -60,14 +60,22 @@ image = (
         # LaMa weights (simple-lama fetches its TorchScript file on first use)
         "python -c \"from simple_lama_inpainting import SimpleLama; SimpleLama()\" || true",
     )
-    # Worker code (source of truth: phase0-run/server on the build machine)
-    .add_local_dir("../phase0-run/server", remote_path="/app/server")
-    .add_local_dir(
-        "../phase0-run/MAT-repo",
-        remote_path="/app/MAT-repo",
-        ignore=["test_sets", "figures", "training", "metrics", "losses",
-                "evaluatoin", "datasets", "__pycache__"],
+    # MAT runtime code, cloned at image-build time (same pattern as sam2
+    # above) instead of copied from a build-machine folder, so this deploy
+    # works from a clean clone of this repo. Pinned to the exact commit the
+    # 2026-10-13 smoke test ran with (fenglinglwb/MAT @ d273d89, 2022-10-13).
+    # Only dnnlib / legacy / networks / torch_utils are imported at runtime
+    # (see mat_inpainter.py); the training/dataset folders are deleted.
+    .run_commands(
+        "git clone https://github.com/fenglinglwb/MAT.git /app/MAT-repo"
+        " && cd /app/MAT-repo"
+        " && git checkout d273d891ecdad2e1df106516423a75bc45b2d800"
+        " && rm -rf test_sets figures training metrics losses evaluatoin"
+        " datasets __pycache__"
     )
+    # Worker code — vendored in this repo under modal-deploy/server/
+    # (copied from the Phase 0 harness; see server/README.md)
+    .add_local_dir("server", remote_path="/app/server")
     .add_local_file("mat_inpainter.py", remote_path="/app/mat_inpainter.py")
 )
 

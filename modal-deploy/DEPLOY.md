@@ -14,10 +14,14 @@ per second only while processing.
    This prints a URL — open it, approve. The token is stored in
    `~/.modal.toml` on that machine. Never paste the token into chat or commit it.
 
-## Deploy (from this folder: ~/workspace/peoplegone/modal-deploy)
+## Deploy (from this folder: modal-deploy/ in this repo)
 ```
 modal deploy modal_app.py
 ```
+Self-contained: the worker package is vendored under `server/` in this
+folder, and the MAT runtime code is cloned from GitHub at image-build
+time (pinned commit, see modal_app.py). No folders outside this repo are
+needed.
 First build downloads model weights into the image (RT-DETR detector,
 SAM 2.1 tiny, MAT checkpoint, LaMa) — expect the build to take a while.
 The command prints the web endpoint URL when done.
