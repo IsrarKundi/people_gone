@@ -59,6 +59,11 @@ class ResultView extends GetView<ResultController> {
           labelKey: AppStrings.resultPickAnother,
           onPressed: controller.pickAnother,
         ),
+        SizedBox(height: s.sm),
+        SecondaryButton(
+          labelKey: AppStrings.resultBrushFix,
+          onPressed: controller.openTouchUp,
+        ),
       ],
     );
   }
@@ -80,7 +85,7 @@ class ResultView extends GetView<ResultController> {
       final holding = controller.showOriginal.value;
       final shownPath = holding && !comparing
           ? outcome.originalPath
-          : outcome.resultPath;
+          : controller.resultPath.value;
       return PhotoSurface(
         imageProvider: ResizeImage(
           FileImage(File(shownPath)),
@@ -92,7 +97,7 @@ class ResultView extends GetView<ResultController> {
             if (comparing)
               CompareSlider(
                 originalPath: outcome.originalPath,
-                resultPath: outcome.resultPath,
+                resultPath: controller.resultPath.value,
               )
             else
               GestureDetector(
@@ -238,6 +243,17 @@ class ResultView extends GetView<ResultController> {
               child: SecondaryButton(
                 labelKey: AppStrings.resultShare,
                 onPressed: controller.share,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: s.sm),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: SecondaryButton(
+                labelKey: AppStrings.resultBrushFix,
+                onPressed: controller.openTouchUp,
               ),
             ),
           ],

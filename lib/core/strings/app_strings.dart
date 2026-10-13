@@ -65,6 +65,7 @@ abstract final class AppStrings {
   static const String resultPersonRemoved = 'result_person_removed';
   static const String resultKeepThisPerson = 'result_keep_this_person';
   static const String resultRerunNote = 'result_rerun_note';
+  static const String resultBrushFix = 'result_brush_fix';
   static const String resultPickAnother = 'result_pick_another';
   static const String resultBefore = 'result_before';
   static const String resultAfter = 'result_after';
@@ -74,6 +75,15 @@ abstract final class AppStrings {
   static const String reportEmailAction = 'report_email_action';
   static const String savesOutTitle = 'saves_out_title';
   static const String savesOutBody = 'saves_out_body';
+
+  // Brush (S5).
+  static const String brushTitle = 'brush_title';
+  static const String brushApply = 'brush_apply';
+  static const String brushHint = 'brush_hint';
+  static const String brushUndo = 'brush_undo';
+  static const String brushClear = 'brush_clear';
+  static const String brushSize = 'brush_size';
+  static const String brushFixing = 'brush_fixing';
 
   // History (S9).
   static const String historyTitle = 'history_title';
@@ -172,6 +182,7 @@ class AppTranslations extends Translations {
       AppStrings.resultPersonRemoved: 'Person @n — will be removed',
       AppStrings.resultKeepThisPerson: 'Keep this person instead',
       AppStrings.resultRerunNote: 'Re-running is free — it never uses a save.',
+      AppStrings.resultBrushFix: 'Brush fix',
       AppStrings.resultPickAnother: 'Pick another photo',
       AppStrings.resultBefore: 'Before',
       AppStrings.resultAfter: 'After',
@@ -185,6 +196,14 @@ class AppTranslations extends Translations {
       AppStrings.savesOutBody:
           "You've used this month's free saves, so this photo can't be "
           'saved yet. Free saves return on the 1st.',
+      AppStrings.brushTitle: 'Touch up',
+      AppStrings.brushApply: 'Remove painted area',
+      AppStrings.brushHint:
+          'Paint over anything that should also be removed — including its shadow.',
+      AppStrings.brushUndo: 'Undo',
+      AppStrings.brushClear: 'Clear',
+      AppStrings.brushSize: 'Brush size',
+      AppStrings.brushFixing: 'Fixing…',
       AppStrings.historyTitle: 'History',
       AppStrings.historyOnDeviceLine: 'History lives only on this phone.',
       AppStrings.historyEmptyLine: 'Photos you clean will live here.',
@@ -196,6 +215,7 @@ class AppTranslations extends Translations {
       AppStrings.settingsSavesLeft:
           '@count of 10 free saves left — resets @date',
       AppStrings.settingsProcessingProvider: 'Processing provider',
+      AppStrings.settingsProcessingPrivacy: 'Processing & Privacy',
       AppStrings.settingsHowHandled: 'How your photos are handled',
       AppStrings.settingsPrivacyPolicy: 'Privacy Policy',
       AppStrings.errorGeneric: 'Something went wrong. Please try again.',

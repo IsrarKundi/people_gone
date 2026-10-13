@@ -9,7 +9,9 @@ import '../../../core/utils/result.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_sheet.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../../../services/processing/processing_api.dart';
 import '../../../services/storage/local_store.dart';
+import '../../brush/model/brush_args.dart';
 import '../../processing/model/processing_args.dart';
 import '../widgets/keeper_sheet.dart';
 
@@ -20,6 +22,7 @@ class ResultController extends GetxController {
   ResultController({
     required this.localStore,
     required this.config,
+    this.processingApi,
     Future<void> Function(List<XFile> files)? shareFiles,
     Future<bool> Function(Uri uri)? openLink,
   }) : _shareFiles = shareFiles ?? Share.shareXFiles,
@@ -27,6 +30,10 @@ class ResultController extends GetxController {
 
   final LocalStore localStore;
   final AppConfig config;
+
+  /// The gateway API for the save-credit gate (§7.3); null in direct
+  /// mode builds/tests that never gate a save.
+  final ProcessingApi? processingApi;
   final Future<void> Function(List<XFile> files) _shareFiles;
   final Future<bool> Function(Uri uri) _openLink;
 
@@ -34,6 +41,12 @@ class ResultController extends GetxController {
   static const int freeSavesPerMonth = 10;
 
   late final ProcessingOutcome outcome;
+
+  /// The CURRENT result file: a brush touch-up replaces it (FR-09),
+  /// and save/share/history all use this path, never a stale one.
+  late final RxString resultPath;
+
+  String? _saveKey;
 
   final savesLeft = freeSavesPerMonth.obs;
   final saved = false.obs;
@@ -45,6 +58,7 @@ class ResultController extends GetxController {
   void onInit() {
     super.onInit();
     outcome = Get.arguments as ProcessingOutcome;
+    resultPath = outcome.resultPath.obs;
     unawaitedRefresh();
   }
 
@@ -74,30 +88,76 @@ class ResultController extends GetxController {
     return all.map((id) => (id: id, kept: kept.contains(id))).toList();
   }
 
+  bool get _gatewayMode => config.useGateway && processingApi != null;
+
+  Future<void> _refundGatewayCredit() async {
+    if (_gatewayMode && _saveKey != null) {
+      await processingApi!.refundSaveCredit(idempotencyKey: _saveKey!);
+    }
+  }
+
   /// Save (FR-14/FR-16): gallery first, then history, then — only on
-  /// full success — one free save is consumed.
+  /// full success — one free save is consumed. In gateway mode the
+  /// server ledger gates the save first (§7.3): no credit, no save;
+  /// a local failure after the credit was consumed refunds it (§7.2).
   Future<void> save() async {
     if (saved.value || isSaving.value || nobodyRemoved) return;
-    if (savesLeft.value <= 0) {
-      await AppDialog.info(
-        titleKey: AppStrings.savesOutTitle,
-        bodyKey: AppStrings.savesOutBody,
+    int? gatewaySavesLeft;
+    if (_gatewayMode) {
+      isSaving.value = true;
+      _saveKey ??= 'save_${resultPath.value.hashCode}';
+      final decisionResult = await processingApi!.consumeSaveCredit(
+        idempotencyKey: _saveKey!,
       );
-      return;
+      switch (decisionResult) {
+        case Failure<SaveCreditDecision>(:final failure):
+          isSaving.value = false;
+          AppSnackbar.error(failure.userMessageKey);
+          return;
+        case Success<SaveCreditDecision>(:final value):
+          if (value.savesLeft != null) {
+            savesLeft.value = value.savesLeft!;
+            gatewaySavesLeft = value.savesLeft;
+          }
+          if (value.paymentRequired) {
+            isSaving.value = false;
+            await AppDialog.info(
+              titleKey: AppStrings.savesOutTitle,
+              bodyKey: AppStrings.savesOutBody,
+            );
+            return;
+          }
+          if (!value.allowed) {
+            isSaving.value = false;
+            AppSnackbar.error(AppStrings.errorGeneric);
+            return;
+          }
+      }
+    } else {
+      if (savesLeft.value <= 0) {
+        await AppDialog.info(
+          titleKey: AppStrings.savesOutTitle,
+          bodyKey: AppStrings.savesOutBody,
+        );
+        return;
+      }
+      isSaving.value = true;
     }
-    isSaving.value = true;
-    final gallery = await localStore.saveToGallery(outcome.resultPath);
+    final gallery = await localStore.saveToGallery(resultPath.value);
     if (gallery case Failure<void>(:final failure)) {
+      await _refundGatewayCredit();
       isSaving.value = false;
       AppSnackbar.error(failure.userMessageKey);
       return;
     }
     final id = 'save_${DateTime.now().microsecondsSinceEpoch}';
-    final adopted = await localStore.adoptIntoHistory(outcome.resultPath, id);
+    final adopted = await localStore.adoptIntoHistory(resultPath.value, id);
     if (adopted case Success<String>(:final value)) {
       String? adoptedOrig;
-      final origResult =
-          await localStore.adoptOriginalIntoHistory(outcome.originalPath, id);
+      final origResult = await localStore.adoptOriginalIntoHistory(
+        outcome.originalPath,
+        id,
+      );
       if (origResult case Success<String>(value: final origPath)) {
         adoptedOrig = origPath;
       }
@@ -111,18 +171,39 @@ class ResultController extends GetxController {
       );
       await localStore.consumeFreeSave();
       savesLeft.value = savesLeft.value - 1;
+      if (gatewaySavesLeft != null) savesLeft.value = gatewaySavesLeft;
       saved.value = true;
       AppSnackbar.success(AppStrings.resultSavedSnackbar);
     } else {
+      await _refundGatewayCredit();
       AppSnackbar.error(AppStrings.errorSaveFailed);
     }
     isSaving.value = false;
   }
 
+  /// Brush fix (S5 / FR-09): paints a missed area on the CURRENT
+  /// result and re-runs a touch-up. A touch-up never consumes a
+  /// credit; the touched result's later Save is a new save cycle.
+  Future<void> openTouchUp() async {
+    // Untyped navigation + cast: every GetPage in AppPages is
+    // GetPage<dynamic>, and a typed Get.toNamed<String> cannot cast
+    // its route (verified in result_flow_test's touch-up case).
+    final raw = await Get.toNamed<dynamic>(
+      Routes.brush,
+      arguments: BrushArgs(imagePath: resultPath.value),
+    );
+    final newPath = raw as String?;
+    if (newPath != null && newPath != resultPath.value) {
+      resultPath.value = newPath;
+      saved.value = false;
+      _saveKey = null;
+    }
+  }
+
   /// Share the result file through the system sheet (FR-17). No
   /// watermark is ever added, free or paid.
   Future<void> share() async {
-    await _shareFiles(<XFile>[XFile(outcome.resultPath)]);
+    await _shareFiles(<XFile>[XFile(resultPath.value)]);
   }
 
   /// Report this result (FR-23): opens the user's mail app to the

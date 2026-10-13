@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../../features/brush/binding/brush_binding.dart';
+import '../../features/brush/view/brush_view.dart';
 import '../../features/history/binding/history_binding.dart';
 import '../../features/history/view/history_detail_view.dart';
 import '../../features/history/view/history_view.dart';
@@ -48,6 +50,11 @@ abstract final class AppPages {
       name: Routes.result,
       page: () => const ResultView(),
       binding: ResultBinding(),
+    ),
+    GetPage<dynamic>(
+      name: Routes.brush,
+      page: () => const BrushView(),
+      binding: BrushBinding(),
     ),
     GetPage<dynamic>(
       name: Routes.history,

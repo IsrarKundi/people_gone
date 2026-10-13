@@ -12,6 +12,7 @@ import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
+import 'package:people_gone/features/result/controller/result_controller.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
 
@@ -20,10 +21,12 @@ import '../processing/processing_flow_test.dart' show pngBytes;
 class TrackingStore implements LocalStore {
   int used = 0;
   bool galleryFails = false;
+  bool adoptFails = false;
+  int galleryAttempts = 0;
+  List<String>? sharedLog;
   final List<String> galleryPaths = <String>[];
   int consumeCalls = 0;
   final List<HistoryEntry> added = <HistoryEntry>[];
-
 
   GatewayJobRecord? gatewayJobRecord;
 
@@ -42,6 +45,7 @@ class TrackingStore implements LocalStore {
     gatewayJobRecord = null;
     return const Success<void>(null);
   }
+
   @override
   Future<Result<int>> freeSavesUsed() async => Success<int>(used);
 
@@ -51,6 +55,7 @@ class TrackingStore implements LocalStore {
 
   @override
   Future<Result<void>> consumeFreeSave() async {
+    sharedLog?.add('localConsume');
     consumeCalls++;
     used++;
     return const Success<void>(null);
@@ -58,6 +63,8 @@ class TrackingStore implements LocalStore {
 
   @override
   Future<Result<void>> saveToGallery(String localPath) async {
+    galleryAttempts++;
+    sharedLog?.add('gallery');
     if (galleryFails) {
       return const Failure<void>(
         AppFailure(code: 'gallery', userMessageKey: AppStrings.errorSaveFailed),
@@ -68,10 +75,15 @@ class TrackingStore implements LocalStore {
   }
 
   @override
-  Future<Result<String>> adoptIntoHistory(
-    String sessionPath,
-    String id,
-  ) async => Success<String>('/history/$id.jpg');
+  Future<Result<String>> adoptIntoHistory(String sessionPath, String id) async {
+    sharedLog?.add('adopt');
+    if (adoptFails) {
+      return const Failure<String>(
+        AppFailure(code: 'history', userMessageKey: AppStrings.errorSaveFailed),
+      );
+    }
+    return Success<String>('/history/$id.jpg');
+  }
 
   @override
   Future<Result<String>> adoptOriginalIntoHistory(
@@ -109,6 +121,23 @@ class FakeProcessingApi implements ProcessingApi {
   List<int>? lastKeepIds;
   int calls = 0;
 
+  // Configurable gateway behaviour (save-credit gate + touch-up).
+  SaveCreditDecision consumeDecision = const SaveCreditDecision(
+    allowed: true,
+    paymentRequired: false,
+    isPro: false,
+    savesLeft: 9,
+  );
+  bool consumeFails = false;
+  final List<String> consumeKeys = <String>[];
+  final List<String> refundKeys = <String>[];
+  int refundCalls = 0;
+  List<String>? sharedLog;
+  Result<TouchupOutcome>? touchupResult;
+  int touchupCalls = 0;
+  Uint8List? lastMask;
+  String? lastTouchupPath;
+
   @override
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
@@ -142,8 +171,18 @@ class FakeProcessingApi implements ProcessingApi {
         keeperIds: const <int>[0],
         removedIds: const <int>[1],
         persons: const <DetectedPerson>[
-          DetectedPerson(id: 0, box: <int>[10, 10, 50, 90], score: 0.95, isKeeper: true),
-          DetectedPerson(id: 1, box: <int>[60, 20, 90, 80], score: 0.85, isKeeper: false),
+          DetectedPerson(
+            id: 0,
+            box: <int>[10, 10, 50, 90],
+            score: 0.95,
+            isKeeper: true,
+          ),
+          DetectedPerson(
+            id: 1,
+            box: <int>[60, 20, 90, 80],
+            score: 0.85,
+            isKeeper: false,
+          ),
         ],
         inputDimensions: const <int>[100, 100],
       ),
@@ -158,23 +197,43 @@ class FakeProcessingApi implements ProcessingApi {
     required String localPath,
     required Uint8List maskPng,
     void Function(double fraction)? onUploadProgress,
-  }) async => const Failure<TouchupOutcome>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
-  );
+  }) async {
+    touchupCalls++;
+    lastTouchupPath = localPath;
+    lastMask = maskPng;
+    onUploadProgress?.call(1.0);
+    return touchupResult ??
+        const Failure<TouchupOutcome>(
+          AppFailure(
+            code: 'not_implemented',
+            userMessageKey: AppStrings.errorGeneric,
+          ),
+        );
+  }
 
   @override
   Future<Result<SaveCreditDecision>> consumeSaveCredit({
     required String idempotencyKey,
-  }) async => const Failure<SaveCreditDecision>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
-  );
+  }) async {
+    sharedLog?.add('consume');
+    consumeKeys.add(idempotencyKey);
+    if (consumeFails) {
+      return const Failure<SaveCreditDecision>(
+        AppFailure(code: 'gateway', userMessageKey: AppStrings.errorGeneric),
+      );
+    }
+    return Success<SaveCreditDecision>(consumeDecision);
+  }
 
   @override
   Future<Result<void>> refundSaveCredit({
     required String idempotencyKey,
-  }) async => const Failure<void>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
-  );
+  }) async {
+    sharedLog?.add('refund');
+    refundCalls++;
+    refundKeys.add(idempotencyKey);
+    return const Success<void>(null);
+  }
 }
 
 class TestBinding extends Bindings {
@@ -209,6 +268,19 @@ void main() {
     supabaseAnonKey: '',
   );
 
+  const gatewayConfig = AppConfig(
+    apiBaseUrl: 'https://worker.test',
+    providerDisplayName: "PeopleGone's processing servers",
+    consentVersion: 1,
+    supportEmail: 'support@example.com',
+    privacyPolicyUrl: 'https://example.invalid/privacy',
+    useGateway: true,
+    supabaseUrl: '',
+    supabaseAnonKey: '',
+  );
+
+  var stubReturnPath = '';
+
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('pg_result_test');
     original = File('${tempDir.path}/original.png')..writeAsBytesSync(pngBytes);
@@ -234,25 +306,45 @@ void main() {
     );
   }
 
-  Future<void> pumpResult(WidgetTester tester) async {
+  Future<void> pumpResult(
+    WidgetTester tester, {
+    AppConfig? configOverride,
+    ProcessingOutcome? outcomeOverride,
+    bool stubBrush = false,
+  }) async {
     await tester.pumpWidget(
       GetMaterialApp(
         translations: AppTranslations(),
         locale: const Locale('en', 'US'),
         theme: AppTheme.light(),
-        initialBinding: TestBinding(store, api, config),
+        initialBinding: TestBinding(store, api, configOverride ?? config),
         initialRoute: Routes.home,
         getPages: <GetPage<dynamic>>[
           GetPage<dynamic>(
             name: Routes.home,
             page: () => const Scaffold(body: Text('HOME')),
           ),
-          ...AppPages.pages.where((p) => p.name != Routes.home),
+          ...AppPages.pages.where(
+            (p) =>
+                p.name != Routes.home && (!stubBrush || p.name != Routes.brush),
+          ),
+          if (stubBrush)
+            GetPage<dynamic>(
+              name: Routes.brush,
+              page: () => Scaffold(
+                body: Center(
+                  child: TextButton(
+                    onPressed: () => Get.back<String>(result: stubReturnPath),
+                    child: const Text('Stub brush return'),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
     await tester.pump();
-    Get.offNamed<void>(Routes.result, arguments: outcome());
+    Get.offNamed<void>(Routes.result, arguments: outcomeOverride ?? outcome());
     await tester.pump();
     // Let the page transition finish so taps hit their targets.
     await tester.pump(const Duration(milliseconds: 400));
@@ -400,5 +492,158 @@ void main() {
     final chrome = tester.getRect(chromeButton(Icons.close));
     final before = tester.getRect(find.text('Before'));
     expect(before.top, greaterThanOrEqualTo(chrome.bottom - 1));
+  });
+
+  testWidgets('brush fix entry is visible on the result', (tester) async {
+    await pumpResult(tester);
+    expect(find.text('Brush fix'), findsOneWidget);
+  });
+
+  testWidgets('brush fix entry is visible when nobody was removed', (
+    tester,
+  ) async {
+    await pumpResult(tester, outcomeOverride: outcome(removed: const <int>[]));
+    expect(find.text('Brush fix'), findsOneWidget);
+    expect(find.text('Pick another photo'), findsOneWidget);
+  });
+
+  testWidgets('gateway save: credit consumed BEFORE the gallery save', (
+    tester,
+  ) async {
+    final orderLog = <String>[];
+    api.sharedLog = orderLog;
+    store.sharedLog = orderLog;
+    await pumpResult(tester, configOverride: gatewayConfig);
+    await tester.tap(find.text('Save photo'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(api.consumeKeys, hasLength(1));
+    expect(orderLog.indexOf('consume'), lessThan(orderLog.indexOf('gallery')));
+    expect(store.galleryPaths, <String>[resultFile.path]);
+    expect(store.consumeCalls, 1);
+    expect(api.refundCalls, 0);
+    expect(Get.find<ResultController>().savesLeft.value, 9);
+    expect(find.text('Saved'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('gateway payment_required: dialog, no gallery, no local use', (
+    tester,
+  ) async {
+    api.consumeDecision = const SaveCreditDecision(
+      allowed: false,
+      paymentRequired: true,
+      isPro: false,
+      savesLeft: 0,
+    );
+    await pumpResult(tester, configOverride: gatewayConfig);
+    await tester.tap(find.text('Save photo'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('No free saves left'), findsOneWidget);
+    expect(store.galleryAttempts, 0);
+    expect(store.galleryPaths, isEmpty);
+    expect(store.consumeCalls, 0);
+    expect(api.refundCalls, 0);
+    await tester.tap(find.text('Close'));
+    await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('gateway consume failure: save never runs without the gate', (
+    tester,
+  ) async {
+    api.consumeFails = true;
+    await pumpResult(tester, configOverride: gatewayConfig);
+    await tester.tap(find.text('Save photo'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(store.galleryAttempts, 0);
+    expect(store.consumeCalls, 0);
+    expect(api.refundCalls, 0);
+    expect(
+      find.text('Something went wrong. Please try again.'),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('gateway gallery failure after consume refunds the credit', (
+    tester,
+  ) async {
+    store.galleryFails = true;
+    await pumpResult(tester, configOverride: gatewayConfig);
+    await tester.tap(find.text('Save photo'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(api.consumeKeys, hasLength(1));
+    expect(api.refundCalls, 1);
+    expect(api.refundKeys, api.consumeKeys);
+    expect(store.consumeCalls, 0);
+    expect(
+      find.text("That photo couldn't be saved. Please try again."),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('gateway history failure after consume refunds the credit', (
+    tester,
+  ) async {
+    store.adoptFails = true;
+    await pumpResult(tester, configOverride: gatewayConfig);
+    await tester.tap(find.text('Save photo'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(api.refundCalls, 1);
+    expect(api.refundKeys, api.consumeKeys);
+    expect(store.consumeCalls, 0);
+    expect(store.added, isEmpty);
+    expect(
+      find.text("That photo couldn't be saved. Please try again."),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('touch-up replaces the result and the next save re-gates', (
+    tester,
+  ) async {
+    final touched = File('${tempDir.path}/touched.png')
+      ..writeAsBytesSync(pngBytes);
+    stubReturnPath = touched.path;
+    await pumpResult(tester, configOverride: gatewayConfig, stubBrush: true);
+    await tester.tap(find.text('Save photo'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(api.consumeKeys, hasLength(1));
+    final firstKey = api.consumeKeys.single;
+    final controller = Get.find<ResultController>();
+    expect(controller.saved.value, isTrue);
+    // Flush the save snackbar before navigating (it overlays the
+    // route the Brush fix button pushes).
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.text('Brush fix'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Stub brush return'), findsOneWidget);
+    await tester.tap(find.text('Stub brush return'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(controller.resultPath.value, touched.path);
+    expect(controller.saved.value, isFalse);
+
+    await tester.tap(find.text('Save photo'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(api.consumeKeys, hasLength(2));
+    expect(api.consumeKeys.last, isNot(firstKey));
+    expect(store.galleryPaths.last, touched.path);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
   });
 }
