@@ -112,7 +112,7 @@ class AppTranslations extends Translations {
       AppStrings.consentTitle: 'Before your photo is uploaded',
       AppStrings.consentBody:
           'To remove people, PeopleGone sends the photo you choose to '
-          "@provider over an encrypted connection. Only that one photo is "
+          '@provider over an encrypted connection. Only that one photo is '
           'sent — PeopleGone does not access the rest of your library.\n\n'
           'Your photo is used only to create your cleaned photo. It is '
           'never used to train AI models and is deleted from our servers '
