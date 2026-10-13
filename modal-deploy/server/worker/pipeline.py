@@ -244,6 +244,61 @@ class PeopleGonePipeline:
 
         return output_bytes, metadata
 
+    def touchup(
+        self,
+        photo_bytes: bytes,
+        mask_png_bytes: bytes,
+    ) -> Tuple[bytes, Dict[str, Any]]:
+        """Brush-fix touchup (FR-09, §6.4 composite pattern).
+
+        Inpaints ONLY the crop around the user-painted mask region and
+        composites it back onto the untouched original with feathering,
+        so pixels outside the mask region are never modified before the
+        final JPEG encode. Mask convention matches the rest of the
+        pipeline: a uint8 mask where >0 (255) marks the hole to fill;
+        the incoming PNG mask is thresholded at >127.
+        """
+        t_start = time.perf_counter()
+        orig_pil = self._load_image(photo_bytes)
+        orig_rgb = np.array(orig_pil)
+        h, w = orig_rgb.shape[:2]
+
+        meta: Dict[str, Any] = {
+            "input_dimensions": [w, h],
+            "output_dimensions": [w, h],
+            "mask_resized": False,
+        }
+
+        mask_pil = Image.open(io.BytesIO(mask_png_bytes)).convert("L")
+        if mask_pil.size != (w, h):
+            mask_pil = mask_pil.resize((w, h), Image.NEAREST)
+            meta["mask_resized"] = True
+        mask_np = np.array(mask_pil)
+
+        hole = mask_np > 127
+        meta["mask_area_px"] = int(hole.sum())
+        hole_mask_u8 = hole.astype(np.uint8) * 255
+
+        bounds = get_crop_bounds(hole_mask_u8)
+        if bounds is None:
+            meta["touched"] = False
+            meta["total_seconds"] = round(time.perf_counter() - t_start, 4)
+            return self._encode_jpeg(orig_pil), meta
+
+        cx1, cy1, cx2, cy2 = bounds
+        image_crop = orig_rgb[cy1:cy2, cx1:cx2]
+        mask_crop = hole_mask_u8[cy1:cy2, cx1:cx2]
+
+        filled = self.inpainter.inpaint_crop(image_crop, mask_crop)
+        composited = composite_with_feather(
+            orig_rgb, filled, mask_crop, bounds, feather_px=4
+        )
+
+        meta["touched"] = True
+        meta["crop_bounds"] = [int(b) for b in bounds]
+        meta["total_seconds"] = round(time.perf_counter() - t_start, 4)
+        return self._encode_jpeg(Image.fromarray(composited)), meta
+
     def detect(
         self,
         photo: Union[str, bytes, np.ndarray, Image.Image],

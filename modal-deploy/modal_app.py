@@ -119,6 +119,19 @@ class Processor:
     def detect(self, image_bytes: bytes):
         return self.pipeline.detect(image_bytes)
 
+    @modal.method()
+    def touchup(self, image_bytes: bytes, mask_bytes: bytes, engine: str = "mat"):
+        # Same engine-swap pattern as process().
+        if engine == "lama":
+            self.pipeline.inpainter = self._lama
+        else:  # "mat" (default) and "auto" (PP racing lands here later)
+            self.pipeline.inpainter = self._mat
+        jpeg, meta = self.pipeline.touchup(image_bytes, mask_bytes)
+        meta = dict(meta)
+        meta["engine_requested"] = engine
+        meta["engine_used"] = "lama" if engine == "lama" else "mat"
+        return jpeg, meta
+
 
 @app.function(
     image=modal.Image.debian_slim().pip_install("fastapi[standard]", "requests"),
@@ -203,6 +216,26 @@ def web():
                 )
             except Exception as exc:  # noqa: BLE001 - log only, never fail the call
                 print(f"callback_url POST failed for job {job_id}: {exc}")
+        return JSONResponse(
+            {
+                "ok": True,
+                "image_base64": base64.b64encode(jpeg).decode(),
+                "meta": meta,
+            }
+        )
+
+    @api.post("/touchup")
+    async def touchup(
+        file: UploadFile = File(...),
+        mask_png: UploadFile = File(...),
+        engine: str = Form("mat"),
+        x_worker_key: str = Header(default=None, alias="X-Worker-Key"),
+    ):
+        if not _authorized(x_worker_key):
+            return _unauthorized()
+        data = await file.read()
+        mask_data = await mask_png.read()
+        jpeg, meta = Processor().touchup.remote(data, mask_data, engine=engine)
         return JSONResponse(
             {
                 "ok": True,
