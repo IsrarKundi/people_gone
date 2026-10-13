@@ -67,3 +67,6 @@ ratings/*.json
 results/primary/*.jpg
 !results/primary/.gitkeep
 results/timings_and_costs.csv
+
+# Review-capture output (evidence PNGs live outside the repo)
+test/goldens/review02/
