@@ -13,4 +13,12 @@ abstract final class Formatters {
 
   /// Locale-aware integer, e.g. `1,200`.
   static String count(int value) => NumberFormat.decimalPattern().format(value);
+
+  /// Elapsed time as `m:ss`, e.g. `0:42`, `2:05`. Used by the processing
+  /// screen — an honest fact, never an estimate (Design Direction §6).
+  static String elapsed(Duration value) {
+    final minutes = value.inMinutes;
+    final seconds = value.inSeconds - minutes * 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
 }
