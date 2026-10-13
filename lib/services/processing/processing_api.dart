@@ -10,10 +10,7 @@ abstract interface class ProcessingApi {
 
   /// Runs removal for [jobId] with the confirmed [removeIds]; returns the
   /// finished job for the Result screen (S7).
-  Future<Result<JobResult>> removePeople(
-    String jobId,
-    List<int> removeIds,
-  );
+  Future<Result<JobResult>> removePeople(String jobId, List<int> removeIds);
 }
 
 /// One detected person in a proposal. Coordinates are relative to the

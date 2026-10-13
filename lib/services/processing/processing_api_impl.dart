@@ -14,14 +14,15 @@ import 'processing_api.dart';
 /// the device from this build.
 class ProcessingApiImpl implements ProcessingApi {
   ProcessingApiImpl({required AppConfig config, Dio? dio})
-      : _dio = dio ??
-            Dio(
-              BaseOptions(
-                baseUrl: config.apiBaseUrl,
-                connectTimeout: const Duration(seconds: 20),
-                receiveTimeout: const Duration(minutes: 5),
-              ),
-            );
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: config.apiBaseUrl,
+              connectTimeout: const Duration(seconds: 20),
+              receiveTimeout: const Duration(minutes: 5),
+            ),
+          );
 
   final Dio _dio;
 
@@ -44,6 +45,5 @@ class ProcessingApiImpl implements ProcessingApi {
   Future<Result<JobResult>> removePeople(
     String jobId,
     List<int> removeIds,
-  ) async =>
-      _notImplemented;
+  ) async => _notImplemented;
 }

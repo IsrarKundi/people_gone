@@ -25,10 +25,7 @@ class AppScaffold extends StatelessWidget {
       backgroundColor: p.background,
       appBar: titleKey == null
           ? null
-          : AppBar(
-              title: Text(titleKey!.tr),
-              actions: actions,
-            ),
+          : AppBar(title: Text(titleKey!.tr), actions: actions),
       body: SafeArea(child: body),
     );
   }

@@ -32,10 +32,10 @@ class HomeView extends GetView<HomeController> {
             ),
             SizedBox(height: s.sm),
             Text(
-              AppStrings.homeSavesLeft.trParams(<String, String>{'count': '10'}),
-              style: context.textStyles.bodySm.copyWith(
-                color: p.textSecondary,
-              ),
+              AppStrings.homeSavesLeft.trParams(<String, String>{
+                'count': '10',
+              }),
+              style: context.textStyles.bodySm.copyWith(color: p.textSecondary),
             ),
             const Spacer(),
             Center(

@@ -12,7 +12,5 @@ abstract final class Formatters {
   static String dateTime(DateTime value) => _dateTime.format(value);
 
   /// Locale-aware integer, e.g. `1,200`.
-  static String count(int value) => NumberFormat.decimalPattern().format(
-        value,
-      );
+  static String count(int value) => NumberFormat.decimalPattern().format(value);
 }

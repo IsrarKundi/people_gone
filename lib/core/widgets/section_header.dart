@@ -21,9 +21,7 @@ class SectionHeader extends StatelessWidget {
     final p = context.palette;
     return Row(
       children: <Widget>[
-        Expanded(
-          child: Text(titleKey.tr, style: context.textStyles.titleMd),
-        ),
+        Expanded(child: Text(titleKey.tr, style: context.textStyles.titleMd)),
         if (actionLabelKey != null && onAction != null)
           TextButton(
             onPressed: onAction,

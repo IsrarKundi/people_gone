@@ -21,20 +21,20 @@ abstract final class AppStrings {
 class AppTranslations extends Translations {
   @override
   Map<String, Map<String, String>> get keys => <String, Map<String, String>>{
-        'en_US': <String, String>{
-          AppStrings.appName: 'PeopleGone',
-          AppStrings.homeTitle: 'PeopleGone',
-          AppStrings.homePickPhoto: 'Pick a photo',
-          AppStrings.homeEmptyLine:
-              'Remove background people from a photo. Your subject stays untouched.',
-          AppStrings.homeSavesLeft: '@count of 10 free saves left this month.',
-          AppStrings.commonRetry: 'Retry',
-          AppStrings.commonCancel: 'Cancel',
-          AppStrings.commonContinue: 'Continue',
-          AppStrings.errorGeneric: 'Something went wrong. Please try again.',
-          AppStrings.errorOffline:
-              'You are offline. Your photo stays on this phone.',
-          AppStrings.errorNotImplemented: 'This part is not ready yet.',
-        },
-      };
+    'en_US': <String, String>{
+      AppStrings.appName: 'PeopleGone',
+      AppStrings.homeTitle: 'PeopleGone',
+      AppStrings.homePickPhoto: 'Pick a photo',
+      AppStrings.homeEmptyLine:
+          'Remove background people from a photo. Your subject stays untouched.',
+      AppStrings.homeSavesLeft: '@count of 10 free saves left this month.',
+      AppStrings.commonRetry: 'Retry',
+      AppStrings.commonCancel: 'Cancel',
+      AppStrings.commonContinue: 'Continue',
+      AppStrings.errorGeneric: 'Something went wrong. Please try again.',
+      AppStrings.errorOffline:
+          'You are offline. Your photo stays on this phone.',
+      AppStrings.errorNotImplemented: 'This part is not ready yet.',
+    },
+  };
 }

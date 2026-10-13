@@ -29,7 +29,9 @@ class ConsentSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: p.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(s.radiusSheet)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(s.radiusSheet),
+        ),
       ),
       padding: EdgeInsets.fromLTRB(
         s.screenPadding,

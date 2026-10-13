@@ -34,9 +34,7 @@ class EmptyView extends StatelessWidget {
             SizedBox(height: s.md),
             Text(
               messageKey.tr,
-              style: context.textStyles.bodyMd.copyWith(
-                color: p.textSecondary,
-              ),
+              style: context.textStyles.bodyMd.copyWith(color: p.textSecondary),
               textAlign: TextAlign.center,
             ),
             if (actionLabelKey != null && onAction != null) ...<Widget>[

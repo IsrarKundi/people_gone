@@ -9,9 +9,13 @@ import '../theme/theme_ext.dart';
 /// bar). No third variant may be invented per-screen.
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay.staged({super.key, required this.labelKey})
-      : progress = null;
+    : progress = null;
 
-  const LoadingOverlay.determinate({super.key, required this.labelKey, required double this.progress});
+  const LoadingOverlay.determinate({
+    super.key,
+    required this.labelKey,
+    required double this.progress,
+  });
 
   /// Stage label string key, e.g. "Finding people…".
   final String labelKey;

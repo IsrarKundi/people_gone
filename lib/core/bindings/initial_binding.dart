@@ -15,9 +15,6 @@ class InitialBinding extends Bindings {
 
   @override
   void dependencies() {
-    Get.put<ProcessingApi>(
-      ProcessingApiImpl(config: config),
-      permanent: true,
-    );
+    Get.put<ProcessingApi>(ProcessingApiImpl(config: config), permanent: true);
   }
 }
