@@ -73,9 +73,10 @@ class HomeView extends GetView<HomeController> {
                   onAction: controller.openHistory,
                 ),
                 SizedBox(height: s.md),
+                // The same shared HistoryGrid as S9 — first row of 3,
+                // never a Home-only 4-across variant (Review 02 F6).
                 HistoryGrid(
-                  entries: controller.history.take(4).toList(),
-                  crossAxisCount: 4,
+                  entries: controller.history.take(3).toList(),
                   shrinkWrap: true,
                   onTap: (_) => controller.openHistory(),
                 ),

@@ -11,6 +11,7 @@ import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
+import 'package:people_gone/features/history/widgets/history_grid.dart';
 import 'package:people_gone/features/picker/controller/picker_controller.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
@@ -205,5 +206,22 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  testWidgets('Home history strip uses the shared 3-column grid (F6)', (
+    tester,
+  ) async {
+    store.entries = <HistoryEntry>[
+      for (var i = 0; i < 4; i++)
+        HistoryEntry(
+          id: 'h$i',
+          localPath: picked.path,
+          savedAt: DateTime(2026, 10, 13),
+        ),
+    ];
+    await pumpHome(tester);
+    final grid = tester.widget<HistoryGrid>(find.byType(HistoryGrid));
+    expect(grid.crossAxisCount, 3);
+    expect(grid.entries.length, 3);
   });
 }
