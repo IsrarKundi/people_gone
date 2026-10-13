@@ -120,22 +120,46 @@ class Processor:
         return self.pipeline.detect(image_bytes)
 
 
-@app.function(image=modal.Image.debian_slim().pip_install("fastapi[standard]"))
+@app.function(
+    image=modal.Image.debian_slim().pip_install("fastapi[standard]", "requests"),
+    secrets=[modal.Secret.from_name("peoplegone-worker")],
+)
 @modal.asgi_app()
 def web():
     import base64
+    import hmac
+    import os
 
-    from fastapi import FastAPI, File, Form, UploadFile
+    import requests
+    from fastapi import FastAPI, File, Form, Header, UploadFile
     from fastapi.responses import JSONResponse
 
     api = FastAPI(title="PeopleGone worker (dev)")
+
+    def _authorized(x_worker_key):
+        # Fail CLOSED: if the secret is not configured in this function,
+        # nothing is authorized — never fall back to open access.
+        expected = os.environ.get("WORKER_API_KEY")
+        if not expected or not x_worker_key:
+            return False
+        return hmac.compare_digest(x_worker_key, expected)
+
+    def _unauthorized():
+        return JSONResponse(
+            status_code=401, content={"ok": False, "error": "unauthorized"}
+        )
 
     @api.get("/health")
     def health():
         return {"ok": True, "service": "peoplegone-worker"}
 
     @api.post("/detect")
-    async def detect(file: UploadFile = File(...)):
+    async def detect(
+        file: UploadFile = File(...),
+        x_worker_key: str = Header(default=None, alias="X-Worker-Key"),
+    ):
+        if not _authorized(x_worker_key):
+            return _unauthorized()
         data = await file.read()
         res = Processor().detect.remote(data)
         return JSONResponse(res)
@@ -145,10 +169,40 @@ def web():
         file: UploadFile = File(...),
         engine: str = Form("mat"),
         keep: str = Form(""),  # comma-separated person ids to KEEP, e.g. "0,3"
+        callback_url: str = Form(""),
+        callback_token: str = Form(""),
+        job_id: str = Form(""),
+        result_upload_url: str = Form(""),
+        x_worker_key: str = Header(default=None, alias="X-Worker-Key"),
     ):
+        if not _authorized(x_worker_key):
+            return _unauthorized()
         data = await file.read()
         keep_ids = [int(x) for x in keep.split(",") if x.strip() != ""] or None
         jpeg, meta = Processor().process.remote(data, engine=engine, keep_ids=keep_ids)
+        # Optional async collection by the Supabase gateway: upload the
+        # result JPEG to a pre-signed URL, then notify the callback.
+        # Failures here are logged server-side only — the direct response
+        # below is returned regardless, exactly as before.
+        if result_upload_url:
+            try:
+                requests.put(
+                    result_upload_url,
+                    data=jpeg,
+                    headers={"Content-Type": "image/jpeg"},
+                    timeout=120,
+                )
+            except Exception as exc:  # noqa: BLE001 - log only, never fail the call
+                print(f"result_upload_url PUT failed for job {job_id}: {exc}")
+        if callback_url:
+            try:
+                requests.post(
+                    callback_url,
+                    json={"job_id": job_id, "token": callback_token, "meta": meta},
+                    timeout=30,
+                )
+            except Exception as exc:  # noqa: BLE001 - log only, never fail the call
+                print(f"callback_url POST failed for job {job_id}: {exc}")
         return JSONResponse(
             {
                 "ok": True,
