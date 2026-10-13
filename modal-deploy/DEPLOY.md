@@ -68,3 +68,26 @@ First call after idle = cold start; allow up to ~5 minutes once.
   - `POST /process` (with key, mosque photo, engine=mat) → 200,
     ok:true, persons_detected=13, keeper_ids=[0], removed_ids=12
     entries, engine_used=mat, total_seconds=188.95 (CPU worker).
+
+## 2026-10-14 — /touchup endpoint (Task C, worker half; FR-09, §6.4)
+
+- `pipeline.touchup(photo_bytes, mask_png_bytes)` added to both pipeline
+  copies (kept byte-identical): threshold mask >127, resize mask
+  NEAREST to image size if mismatched (`mask_resized`), inpaint only
+  the `get_crop_bounds` crop, composite back with 4px feather onto the
+  untouched original; empty mask returns the re-encoded original with
+  `touched: false`.
+- `POST /touchup` (key-gated): multipart `file` + `mask_png` +
+  `engine` (default mat). Verified live on the mosque photo:
+  /detect found 13 persons (keeper [0]); a filled-rect mask over
+  removed person 1's box [1, 686, 100, 916] (23,100 px) was POSTed
+  with the original photo. No-key /touchup → 401.
+  Result: output dims == input dims (900×1600), `touched: true`,
+  total_seconds 14.46, engine_used mat.
+  Pixel diff vs the decoded original (full numbers in
+  `touchup_evidence.json`): INSIDE the mask rect mean abs diff 47.0,
+  97.4% of pixels differ by >2 (region really changed). OUTSIDE the
+  mask rect mean abs diff 0.161, max 23, 1.58% of pixels differ by
+  >2 — that is JPEG re-encode noise from the final encode, NOT
+  byte-identical outside the mask at the file level (the composite
+  itself only writes inside the mask before encoding).

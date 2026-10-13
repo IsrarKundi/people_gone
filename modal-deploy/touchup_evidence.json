@@ -1,0 +1,56 @@
+{
+  "input_dimensions": [
+    900,
+    1600
+  ],
+  "output_dimensions": [
+    900,
+    1600
+  ],
+  "dims_equal": true,
+  "detect_persons": 13,
+  "keeper_ids": [
+    0
+  ],
+  "target_person_id": 1,
+  "target_box": [
+    1,
+    686,
+    100,
+    916
+  ],
+  "touchup_no_key_status": 401,
+  "touchup_status": 200,
+  "meta": {
+    "input_dimensions": [
+      900,
+      1600
+    ],
+    "output_dimensions": [
+      900,
+      1600
+    ],
+    "mask_resized": false,
+    "mask_area_px": 23100,
+    "touched": true,
+    "crop_bounds": [
+      0,
+      174,
+      612,
+      1428
+    ],
+    "total_seconds": 14.459,
+    "engine_requested": "mat",
+    "engine_used": "mat"
+  },
+  "outside_mask": {
+    "max_abs_diff": 23,
+    "mean_abs_diff": 0.16118027618980404,
+    "pct_pixels_diff_gt2": 1.57865763286047
+  },
+  "inside_mask": {
+    "max_abs_diff": 226,
+    "mean_abs_diff": 46.99861471861472,
+    "pct_pixels_diff_gt2": 97.4155844155844
+  }
+}
