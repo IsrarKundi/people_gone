@@ -136,3 +136,11 @@ run through the live worker (MAT): 4 people detected, the couple kept, 2 removed
 verified clean by eye. Assets: `assets/images/demo_original.jpg` / `demo_result.jpg`
 (1600px, the exact worker input/output). The "Real app output" caption is factual for
 this pair. Widget and asset loading verified by an isolated render probe (2026-10-14).
+
+## Demo pair — owner-selected cafe photo (2026-10-14)
+
+The owner picked the demo image himself: a cafe portrait (woman in an armchair,
+two customers and a barista behind her). Cleaned by the live worker (MAT):
+4 people detected, subject kept automatically, 3 removed, fill verified clean.
+Installed as `assets/images/demo_original.jpg` / `demo_result.jpg` (639x360,
+as supplied). Supersedes the dune pair of the same date.
