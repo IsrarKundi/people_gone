@@ -8,5 +8,6 @@ abstract final class Routes {
   static const String result = '/result';
   static const String paywall = '/paywall';
   static const String history = '/history';
+  static const String historyDetail = '/history/detail';
   static const String settings = '/settings';
 }

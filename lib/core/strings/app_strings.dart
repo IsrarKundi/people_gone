@@ -19,6 +19,7 @@ abstract final class AppStrings {
   static const String homeEmptyLine = 'home_empty_line';
   static const String homeSavesLeft = 'home_saves_left';
   static const String homeHistory = 'home_history';
+  static const String homeSeeAll = 'home_see_all';
 
   // Consent (S2) — wording verbatim from Requirements §11.2A; the provider
   // display name is interpolated from AppConfig, never hard-coded.
@@ -109,6 +110,7 @@ class AppTranslations extends Translations {
           'Remove background people from a photo. Your subject stays untouched.',
       AppStrings.homeSavesLeft: '@count of 10 free saves left this month.',
       AppStrings.homeHistory: 'History',
+      AppStrings.homeSeeAll: 'See all',
       AppStrings.consentTitle: 'Before your photo is uploaded',
       AppStrings.consentBody:
           'To remove people, PeopleGone sends the photo you choose to '

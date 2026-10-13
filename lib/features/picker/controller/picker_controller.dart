@@ -39,7 +39,9 @@ class PickerController extends GetxController {
     try {
       final picked = await _pickImage();
       if (picked == null) return const Success<String?>(null);
-      final length = await File(picked.path).length();
+      // One synchronous stat — no async gap in the pick flow; a missing
+      // file throws and lands in the same failure path below.
+      final length = File(picked.path).lengthSync();
       if (length > _maxBytes) {
         errorMessage.value = AppStrings.errorPhotoTooLarge;
         return const Failure<String?>(

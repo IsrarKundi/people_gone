@@ -1,0 +1,63 @@
+import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../config/app_config.dart';
+import '../../../core/strings/app_strings.dart';
+import '../../../core/utils/result.dart';
+import '../../../core/widgets/app_sheet.dart';
+import '../../../core/widgets/consent_sheet.dart';
+import '../../../services/storage/local_store.dart';
+
+/// Settings: only rows that tell the truth today (Design Direction §4
+/// S-Settings) — the free-saves balance, who processes photos (from
+/// config), how photos are handled (the consent copy, re-readable), and
+/// the privacy policy link. No dead rows, no dark patterns (FR-31).
+class SettingsController extends GetxController {
+  SettingsController({
+    required this.localStore,
+    required this.config,
+    Future<bool> Function(Uri uri)? openLink,
+  }) : _openLink = openLink ?? launchUrl;
+
+  final LocalStore localStore;
+  final AppConfig config;
+  final Future<bool> Function(Uri uri) _openLink;
+
+  static const int freeSavesPerMonth = 10;
+
+  final savesLeft = freeSavesPerMonth.obs;
+
+  String get providerName => config.providerDisplayName;
+
+  @override
+  void onInit() {
+    super.onInit();
+    localStore.freeSavesUsed().then((result) {
+      if (result case Success<int>(:final value)) {
+        savesLeft.value = (freeSavesPerMonth - value).clamp(
+          0,
+          freeSavesPerMonth,
+        );
+      }
+    });
+  }
+
+  void openPrivacyPolicy() => _openLink(Uri.parse(config.privacyPolicyUrl));
+
+  /// "How your photos are handled" re-opens the exact consent wording,
+  /// read-only (its Continue button reads "Close" here).
+  void showPhotoHandling() {
+    AppSheet.show(
+      ConsentSheet(
+        titleKey: AppStrings.consentTitle,
+        bodyKey: AppStrings.consentBody,
+        bodyParams: <String, String>{'provider': config.providerDisplayName},
+        continueLabelKey: AppStrings.commonClose,
+        footerKey: AppStrings.consentPrivacyLink,
+        onFooterTap: openPrivacyPolicy,
+        onContinue: () => Get.back<void>(),
+        onCancel: () => Get.back<void>(),
+      ),
+    );
+  }
+}
