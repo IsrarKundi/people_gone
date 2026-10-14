@@ -37,14 +37,22 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
-    final disabled = isLoading || onPressed == null;
+    // A labelled loading state keeps the button's identity (Review 07
+    // B4): it renders as the filled primary with an inert tap, never
+    // as the pale disabled slab. Unlabelled loading disables as before.
+    final busyWithLabel = isLoading && loadingLabelKey != null;
+    final disabled = !busyWithLabel && (isLoading || onPressed == null);
     final h = height ?? s.buttonPrimary;
     final r = borderRadius ?? s.radiusLg;
     return SizedBox(
       height: h,
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: disabled ? null : onPressed,
+        onPressed: disabled
+            ? null
+            : busyWithLabel
+            ? () {}
+            : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: p.primary,
           foregroundColor: p.onPrimary,
