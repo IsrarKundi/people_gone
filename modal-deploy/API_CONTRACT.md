@@ -1,4 +1,4 @@
-# PeopleGone Worker — API Contract v1 (dev)
+# PeopleGone Worker — API Contract v2 (dev)
 
 Base URL: whatever Modal prints on deploy (looks like
 `https://<workspace>--peoplegone-worker-web.modal.run`).
@@ -115,6 +115,52 @@ to MAT here — racing is a /process path only). Response mirrors
 meta carrying `touched`, `mask_area_px`, `mask_resized`,
 `total_seconds`, `engine_used`. Output dimensions == input dimensions.
 
-## Not in v1 (planned)
+
+## Gateway (Supabase, added 2026-10-14 — Contract v2)
+
+Base: `{SUPABASE_URL}/functions/v1/`. Every call carries
+`Authorization: Bearer <anon JWT>` + `apikey: <anon key>`; error bodies
+are `{"error": string}`. The app signs in anonymously (GoTrue REST) and
+stores tokens in secure storage. The worker key never reaches the app —
+only the gateway holds it (function secret) and calls the worker
+server-side.
+
+- `POST create-job {client_job_id, engine?}` → `{job_id, status,
+  upload_url|null, persons|null, keeper_ids, removed_ids,
+  input_dimensions}`. Idempotent per (install, client_job_id); a fresh
+  signed upload URL is minted only while `status='created'`.
+- Client PUTs the photo to `upload_url` (the signed URL is the
+  credential; no gateway headers).
+- `POST analyse-job {job_id}` → runs worker `/detect` server-side,
+  stores persons/keeper on the job, status `awaiting_confirm`, returns
+  the /detect-shaped payload.
+- `POST confirm-job {job_id, keep_ids?, engine?}` → `202`. The gateway
+  fires the worker `/process` with a per-job callback token (sha256
+  stored on the job row) and a signed result-upload URL; the worker
+  PUTs the result JPEG there, then POSTs `worker-callback`.
+- `POST worker-callback {job_id, token, meta}` (no JWT; token-hash
+  verified) → job `done`, meta stored.
+- `GET job-status?job_id=` → `{job_id, status, error, meta|null}`
+  (owner-only). `GET get-result?job_id=` → `{download_url, expires_at}`
+  when done, else `409 {"error":"not_ready"}`.
+- `POST consume-credit {idempotency_key}` → the credit RPC result
+  verbatim `{allowed, payment_required, is_pro, saves_left}`. A save is
+  charged ONLY here — processing, cancel and failure never charge.
+  `payment_required` is a success outcome, not an error.
+- `POST refund-credit {idempotency_key}` → `{ok, refunded}`.
+- `POST touchup` (multipart) → forwards to worker `/touchup` with the
+  key; worker JSON returned verbatim; nothing is stored server-side.
+- Retention: private `uploads`/`results` buckets, signed URLs only;
+  `sweep_expired()` deletes objects and expires jobs older than 24 h,
+  scheduled hourly by pg_cron (job `peoplegone-sweep-hourly`).
+
+Status note (2026-10-14): gateway is deployed and the app client is
+built, but `AppConfig.useGateway` still defaults to FALSE — the
+scripted live end-to-end run from this dev VM is blocked by the VM
+egress proxy (see `supabase/E2E_EVIDENCE.md`); the flag flips only
+after that run passes. Until then the app uses the direct worker path
+shape with the loud-failure credit gate.
+
+## Not in v2 (planned)
 1. Production move: same container contract on RunPod Serverless behind the
-   Supabase gateway (credit ledger, 24 h photo TTL) per PEOPLEGONE_REQUIREMENTS.
+   Supabase gateway (built — see above) per PEOPLEGONE_REQUIREMENTS.
