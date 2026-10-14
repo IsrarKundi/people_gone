@@ -15,10 +15,15 @@ import '../widgets/home_job_banner.dart';
 import '../widgets/interactive_demo_card.dart';
 import '../widgets/saves_indicator.dart';
 
-/// Home (S1) — Option A: "The Photographic Drop-Zone Studio"
-/// Leads with the primary 56dp action pill and quiet quota pill, followed
-/// immediately by visual proof (interactive café before/after card on first run,
-/// natural-aspect latest clean card + earlier cleans tray on return).
+/// Home (S1) — Option A composition, finished per Review 05 Supplement
+/// (R2–R4, D10): the screen is a finished arrangement anchored top AND
+/// bottom. The hero slot is sized from the actual viewport height
+/// (body height minus a budgeted allowance for the fixed cluster above
+/// and below it), so the hero takes its adopted scale and the screen
+/// ends at the tray — never a terminal void. If the budget is off
+/// (very large text, very small phone) the page simply scrolls, which
+/// is the sanctioned degradation. No intrinsic-sizing widgets are
+/// used, so the hero cards may size themselves with LayoutBuilder.
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
@@ -48,68 +53,103 @@ class HomeView extends GetView<HomeController> {
         }
 
         final activeJob = JobTracker.instance.activeJob.value;
+        final hasHistory = controller.hasHistory;
+        final hasTray = hasHistory && controller.history.length > 1;
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(s.screenPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // In-flight or completed background job banner
-              if (activeJob != null) HomeJobBanner(job: activeJob),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Budgeted hero height: everything that is not the hero.
+            var reserved =
+                s.screenPadding *
+                    2 // page padding
+                    +
+                56 // pick pill
+                +
+                s
+                    .sm // gap
+                    +
+                20 // saves line
+                +
+                s.lg; // gap above the hero zone
+            if (activeJob != null) reserved += 92; // banner + its margin
+            if (!hasHistory) {
+              reserved += 24 + s.md; // teaching line + gap
+            } else {
+              reserved += 36 + s.sm; // section header + gap
+              if (hasTray) reserved += s.lg + 168; // gap + tray row
+            }
+            final heroHeight = (constraints.maxHeight - reserved)
+                .clamp(240.0, constraints.maxHeight)
+                .toDouble();
 
-              // Floating 56dp Pill Primary Button
-              PrimaryButton(
-                labelKey: AppStrings.homePickPhoto,
-                icon: Icons.add_photo_alternate_rounded,
-                height: 56,
-                borderRadius: 28,
-                isLoading: controller.isPicking,
-                onPressed: controller.onPickPhoto,
-              ),
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(s.screenPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // In-flight or completed background job banner
+                  if (activeJob != null) HomeJobBanner(job: activeJob),
 
-              SizedBox(height: s.sm),
-
-              // Quiet Quota Pill
-              SavesIndicator(
-                savesLeft: controller.savesLeft.value,
-                of: HomeController.freeSavesPerMonth,
-                resetDate: controller.resetDate.value,
-              ),
-
-              SizedBox(height: s.lg),
-
-              // Hero section:
-              if (!controller.hasHistory) ...<Widget>[
-                Text(
-                  AppStrings.homeEmptyLine.tr,
-                  style: context.textStyles.bodyLg,
-                ),
-                SizedBox(height: s.md),
-                const InteractiveDemoCard(),
-              ] else ...<Widget>[
-                SectionHeader(
-                  titleKey: AppStrings.homeHistory,
-                  actionLabelKey: AppStrings.homeSeeAll,
-                  onAction: controller.openHistory,
-                ),
-                SizedBox(height: s.sm),
-                // Latest Cleaned Photo in its natural aspect ratio
-                FeaturedCleanCard(
-                  entry: controller.history.first,
-                  onTap: () => controller.openHistoryDetail(controller.history.first),
-                ),
-                if (controller.history.length > 1) ...<Widget>[
-                  SizedBox(height: s.lg),
-                  EarlierCleansTray(
-                    entries: controller.history.skip(1).take(10).toList(),
-                    onTap: controller.openHistoryDetail,
+                  // Floating 56dp Pill Primary Button
+                  PrimaryButton(
+                    labelKey: AppStrings.homePickPhoto,
+                    icon: Icons.add_photo_alternate_rounded,
+                    height: 56,
+                    borderRadius: 28,
+                    isLoading: controller.isPicking,
+                    onPressed: controller.onPickPhoto,
                   ),
-                ],
-              ],
 
-              SizedBox(height: s.lg),
-            ],
-          ),
+                  SizedBox(height: s.sm),
+
+                  // The saves fact as a plain line in the column
+                  SavesIndicator(
+                    savesLeft: controller.savesLeft.value,
+                    of: HomeController.freeSavesPerMonth,
+                    resetDate: controller.resetDate.value,
+                  ),
+
+                  SizedBox(height: s.lg),
+
+                  // Hero zone — sized to finish the screen.
+                  if (!hasHistory) ...<Widget>[
+                    Text(
+                      AppStrings.homeEmptyLine.tr,
+                      style: context.textStyles.bodyMd,
+                    ),
+                    SizedBox(height: s.md),
+                    SizedBox(
+                      height: heroHeight,
+                      child: const InteractiveDemoCard(),
+                    ),
+                  ] else ...<Widget>[
+                    SectionHeader(
+                      titleKey: AppStrings.homeHistory,
+                      actionLabelKey: AppStrings.homeSeeAll,
+                      onAction: controller.openHistory,
+                    ),
+                    SizedBox(height: s.sm),
+                    SizedBox(
+                      height: heroHeight,
+                      child: FeaturedCleanCard(
+                        entry: controller.history.first,
+                        onTap: () => controller.openHistoryDetail(
+                          controller.history.first,
+                        ),
+                      ),
+                    ),
+                    if (hasTray) ...<Widget>[
+                      SizedBox(height: s.lg),
+                      EarlierCleansTray(
+                        entries: controller.history.skip(1).take(10).toList(),
+                        onTap: controller.openHistoryDetail,
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            );
+          },
         );
       }),
     );

@@ -20,6 +20,7 @@ abstract final class AppStrings {
   static const String homeSavesLeft = 'home_saves_left';
   static const String homeHistory = 'home_history';
   static const String homeSeeAll = 'home_see_all';
+  static const String demoCaption = 'demo_caption';
 
   // Consent (S2) — wording verbatim from Requirements §11.2A; the provider
   // display name is interpolated from AppConfig, never hard-coded.
@@ -165,6 +166,7 @@ class AppTranslations extends Translations {
       AppStrings.homeSavesLeft: '@count of 10 free saves left this month.',
       AppStrings.homeHistory: 'History',
       AppStrings.homeSeeAll: 'See all',
+      AppStrings.demoCaption: 'Real app output',
       AppStrings.consentTitle: 'Before your photo is uploaded',
       AppStrings.consentBody:
           'To remove people, PeopleGone sends the photo you choose to '
@@ -187,12 +189,11 @@ class AppTranslations extends Translations {
       AppStrings.processingCancelConfirm: 'Cancel clean',
       AppStrings.processingWorkInBackground: 'Work in background',
       AppStrings.homeJobBannerProcessing: 'Cleaning photo in background…',
-      AppStrings.homeJobBannerProcessingSub:
-          'Takes ~2 minutes · Tap to return to preview',
-      AppStrings.homeJobBannerDone: 'Clean complete!',
+      AppStrings.homeJobBannerProcessingSub: 'Tap to view progress',
+      AppStrings.homeJobBannerDone: 'Your cleaned photo is ready',
       AppStrings.homeJobBannerDoneSub: 'Tap to view and save your photo',
       AppStrings.homeJobBannerFailed: 'Clean could not be completed',
-      AppStrings.homeJobBannerFailedSub: 'Tap to see diagnostics or try again',
+      AppStrings.homeJobBannerFailedSub: 'Tap to share diagnostics',
 
       AppStrings.proposalTitle: 'Review people to remove',
       AppStrings.proposalRemoveCount: 'Remove @count people',

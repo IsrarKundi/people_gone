@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 
 /// An interactive before/after split slider demonstrating real output of the
@@ -37,8 +39,10 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          AspectRatio(
-            aspectRatio: 16 / 10,
+          // The split view flexes to the height Home gives the hero
+          // (Review 05 R2: the hero takes its adopted scale, it does
+          // not sit at a fixed small aspect in a void).
+          Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
@@ -49,8 +53,7 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard> {
                   behavior: HitTestBehavior.opaque,
                   onHorizontalDragUpdate: (d) =>
                       _updateFraction(d.localPosition.dx, width),
-                  onTapDown: (d) =>
-                      _updateFraction(d.localPosition.dx, width),
+                  onTapDown: (d) => _updateFraction(d.localPosition.dx, width),
                   child: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
@@ -78,10 +81,7 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard> {
                         left: dividerX - 1.5,
                         top: 0,
                         bottom: 0,
-                        child: Container(
-                          width: 3,
-                          color: Colors.white,
-                        ),
+                        child: Container(width: 3, color: Colors.white),
                       ),
                       // Center drag handle
                       Positioned(
@@ -128,23 +128,9 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard> {
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: s.md, vertical: s.sm),
-            child: Row(
-              children: <Widget>[
-                Icon(
-                  Icons.swipe_outlined,
-                  size: s.iconSm,
-                  color: p.primary,
-                ),
-                SizedBox(width: s.xs),
-                Expanded(
-                  child: Text(
-                    'Drag divider to preview clean · Real app output',
-                    style: context.textStyles.bodySm.copyWith(
-                      color: p.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              AppStrings.demoCaption.tr,
+              style: context.textStyles.bodySm.copyWith(color: p.textSecondary),
             ),
           ),
         ],

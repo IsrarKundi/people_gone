@@ -21,7 +21,6 @@ class HomeJobBanner extends StatelessWidget {
     final p = context.palette;
     final s = context.sizes;
 
-    Color borderColor;
     Widget leadingIcon;
     String title;
     String subtitle;
@@ -29,14 +28,10 @@ class HomeJobBanner extends StatelessWidget {
 
     switch (job.status) {
       case ActiveJobStatus.processing:
-        borderColor = p.primary.withValues(alpha: 0.4);
         leadingIcon = SizedBox(
           width: 18,
           height: 18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: p.primary,
-          ),
+          child: CircularProgressIndicator(strokeWidth: 2, color: p.primary),
         );
         title = AppStrings.homeJobBannerProcessing.tr;
         subtitle = AppStrings.homeJobBannerProcessingSub.tr;
@@ -50,7 +45,6 @@ class HomeJobBanner extends StatelessWidget {
           );
         };
       case ActiveJobStatus.done:
-        borderColor = p.overlayKept.withValues(alpha: 0.5);
         leadingIcon = Icon(
           Icons.check_circle_rounded,
           color: p.overlayKept,
@@ -62,14 +56,10 @@ class HomeJobBanner extends StatelessWidget {
           final outcome = job.outcome;
           if (outcome != null) {
             JobTracker.instance.clear();
-            Get.toNamed<void>(
-              Routes.result,
-              arguments: outcome,
-            );
+            Get.toNamed<void>(Routes.result, arguments: outcome);
           }
         };
       case ActiveJobStatus.failed:
-        borderColor = p.overlayRemoved.withValues(alpha: 0.5);
         leadingIcon = Icon(
           Icons.error_outline_rounded,
           color: p.overlayRemoved,
@@ -82,30 +72,23 @@ class HomeJobBanner extends StatelessWidget {
         };
     }
 
+    // One card language (D12): neutral hairline border at the shared
+    // card radius for every state — state colour lives in the icon,
+    // never in the container outline (Review 05 W3).
     return Container(
       margin: EdgeInsets.only(bottom: s.md),
       decoration: BoxDecoration(
         color: p.surface,
-        borderRadius: BorderRadius.circular(s.radiusMd),
-        border: Border.all(color: borderColor, width: 1.5),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: borderColor.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(s.radiusLg),
+        border: Border.all(color: p.border),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(s.radiusMd),
+          borderRadius: BorderRadius.circular(s.radiusLg),
           onTap: onTap,
           child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: s.md,
-              vertical: s.sm + 2,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: s.md, vertical: s.sm + 2),
             child: Row(
               children: <Widget>[
                 leadingIcon,

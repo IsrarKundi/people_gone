@@ -62,22 +62,18 @@ class _FeaturedCleanCardState extends State<FeaturedCleanCard> {
     if (!file.existsSync()) return;
 
     _imageStream = FileImage(file).resolve(const ImageConfiguration());
-    _imageListener = ImageStreamListener(
-      (info, _) {
-        if (!mounted) return;
-        final w = info.image.width;
-        final h = info.image.height;
-        if (w > 0 && h > 0) {
-          setState(() {
-            _aspectRatio = (w / h).clamp(0.7, 1.8);
-          });
-        }
-      },
-      onError: (_, _) {},
-    );
+    _imageListener = ImageStreamListener((info, _) {
+      if (!mounted) return;
+      final w = info.image.width;
+      final h = info.image.height;
+      if (w > 0 && h > 0) {
+        setState(() {
+          _aspectRatio = (w / h).clamp(0.7, 1.8);
+        });
+      }
+    }, onError: (_, _) {});
     _imageStream!.addListener(_imageListener!);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -106,53 +102,84 @@ class _FeaturedCleanCardState extends State<FeaturedCleanCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              AspectRatio(
-                aspectRatio: _aspectRatio,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    Image.file(
-                      File(widget.entry.localPath),
-                      fit: BoxFit.cover,
-                      cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-                      errorBuilder: (_, _, _) => Container(
-                        color: p.surfaceVariant,
-                        child: Icon(Icons.broken_image_outlined, color: p.border),
-                      ),
-                    ),
-                    Positioned(
-                      top: s.sm,
-                      right: s.sm,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: s.sm,
-                          vertical: s.xs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.70),
-                          borderRadius: BorderRadius.circular(s.radiusSm),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+              // Size the photo at its true aspect inside whatever
+              // space Home's hero slot offers (width- or height-bound,
+              // never cropped): a portrait photo grows tall, a
+              // landscape one stays wide with gallery air around it.
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxW = constraints.maxWidth;
+                    final maxH = constraints.maxHeight.isFinite
+                        ? constraints.maxHeight
+                        : maxW / _aspectRatio;
+                    var w = maxW;
+                    var h = w / _aspectRatio;
+                    if (h > maxH) {
+                      h = maxH;
+                      w = h * _aspectRatio;
+                    }
+                    return Center(
+                      child: SizedBox(
+                        width: w,
+                        height: h,
+                        child: Stack(
+                          fit: StackFit.expand,
                           children: <Widget>[
-                            Icon(
-                              Icons.check_circle_rounded,
-                              size: 12,
-                              color: p.overlayKept,
+                            Image.file(
+                              File(widget.entry.localPath),
+                              fit: BoxFit.cover,
+                              cacheWidth: MediaQuery.sizeOf(
+                                context,
+                              ).width.toInt(),
+                              errorBuilder: (_, _, _) => Container(
+                                color: p.surfaceVariant,
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: p.border,
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Cleaned',
-                              style: context.textStyles.labelMd.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
+                            Positioned(
+                              top: s.sm,
+                              right: s.sm,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: s.sm,
+                                  vertical: s.xs,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.70),
+                                  borderRadius: BorderRadius.circular(
+                                    s.radiusSm,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 12,
+                                      color: p.overlayKept,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Cleaned',
+                                      style: context.textStyles.labelMd
+                                          .copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
               Padding(

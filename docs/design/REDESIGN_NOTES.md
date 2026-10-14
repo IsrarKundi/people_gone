@@ -176,3 +176,11 @@ as supplied). Supersedes the dune pair of the same date.
   2. *Done:* Success checkmark, tap opens the result screen immediately.
   3. *Failed:* Honest error presentation, retry button, and direct share action for diagnostics logs.
 - **No "Notify me when done":** Explicitly omitted per owner rejection.
+
+## Review 05 fixes — finished arrangements (implemented by Muse, 2026-10-14, owner commission)
+
+Implements the design lead's Review 05 + Supplement rulings (R1–R10, D10–D12, F1, F2) on top of feat-05:
+
+- **Processing (da1cd7a):** layout is now a column in flow — photo flexes above a bottom tray (status card → filled primary "Work in background" → its caption "You can safely leave the app." → Cancel). Double overlap and the ghost pill are gone; the primary action is the strongest element (R1, R6, W4, W6). Stage labels follow real client states: "Connecting to the processing server…" until the first byte moves, "Uploading… N%" + the determinate bar ONLY while bytes transfer, no bar in the server stage (F1, R4). Elapsed stopwatch removed (R5); beam dosed down (5s period, line alpha 0.35, band peak 0.15) and stays indeterminate-only (R8).
+- **Home (this entry's commit):** hero slot sized from the real viewport height (budgeted allowance for the fixed cluster; page scrolls if the budget is exceeded — large text / small phones). Demo hero fills the screen (R2, D10); teaching line demoted to body size (R3); quota is a plain text line in the column — pill and status dot removed (R4, W3); banner takes the one card language — radiusLg + neutral hairline border in every state, state colour only in its icon (D12, W3); banner subtitle is destination-only: "Tap to view progress" (R10, F2); demo caption cut to "Real app output", hand icon removed (R9). Two factual copy fixes beyond the rulings: banner done title "Clean complete!" → "Your cleaned photo is ready" (calm voice, no celebration); failed subtitle now names the real tap action, "Tap to share diagnostics".
+- Verified: analyze clean, 123/123 tests, fresh harness renders light + dark for S1 (both hero states) and S6 inspected by eye. Known render note: landscape photos letterbox inside the tall hero/processing frames (contain, never cropped) — the framed-print consequence of the adopted scale; the design lead's full pass may rule on it.
