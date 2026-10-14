@@ -27,6 +27,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:people_gone/config/app_config.dart';
 import 'package:people_gone/core/routes/app_pages.dart';
 import 'package:people_gone/core/routes/app_routes.dart';
+import 'package:people_gone/features/brush/controller/brush_controller.dart';
+import 'package:people_gone/features/brush/model/brush_args.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
@@ -41,9 +43,22 @@ const String _originalPath =
 const String _resultPath =
     '/Users/mc/people_gone/assets/images/demo_result.jpg';
 
+/// A portrait photo (the owner's mosque shot) for the S5 cases —
+/// Review 07's core defect only manifests when the photo does NOT
+/// fill its area, so the brush evidence needs both orientations.
+/// NOTE: the copy at this path is the mosque photo re-encoded as a
+/// baseline JPEG (identical 900x1600 geometry). The widget pipeline
+/// only paints it when the file is primed through primeImages (the
+/// proven flow); an in-canvas precache left it blank in this
+/// environment even though the codec decodes the file and the real
+/// app renders the original fine.
+const String _portraitPath =
+    '/Users/mc/people_gone/assets/images/mosque_original.jpg';
+
 final bool _capture = Platform.environment['PG_CAPTURE'] == '1';
 final bool _photosExist =
     File(_originalPath).existsSync() && File(_resultPath).existsSync();
+final bool _portraitExists = File(_portraitPath).existsSync();
 
 /// LocalStore fake at the interface boundary (same shape as the flow
 /// tests' fakes): counter, consent and history are plain fields.
@@ -53,7 +68,6 @@ class CaptureStore implements LocalStore {
   int? consent;
   int used = 0;
   List<HistoryEntry> entries = <HistoryEntry>[];
-
 
   GatewayJobRecord? gatewayJobRecord;
 
@@ -72,6 +86,7 @@ class CaptureStore implements LocalStore {
     gatewayJobRecord = null;
     return const Success<void>(null);
   }
+
   @override
   Future<Result<int?>> acceptedConsentVersion() async => Success<int?>(consent);
 
@@ -132,6 +147,10 @@ class CaptureStore implements LocalStore {
 class CaptureApi implements ProcessingApi {
   Completer<Result<ProcessedPhoto>>? gate;
 
+  /// When set, touchupPhoto reports a mid-upload fraction and then
+  /// waits on this gate (the S5 fixing-state evidence).
+  Completer<Result<TouchupOutcome>>? touchupGate;
+
   @override
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
@@ -164,8 +183,18 @@ class CaptureApi implements ProcessingApi {
           keeperIds: const <int>[0],
           removedIds: const <int>[1],
           persons: const <DetectedPerson>[
-            DetectedPerson(id: 0, box: <int>[10, 10, 50, 90], score: 0.95, isKeeper: true),
-            DetectedPerson(id: 1, box: <int>[60, 20, 90, 80], score: 0.85, isKeeper: false),
+            DetectedPerson(
+              id: 0,
+              box: <int>[10, 10, 50, 90],
+              score: 0.95,
+              isKeeper: true,
+            ),
+            DetectedPerson(
+              id: 1,
+              box: <int>[60, 20, 90, 80],
+              score: 0.85,
+              isKeeper: false,
+            ),
           ],
           inputDimensions: const <int>[100, 100],
         ),
@@ -181,22 +210,39 @@ class CaptureApi implements ProcessingApi {
     required String localPath,
     required Uint8List maskPng,
     void Function(double fraction)? onUploadProgress,
-  }) async => const Failure<TouchupOutcome>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
-  );
+  }) {
+    if (touchupGate != null) {
+      onUploadProgress?.call(0.45);
+      return touchupGate!.future;
+    }
+    return Future<Result<TouchupOutcome>>.value(
+      const Failure<TouchupOutcome>(
+        AppFailure(
+          code: 'not_implemented',
+          userMessageKey: AppStrings.errorGeneric,
+        ),
+      ),
+    );
+  }
 
   @override
   Future<Result<SaveCreditDecision>> consumeSaveCredit({
     required String idempotencyKey,
   }) async => const Failure<SaveCreditDecision>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+    AppFailure(
+      code: 'not_implemented',
+      userMessageKey: AppStrings.errorGeneric,
+    ),
   );
 
   @override
   Future<Result<void>> refundSaveCredit({
     required String idempotencyKey,
   }) async => const Failure<void>(
-    AppFailure(code: 'not_implemented', userMessageKey: AppStrings.errorGeneric),
+    AppFailure(
+      code: 'not_implemented',
+      userMessageKey: AppStrings.errorGeneric,
+    ),
   );
 }
 
@@ -333,6 +379,7 @@ void main() {
       for (final provider in <ImageProvider>[
         FileImage(File(_originalPath)),
         FileImage(File(_resultPath)),
+        if (_portraitExists) FileImage(File(_portraitPath)),
         ResizeImage.resizeIfNeeded(390, null, FileImage(File(_originalPath))),
         ResizeImage.resizeIfNeeded(390, null, FileImage(File(_resultPath))),
       ]) {
@@ -546,16 +593,39 @@ void main() {
       keeperIds: const <int>[0],
       removedIds: const <int>[1, 2, 3],
       persons: const <DetectedPerson>[
-        DetectedPerson(id: 0, box: <int>[250, 100, 495, 360], score: 0.95, isKeeper: true),
-        DetectedPerson(id: 1, box: <int>[210, 135, 295, 270], score: 0.88, isKeeper: false),
-        DetectedPerson(id: 2, box: <int>[138, 150, 196, 258], score: 0.84, isKeeper: false),
-        DetectedPerson(id: 3, box: <int>[428, 38, 548, 150], score: 0.81, isKeeper: false),
+        DetectedPerson(
+          id: 0,
+          box: <int>[250, 100, 495, 360],
+          score: 0.95,
+          isKeeper: true,
+        ),
+        DetectedPerson(
+          id: 1,
+          box: <int>[210, 135, 295, 270],
+          score: 0.88,
+          isKeeper: false,
+        ),
+        DetectedPerson(
+          id: 2,
+          box: <int>[138, 150, 196, 258],
+          score: 0.84,
+          isKeeper: false,
+        ),
+        DetectedPerson(
+          id: 3,
+          box: <int>[428, 38, 548, 150],
+          score: 0.81,
+          isKeeper: false,
+        ),
       ],
       inputDimensions: const <int>[639, 360],
     );
     await primeImages(tester);
     await pumpApp(tester, mode: ThemeMode.light);
-    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    Get.toNamed<void>(
+      Routes.proposal,
+      arguments: ProposalArgs(proposal: proposal),
+    );
     // pumpAndSettle, not fixed pumps: this route's transition runs
     // long in the harness and a fixed settle captures the fade
     // mid-flight (the whole screen reads washed out — harness
@@ -564,12 +634,17 @@ void main() {
     await snap(tester, 's4_proposal_light.png');
 
     await pumpApp(tester, mode: ThemeMode.dark);
-    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    Get.toNamed<void>(
+      Routes.proposal,
+      arguments: ProposalArgs(proposal: proposal),
+    );
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's4_proposal_dark.png');
   });
 
-  testWidgets('S7 Result, wrong keeper sheet with visual crops', (tester) async {
+  testWidgets('S7 Result, wrong keeper sheet with visual crops', (
+    tester,
+  ) async {
     if (!_capture) return;
     if (!_photosExist) return;
     await primeImages(tester);
@@ -585,8 +660,18 @@ void main() {
         totalSeconds: 4.2,
         engineUsed: 'mat',
         persons: <DetectedPerson>[
-          DetectedPerson(id: 0, box: <int>[250, 100, 495, 360], score: 0.95, isKeeper: true),
-          DetectedPerson(id: 1, box: <int>[210, 135, 295, 270], score: 0.88, isKeeper: false),
+          DetectedPerson(
+            id: 0,
+            box: <int>[250, 100, 495, 360],
+            score: 0.95,
+            isKeeper: true,
+          ),
+          DetectedPerson(
+            id: 1,
+            box: <int>[210, 135, 295, 270],
+            score: 0.88,
+            isKeeper: false,
+          ),
         ],
       ),
     );
@@ -598,7 +683,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets('S9 History Detail with before/after compare slider', (tester) async {
+  testWidgets('S9 History Detail with before/after compare slider', (
+    tester,
+  ) async {
     if (!_capture) return;
     if (!_photosExist) return;
     await primeImages(tester);
@@ -795,16 +882,39 @@ void main() {
       keeperIds: const <int>[0, 1, 2, 3],
       removedIds: const <int>[],
       persons: const <DetectedPerson>[
-        DetectedPerson(id: 0, box: <int>[250, 100, 495, 360], score: 0.95, isKeeper: true),
-        DetectedPerson(id: 1, box: <int>[210, 135, 295, 270], score: 0.88, isKeeper: true),
-        DetectedPerson(id: 2, box: <int>[138, 150, 196, 258], score: 0.84, isKeeper: true),
-        DetectedPerson(id: 3, box: <int>[428, 38, 548, 150], score: 0.81, isKeeper: true),
+        DetectedPerson(
+          id: 0,
+          box: <int>[250, 100, 495, 360],
+          score: 0.95,
+          isKeeper: true,
+        ),
+        DetectedPerson(
+          id: 1,
+          box: <int>[210, 135, 295, 270],
+          score: 0.88,
+          isKeeper: true,
+        ),
+        DetectedPerson(
+          id: 2,
+          box: <int>[138, 150, 196, 258],
+          score: 0.84,
+          isKeeper: true,
+        ),
+        DetectedPerson(
+          id: 3,
+          box: <int>[428, 38, 548, 150],
+          score: 0.81,
+          isKeeper: true,
+        ),
       ],
       inputDimensions: const <int>[639, 360],
     );
     await primeImages(tester);
     await pumpApp(tester);
-    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    Get.toNamed<void>(
+      Routes.proposal,
+      arguments: ProposalArgs(proposal: proposal),
+    );
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's4_proposal_keepall.png');
   });
@@ -822,8 +932,191 @@ void main() {
     );
     await primeImages(tester);
     await pumpApp(tester);
-    Get.toNamed<void>(Routes.proposal, arguments: ProposalArgs(proposal: proposal));
+    Get.toNamed<void>(
+      Routes.proposal,
+      arguments: ProposalArgs(proposal: proposal),
+    );
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     await snap(tester, 's4_proposal_nopeople.png');
+  });
+
+  // ---- S5 Brush (Review 07 evidence: both states, both themes,
+  // ---- 1.30, and a landscape AND a portrait photo) ----
+
+  Future<BrushController> openBrush(
+    WidgetTester tester,
+    String path, {
+    ThemeMode mode = ThemeMode.light,
+    double textScale = 1.0,
+  }) async {
+    await primeImages(tester);
+    await pumpApp(tester, mode: mode, textScale: textScale);
+    Get.toNamed<void>(Routes.brush, arguments: BrushArgs(imagePath: path));
+    await tester.pump();
+    final controller = Get.find<BrushController>();
+    // The controller decodes the photo's size from its bytes off a
+    // future started in the fake-async zone; await the decode inside
+    // runAsync or imageSize stays null and the canvas renders its
+    // no-size fallback (photo only, no stroke layer).
+    await tester.runAsync(() async {
+      await controller.loadImageSize();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    await settleFrames(tester);
+    return controller;
+  }
+
+  /// Paints one stroke over the background people, in IMAGE pixels
+  /// (café 639x360 landscape / mosque 900x1600 portrait).
+  void paintSampleStroke(BrushController c, {required bool portrait}) {
+    final points = portrait
+        ? <Offset>[
+            const Offset(110, 700),
+            const Offset(190, 770),
+            const Offset(280, 850),
+          ]
+        : <Offset>[
+            const Offset(80, 165),
+            const Offset(140, 195),
+            const Offset(205, 220),
+          ];
+    c.startStroke(points.first);
+    for (final point in points.skip(1)) {
+      c.addStrokePoint(point);
+    }
+    c.endStroke();
+  }
+
+  testWidgets('S5 Brush, hint chip on the fitted photo (no strokes)', (
+    tester,
+  ) async {
+    if (!_capture) return;
+    if (!_photosExist) {
+      markTestSkipped('real evidence photos not present on this machine');
+      return;
+    }
+    await openBrush(tester, _originalPath);
+    // Let the route transition finish before capturing.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's5_hint.png');
+  });
+
+  testWidgets('S5 Brush, painting with strokes, light', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) {
+      markTestSkipped('real evidence photos not present on this machine');
+      return;
+    }
+    final c = await openBrush(tester, _originalPath);
+    paintSampleStroke(c, portrait: false);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's5_painting.png');
+  });
+
+  testWidgets('S5 Brush, painting with strokes, dark', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) {
+      markTestSkipped('real evidence photos not present on this machine');
+      return;
+    }
+    final c = await openBrush(tester, _originalPath, mode: ThemeMode.dark);
+    paintSampleStroke(c, portrait: false);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's5_painting_dark.png');
+  });
+
+  testWidgets('S5 Brush, painting, portrait photo', (tester) async {
+    if (!_capture) return;
+    if (!_portraitExists) {
+      markTestSkipped('portrait evidence photo not present on this machine');
+      return;
+    }
+    final c = await openBrush(tester, _portraitPath);
+    paintSampleStroke(c, portrait: true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's5_painting_portrait.png');
+  });
+
+  testWidgets('S5 Brush, painting, text scale 1.30', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) {
+      markTestSkipped('real evidence photos not present on this machine');
+      return;
+    }
+    final c = await openBrush(tester, _originalPath, textScale: 1.30);
+    paintSampleStroke(c, portrait: false);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's5_painting_textscale130.png');
+  });
+
+  testWidgets('S5 Brush, fixing state in the dock, light', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) {
+      markTestSkipped('real evidence photos not present on this machine');
+      return;
+    }
+    api.touchupGate = Completer<Result<TouchupOutcome>>();
+    final c = await openBrush(tester, _originalPath);
+    paintSampleStroke(c, portrait: false);
+    // Real-async window: the mask raster + upload callback land
+    // while the gate holds the fix open at 45% uploaded.
+    await tester.runAsync(() async {
+      unawaited(c.apply());
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's5_fixing.png');
+    api.touchupGate!.complete(
+      const Failure<TouchupOutcome>(
+        AppFailure(code: 'server', userMessageKey: AppStrings.errorGeneric),
+      ),
+    );
+    // The failure lands as a snackbar: let it fully animate in and
+    // auto-dismiss so no overlay ticker outlives the tree.
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump();
+  });
+
+  testWidgets('S5 Brush, fixing state in the dock, dark', (tester) async {
+    if (!_capture) return;
+    if (!_photosExist) {
+      markTestSkipped('real evidence photos not present on this machine');
+      return;
+    }
+    api.touchupGate = Completer<Result<TouchupOutcome>>();
+    final c = await openBrush(tester, _originalPath, mode: ThemeMode.dark);
+    paintSampleStroke(c, portrait: false);
+    await tester.runAsync(() async {
+      unawaited(c.apply());
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await settleFrames(tester);
+    await snap(tester, 's5_fixing_dark.png');
+    api.touchupGate!.complete(
+      const Failure<TouchupOutcome>(
+        AppFailure(code: 'server', userMessageKey: AppStrings.errorGeneric),
+      ),
+    );
+    // The failure lands as a snackbar: let it fully animate in and
+    // auto-dismiss so no overlay ticker outlives the tree.
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump();
   });
 }
