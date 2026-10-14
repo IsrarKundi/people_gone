@@ -282,10 +282,53 @@ user exactly where v1 already leaves them). Car-body reflections
 and a two-people-before-a-mirror positive remain unmeasured
 (§3 gaps) — no claim is made for them.
 
-### 6.3 Spike outcome
+### 6.3 Spike outcome — KILLED under the §5 criteria
 
-_(Filled after the §5 spike runs.)_
+Method exactly as declared: frozen warning box → SAM mask →
+production mask prep (protected-set clip, fill, dilate, clip) →
+MAT crop inpaint → feather composite onto the untouched original.
+Runner: workdir `scripts/spike_app.py`; outputs in workdir
+`spike/`; numbers in `results/spike_results.json`.
 
-### 6.4 Gate verdict
+Safety held everywhere: **0 protected pixels changed and 0
+changed pixels outside the allowed removal union on all three
+photos** — the method never endangers a keeper. It failed on
+effectiveness, judged by eye at the would-post bar:
 
-_(Filled after the spike: §2 bars + §5 pixel-diff + control rule.)_
+- **Puddle flagship — FAIL.** The centre man's reflected figure
+  is still plainly visible in the output. SAM's mask from the
+  warning box captured only part of the reflected figure, and the
+  other removed people's reflections had no warning box at all,
+  so most of the reflection field was never even masked.
+- **Glossy floor — FAIL (closest).** The strong blue body of the
+  streak was removed, but a visible orange-red remnant and light
+  smear remain where the reflection was. "No longer visible by
+  eye, no new visible artefact" is not met.
+- **Salt lake — FAIL.** Before/after are indistinguishable at
+  viewing scale; the streaks under the removed walkers remain.
+
+Why, in one sentence: a reflection is a translucent, gradient
+phenomenon, not an object — a box-prompted SAM mask traces only
+its darkest core, so the pipeline faithfully removes a part of the
+reflection and leaves the rest, which reads as a smear rather than
+a clean surface. Per §5, reflections therefore remain a **brush
+case permanently for v1**. The warning (which is what v1 ships)
+is unaffected: it tells the user the reflection may still be
+there, which this spike confirms is true.
+
+### 6.4 Gate verdict — PASS for warn-only v1
+
+Against the §2 bars, applied exactly as declared:
+
+1. **Warn precision 1.000 ≥ 0.90 bar** ✓ (3/3 warnings correct;
+   recall 1.000 ≥ 0.50 floor, 3/3 positives).
+2. **Pixel-diff acceptance** — the warning path is meta-only and
+   cannot alter the composite by construction; the §5 acceptance
+   suite is re-run on the built worker as build verification
+   (result recorded in the build commit).
+3. **Zero false warnings on the control photos** ✓ (0/9,
+   including the keeper-before-mirror, surface-with-no-people,
+   and photographer-reflection controls).
+
+Ship scope is therefore exactly the plan's v1: detect + warn +
+guided brush. Automatic reflection removal does NOT ship (§6.3).
