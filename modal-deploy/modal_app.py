@@ -143,7 +143,8 @@ class Processor:
         )
 
     @modal.method()
-    def process(self, image_bytes: bytes, engine: str = "mat", keep_ids: list = None):
+    def process(self, image_bytes: bytes, engine: str = "mat", keep_ids: list = None,
+                remove_item_ids: list = None, detached_belonging_ids: list = None):
         # Engine swap: the pipeline only calls inpainter.inpaint_crop(...)
         if engine == "lama":
             self.pipeline.inpainter = self._lama
@@ -155,7 +156,11 @@ class Processor:
         else:  # "mat" (default)
             self.pipeline.inpainter = self._mat
             engine_used = "mat"
-        jpeg, meta = self.pipeline.process(image_bytes, keep=keep_ids)
+        jpeg, meta = self.pipeline.process(
+            image_bytes, keep=keep_ids,
+            remove_item_ids=remove_item_ids,
+            detached_belonging_ids=detached_belonging_ids,
+        )
         meta = dict(meta)
         meta["engine_requested"] = engine
         meta["engine_used"] = engine_used
@@ -234,6 +239,8 @@ def web():
         file: UploadFile = File(...),
         engine: str = Form("mat"),
         keep: str = Form(""),  # comma-separated person ids to KEEP, e.g. "0,3"
+        remove_items: str = Form(""),  # CSV ambiguous-belonging ids to REMOVE (v3)
+        detached_items: str = Form(""),  # CSV attached-belonging ids to DETACH/protect (v3)
         callback_url: str = Form(""),
         callback_token: str = Form(""),
         job_id: str = Form(""),
@@ -244,7 +251,13 @@ def web():
             return _unauthorized()
         data = await file.read()
         keep_ids = [int(x) for x in keep.split(",") if x.strip() != ""] or None
-        jpeg, meta = Processor().process.remote(data, engine=engine, keep_ids=keep_ids)
+        remove_item_ids = [int(x) for x in remove_items.split(",") if x.strip() != ""] or None
+        detached_ids = [int(x) for x in detached_items.split(",") if x.strip() != ""] or None
+        jpeg, meta = Processor().process.remote(
+            data, engine=engine, keep_ids=keep_ids,
+            remove_item_ids=remove_item_ids,
+            detached_belonging_ids=detached_ids,
+        )
         # Optional async collection by the Supabase gateway: upload the
         # result JPEG to a pre-signed URL, then notify the callback.
         # Failures here are logged server-side only — the direct response

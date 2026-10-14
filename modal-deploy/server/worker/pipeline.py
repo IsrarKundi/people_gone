@@ -20,8 +20,14 @@ from .mask_prep import (
     prepare_combined_removal_mask,
     dilate_mask
 )
+from .belongings import (
+    merge_duplicate_items,
+    person_halo,
+    prepare_item_removal_mask,
+    tier_belongings,
+)
 from .inpainter import LamaInpainter, get_crop_bounds, composite_with_feather
-from .ghost_check import check_for_ghost_residuals
+from .ghost_check import check_for_ghost_residuals, check_for_belongings_residuals
 
 RUNPOD_16GB_PER_SEC_RATE = 0.00016  # $0.576 / hour
 
@@ -46,6 +52,88 @@ class PeopleGonePipeline:
         self.segmentor = SamSegmentor(checkpoint=self.config.sam_checkpoint)
         self.inpainter = LamaInpainter(checkpoint_path=self.config.lama_checkpoint)
 
+    def _analyse(
+        self,
+        orig_rgb: np.ndarray,
+        keep: Optional[List[int]] = None,
+        timings: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, Any]:
+        """Detection + segmentation + belongings tiering (Phase A).
+
+        Persons and belongings go through ONE segment_boxes() call:
+        SAM's image encode is paid once per call (6.6-9.3 s CPU) while
+        each extra box costs only a decode (0.1-0.5 s) — a second call
+        for belongings would repay the full encode (investigation §6).
+
+        Returns persons, keeper/remove id sets, per-person masks,
+        tiered belongings (with their masks index-aligned).
+        """
+        timings = timings if timings is not None else {}
+
+        t0 = time.perf_counter()
+        persons = self.detector.detect_persons(orig_rgb)
+        items = self.detector.detect_belongings(orig_rgb)
+        timings["detection_ms"] = (time.perf_counter() - t0) * 1000.0
+
+        keeper_ids: set = set()
+        remove_ids: set = set()
+        if persons:
+            t0 = time.perf_counter()
+            keeper_ids, remove_ids, _ = classify_keepers_and_removals(
+                orig_rgb, persons, explicit_keep_ids=keep
+            )
+            timings["keeper_ms"] = (time.perf_counter() - t0) * 1000.0
+
+        person_masks: List[np.ndarray] = []
+        item_masks: List[np.ndarray] = []
+        tiered: List[Dict[str, Any]] = []
+        if persons or items:
+            t0 = time.perf_counter()
+            all_boxes = (
+                [{"box": p["box"]} for p in persons]
+                + [{"box": it["box"]} for it in items]
+            )
+            all_masks = self.segmentor.segment_boxes(orig_rgb, all_boxes)
+            timings["segmentation_ms"] = (time.perf_counter() - t0) * 1000.0
+            person_masks = all_masks[: len(persons)]
+            item_masks = all_masks[len(persons):]
+
+            # Adjustment 2: merge duplicate belongings detections by
+            # mask IoU BEFORE tiering (ids of merged-away items simply
+            # never surface; surviving ids are identical in /detect
+            # and /process because both run this same code path).
+            items, item_masks = merge_duplicate_items(items, item_masks)
+            tiered = tier_belongings(
+                persons, person_masks, keeper_ids, items, item_masks
+            )
+
+        return {
+            "persons": persons,
+            "keeper_ids": keeper_ids,
+            "remove_ids": remove_ids,
+            "person_masks": person_masks,
+            "items": items,
+            "item_masks": item_masks,
+            "tiered": tiered,
+        }
+
+    @staticmethod
+    def _format_belongings(tiered: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Contract v3 belongings entries (additive over v2). The
+        detected class travels as `detected_class` — a display hint,
+        not a label of record (investigation adjustment 3)."""
+        return [
+            {
+                "id": t["id"],
+                "detected_class": t["detected_class"],
+                "box": [int(b) for b in t["box"]],
+                "score": float(t["score"]),
+                "tier": t["tier"],
+                "person_id": t["person_id"],
+            }
+            for t in tiered
+        ]
+
     def _get_fallbacks_used(self) -> List[str]:
         fallbacks = []
         if getattr(self.detector, "fallback_used", False):
@@ -59,8 +147,19 @@ class PeopleGonePipeline:
     def process(
         self,
         photo: Union[str, bytes, np.ndarray, Image.Image],
-        keep: Optional[List[int]] = None
+        keep: Optional[List[int]] = None,
+        remove_item_ids: Optional[List[int]] = None,
+        detached_belonging_ids: Optional[List[int]] = None
     ) -> Tuple[bytes, Dict[str, Any]]:
+        """Full clean. Confirm payload (Contract v3, additive over v2):
+        keep = person ids to protect (as v2); remove_item_ids =
+        AMBIGUOUS belongings the user chose to remove; detached_
+        belonging_ids = ATTACHED belongings the user detached from
+        their person (protected even when the person is removed).
+        Attached belongings of removed persons are removed with their
+        person by default (FR-08); attached belongings of keepers and
+        detached belongings are never in any removal mask (X11).
+        """
         t_start = time.perf_counter()
         timings = {}
 
@@ -71,51 +170,42 @@ class PeopleGonePipeline:
         h, w = orig_rgb.shape[:2]
         timings["load_ms"] = (time.perf_counter() - t0) * 1000.0
 
-        # 2. Stage A — Person Detection
-        t0 = time.perf_counter()
-        persons = self.detector.detect_persons(orig_rgb)
-        timings["detection_ms"] = (time.perf_counter() - t0) * 1000.0
+        # 2-4. Detection + segmentation + keeper + belongings tiering
+        analysis = self._analyse(orig_rgb, keep=keep, timings=timings)
+        persons = analysis["persons"]
+        keeper_ids = analysis["keeper_ids"]
+        remove_ids = analysis["remove_ids"]
+        tiered = analysis["tiered"]
+        mask_by_item_id = {
+            it["id"]: m
+            for it, m in zip(analysis["items"], analysis["item_masks"])
+        }
 
-        if not persons:
-            total_time_s = time.perf_counter() - t_start
-            return self._encode_jpeg(orig_pil), {
-                "input_dimensions": [w, h],
-                "output_dimensions": [w, h],
-                "persons_detected": 0,
-                "keeper_ids": [],
-                "removed_ids": [],
-                "persons": [],
-                "crops_inpainted": 0,
-                "timings_ms": timings,
-                "total_seconds": round(total_time_s, 4),
-                "total_gpu_seconds": round(total_time_s, 4),
-                "cost_estimate_usd": round(total_time_s * self.config.runpod_rate_per_sec, 6),
-                "ghost_check_fired": False,
-                "retry_count": 0,
-                "fallbacks_used": self._get_fallbacks_used(),
-                "model_versions": self._get_model_versions()
-            }
+        remove_item_ids = set(remove_item_ids or [])
+        detached_ids = set(detached_belonging_ids or [])
 
-        # 3. Instance Segmentation (SAM 2.1)
-        t0 = time.perf_counter()
-        masks = self.segmentor.segment_boxes(orig_rgb, persons)
-        timings["segmentation_ms"] = (time.perf_counter() - t0) * 1000.0
-
-        # 4. Keeper Heuristic
-        t0 = time.perf_counter()
-        keeper_ids, remove_ids, scored_persons = classify_keepers_and_removals(
-            orig_rgb, persons, explicit_keep_ids=keep
+        # Only ambiguous items the user explicitly included are removed
+        # standalone; ids not present in this analysis are ignored (a
+        # stale client must never invent a removal).
+        included_items = [
+            t for t in tiered
+            if t["tier"] == "ambiguous" and t["id"] in remove_item_ids
+        ]
+        honoured_detached = sorted(
+            t["id"] for t in tiered
+            if t["tier"] == "attached" and t["id"] in detached_ids
         )
-        timings["keeper_ms"] = (time.perf_counter() - t0) * 1000.0
 
-        if not remove_ids:
-            total_time_s = time.perf_counter() - t_start
-            return self._encode_jpeg(orig_pil), {
+        def _meta(crops_inpainted: int, ghost_fired: bool, retry_count: int,
+                  belongings_removed_ids: List[int], items_removed: int,
+                  total_time_s: float) -> Dict[str, Any]:
+            return {
+                "contract_version": 3,
                 "input_dimensions": [w, h],
                 "output_dimensions": [w, h],
                 "persons_detected": len(persons),
                 "keeper_ids": sorted(list(keeper_ids)),
-                "removed_ids": [],
+                "removed_ids": sorted(list(remove_ids)),
                 "persons": [
                     {
                         "id": p["id"],
@@ -125,33 +215,88 @@ class PeopleGonePipeline:
                     }
                     for p in persons
                 ],
-                "crops_inpainted": 0,
+                "belongings": self._format_belongings(tiered),
+                "belongings_removed_ids": sorted(belongings_removed_ids),
+                "belongings_detached_ids": honoured_detached,
+                "items_removed": items_removed,
+                "crops_inpainted": crops_inpainted,
                 "timings_ms": timings,
                 "total_seconds": round(total_time_s, 4),
                 "total_gpu_seconds": round(total_time_s, 4),
                 "cost_estimate_usd": round(total_time_s * self.config.runpod_rate_per_sec, 6),
-                "ghost_check_fired": False,
-                "retry_count": 0,
+                "ghost_check_fired": ghost_fired,
+                "retry_count": retry_count,
                 "fallbacks_used": self._get_fallbacks_used(),
                 "model_versions": self._get_model_versions()
             }
 
-        # 5. Mask Preparation (Per-person dilation + shadows)
+        if not remove_ids and not included_items:
+            total_time_s = time.perf_counter() - t_start
+            timings["total_e2e_ms"] = total_time_s * 1000.0
+            return self._encode_jpeg(orig_pil), _meta(
+                0, False, 0, [], 0, total_time_s
+            )
+
+        # 5. Mask Preparation — removal units. Attached belongings are
+        # unioned into their owner's RAW mask BEFORE the standard
+        # fill/dilate/shadow prep, so the expanded mask is one region
+        # (FR-08). Detached belongings are simply never unioned, which
+        # is what protects them.
         t0 = time.perf_counter()
-        individual_masks = prepare_individual_removal_masks(
-            orig_rgb, persons, masks, remove_ids,
-            dilation_factor=self.config.initial_dilation_factor
-        )
+        units: List[Dict[str, Any]] = []
+        belongings_removed_ids: List[int] = []
+
+        if remove_ids:
+            person_index = {p["id"]: i for i, p in enumerate(persons)}
+            effective_masks = list(analysis["person_masks"])
+            owners_with_items = set()
+            for t in tiered:
+                if t["tier"] != "attached" or t["id"] in detached_ids:
+                    continue
+                owner = t["person_id"]
+                if owner in remove_ids:
+                    idx = person_index[owner]
+                    effective_masks[idx] = np.maximum(
+                        effective_masks[idx], mask_by_item_id[t["id"]]
+                    )
+                    owners_with_items.add(owner)
+                    belongings_removed_ids.append(t["id"])
+
+            prepared = prepare_individual_removal_masks(
+                orig_rgb, persons, effective_masks, remove_ids,
+                dilation_factor=self.config.initial_dilation_factor
+            )
+            for item in prepared:
+                units.append({
+                    "mask": item["mask"],
+                    "height": item["height"],
+                    "kind": "person",
+                    "has_items": item["person_id"] in owners_with_items,
+                })
+
+        items_removed = 0
+        for t in included_items:
+            units.append({
+                "mask": prepare_item_removal_mask(
+                    mask_by_item_id[t["id"]], t["box"]
+                ),
+                "height": max(1, t["box"][3] - t["box"][1]),
+                "kind": "item",
+                "has_items": True,
+            })
+            belongings_removed_ids.append(t["id"])
+            items_removed += 1
+
         timings["mask_prep_ms"] = (time.perf_counter() - t0) * 1000.0
 
-        # 6. Inpainting on Native-Resolution Crops per remove-mask
+        # 6. Inpainting on Native-Resolution Crops per removal unit
         t0 = time.perf_counter()
         composited = orig_rgb.copy()
         crops_inpainted = 0
         inpaint_crop_records = []
 
-        for item in individual_masks:
-            m = item["mask"]
+        for unit in units:
+            m = unit["mask"]
             crop_bounds = get_crop_bounds(m)
             if crop_bounds is None:
                 continue
@@ -167,19 +312,33 @@ class PeopleGonePipeline:
             crops_inpainted += 1
             inpaint_crop_records.append({
                 "crop_bounds": crop_bounds,
-                "item": item
+                "item": unit
             })
 
         timings["inpaint_ms"] = (time.perf_counter() - t0) * 1000.0
 
-        # 7. Second-pass Ghost Check on final composite
+        # 7. Second-pass Ghost Check on final composite. Person crops
+        # are checked for person residuals (as before); any crop that
+        # carried belongings is ALSO checked for belongings residuals
+        # (Phase A) — a surviving item retries like a surviving person.
         t0 = time.perf_counter()
         ghost_fired = False
         ghost_affected_records = []
 
         for rec in inpaint_crop_records:
             cb = rec["crop_bounds"]
-            fired, residuals = check_for_ghost_residuals(composited, cb, self.detector)
+            unit = rec["item"]
+            fired = False
+            if unit["kind"] == "person":
+                fired_person, _ = check_for_ghost_residuals(
+                    composited, cb, self.detector
+                )
+                fired = fired or fired_person
+            if unit["has_items"]:
+                fired_item, _ = check_for_belongings_residuals(
+                    composited, cb, self.detector
+                )
+                fired = fired or fired_item
             if fired:
                 ghost_fired = True
                 ghost_affected_records.append(rec)
@@ -192,7 +351,7 @@ class PeopleGonePipeline:
                 item = rec["item"]
                 cx1, cy1, cx2, cy2 = cb
 
-                # Re-dilate using configured retry_dilation_factor relative to person height
+                # Re-dilate using configured retry_dilation_factor relative to unit height
                 bh = item["height"]
                 retry_dilation_px = max(12, int(bh * self.config.retry_dilation_factor))
                 dilated_retry_mask = dilate_mask(item["mask"], retry_dilation_px)
@@ -214,35 +373,10 @@ class PeopleGonePipeline:
         res_pil = Image.fromarray(composited)
         output_bytes = self._encode_jpeg(res_pil)
 
-        fallbacks_used = self._get_fallbacks_used()
-
-        metadata = {
-            "input_dimensions": [w, h],
-            "output_dimensions": [w, h],
-            "persons_detected": len(persons),
-            "keeper_ids": sorted(list(keeper_ids)),
-            "removed_ids": sorted(list(remove_ids)),
-            "persons": [
-                {
-                    "id": p["id"],
-                    "box": [int(b) for b in p["box"]],
-                    "score": float(p.get("score", 1.0)),
-                    "is_keeper": p["id"] in keeper_ids,
-                }
-                for p in persons
-            ],
-            "crops_inpainted": crops_inpainted,
-            "timings_ms": timings,
-            "total_seconds": round(total_time_s, 4),
-            "total_gpu_seconds": round(total_time_s, 4),
-            "cost_estimate_usd": round(total_time_s * self.config.runpod_rate_per_sec, 6),
-            "ghost_check_fired": ghost_fired,
-            "retry_count": retry_count,
-            "fallbacks_used": fallbacks_used,
-            "model_versions": self._get_model_versions()
-        }
-
-        return output_bytes, metadata
+        return output_bytes, _meta(
+            crops_inpainted, ghost_fired, retry_count,
+            belongings_removed_ids, items_removed, total_time_s
+        )
 
     def touchup(
         self,
@@ -303,25 +437,19 @@ class PeopleGonePipeline:
         self,
         photo: Union[str, bytes, np.ndarray, Image.Image],
     ) -> Dict[str, Any]:
-        """Runs detection (Stage A) and keeper heuristic without inpainting."""
+        """Runs detection (Stage A) + keeper heuristic + belongings
+        tiering (Phase A) without inpainting. Tiering needs SAM masks,
+        so /detect now pays the one SAM image encode (~7-9 s CPU); the
+        v2 person fields are byte-identical to before, and belongings
+        arrive as the additive v3 `belongings` list."""
         orig_pil = self._load_image(photo)
         orig_rgb = np.array(orig_pil)
         h, w = orig_rgb.shape[:2]
 
-        persons = self.detector.detect_persons(orig_rgb)
-        if not persons:
-            return {
-                "ok": True,
-                "input_dimensions": [w, h],
-                "persons_detected": 0,
-                "keeper_ids": [],
-                "removed_ids": [],
-                "persons": [],
-            }
-
-        keeper_ids, remove_ids, _ = classify_keepers_and_removals(
-            orig_rgb, persons, explicit_keep_ids=None
-        )
+        analysis = self._analyse(orig_rgb, keep=None)
+        persons = analysis["persons"]
+        keeper_ids = analysis["keeper_ids"]
+        remove_ids = analysis["remove_ids"]
 
         formatted_persons = [
             {
@@ -335,11 +463,13 @@ class PeopleGonePipeline:
 
         return {
             "ok": True,
+            "contract_version": 3,
             "input_dimensions": [w, h],
             "persons_detected": len(persons),
             "keeper_ids": sorted(list(keeper_ids)),
             "removed_ids": sorted(list(remove_ids)),
             "persons": formatted_persons,
+            "belongings": self._format_belongings(analysis["tiered"]),
         }
 
     def _load_image(self, photo: Union[str, bytes, np.ndarray, Image.Image]) -> Image.Image:
@@ -377,9 +507,15 @@ _pipeline_instance = None
 def process(
     photo: Union[str, bytes, np.ndarray, Image.Image],
     keep: Optional[List[int]] = None,
+    remove_item_ids: Optional[List[int]] = None,
+    detached_belonging_ids: Optional[List[int]] = None,
     config: Optional[PipelineConfig] = None
 ) -> Tuple[bytes, Dict[str, Any]]:
     global _pipeline_instance
     if _pipeline_instance is None or config is not None:
         _pipeline_instance = PeopleGonePipeline(config)
-    return _pipeline_instance.process(photo, keep=keep)
+    return _pipeline_instance.process(
+        photo, keep=keep,
+        remove_item_ids=remove_item_ids,
+        detached_belonging_ids=detached_belonging_ids,
+    )
