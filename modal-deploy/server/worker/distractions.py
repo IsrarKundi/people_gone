@@ -325,13 +325,13 @@ class OmDetDetector:
         h, w = image_np.shape[:2]
         pil_img = Image.fromarray(image_np)
         inputs = self._processor(
-            images=pil_img, text=[prompts], return_tensors="pt"
+            images=pil_img, text=prompts, return_tensors="pt"
         ).to(self.device)
         with torch.no_grad():
             outputs = self._model(**inputs)
         # Call shape mirrors the calibration harness exactly (it is
-        # the code that produced the gate's evidence): `classes` maps
-        # result indices back to prompt strings.
+        # the code that produced the gate's evidence). With `classes`
+        # passed, results["classes"] carries the prompt STRINGS.
         results = self._processor.post_process_grounded_object_detection(
             outputs,
             classes=prompts,
@@ -344,6 +344,12 @@ class OmDetDetector:
         for score, cls, box in zip(
             results["scores"], results["classes"], results["boxes"]
         ):
+            # Defensive: accept an index too, should a future
+            # transformers version flip the return convention back.
+            if isinstance(cls, (int, np.integer)):
+                label = prompts[int(cls)]
+            else:
+                label = str(cls)
             b = box.tolist()
             x1 = max(0, int(round(b[0])))
             y1 = max(0, int(round(b[1])))
@@ -353,7 +359,7 @@ class OmDetDetector:
                 detections.append({
                     "box": [x1, y1, x2, y2],
                     "score": float(score.item() if hasattr(score, "item") else score),
-                    "label": prompts[int(cls)].lower(),
+                    "label": label.lower(),
                 })
         return detections
 
