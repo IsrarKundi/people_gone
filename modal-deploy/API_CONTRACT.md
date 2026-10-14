@@ -1,4 +1,11 @@
-# PeopleGone Worker — API Contract v2 (dev)
+# PeopleGone Worker — API Contract v3 (dev)
+
+**v3 (2026-10-14, Phase A — belongings, FR-08) is ADDITIVE over v2:**
+every v2 field keeps its exact meaning and shape; v3 only ADDS the
+`belongings` list and the `/process` confirm fields below. Old clients
+ignore the new fields and behave exactly as under v2. The gateway
+(Supabase) section at the bottom describes the v2 gateway surface plus
+its v3 additions.
 
 Base URL: whatever Modal prints on deploy (looks like
 `https://<workspace>--peoplegone-worker-web.modal.run`).
@@ -22,6 +29,7 @@ Response `200` JSON:
 ```json
 {
   "ok": true,
+  "contract_version": 3,
   "input_dimensions": [1920, 1080],
   "persons_detected": 3,
   "keeper_ids": [0],
@@ -39,9 +47,56 @@ Response `200` JSON:
       "score": 0.82,
       "is_keeper": false
     }
+  ],
+  "belongings": [
+    {
+      "id": 0,
+      "detected_class": "handbag",
+      "box": [700, 300, 790, 420],
+      "score": 0.88,
+      "tier": "attached",
+      "person_id": 1
+    },
+    {
+      "id": 1,
+      "detected_class": "suitcase",
+      "box": [1500, 700, 1600, 900],
+      "score": 0.81,
+      "tier": "ambiguous",
+      "person_id": null
+    }
   ]
 }
 ```
+
+**Belongings (v3, Phase A).** The same detector pass also returns the
+COCO belongings classes (backpack, handbag, suitcase, umbrella).
+Each item is tiered by mask geometry against every person's dilated
+halo (see `server/worker/belongings.py`):
+
+- `tier: "attached"` — the item touches exactly ONE person's halo
+  above a de-minimis contact bar; `person_id` is that owner. Attached
+  belongings follow their person: removed with a removed person,
+  protected with a keeper (design X8).
+- `tier: "ambiguous"` — ownership is not geometrically certain
+  (touches two people, or nobody). `person_id` is null. Ambiguous
+  items are the user's decision on S4 (object chips, default Keep,
+  design X10) and are removed only when the confirm payload includes
+  them in `remove_items`.
+
+`detected_class` is the detector's class label — **a hint, not a
+label of record**: the classes are confused with each other in
+measurement (handbag vs suitcase vs backpack), so the field is
+carried as data the UI may display cautiously, and a future label
+fix must not change the field's shape or meaning (it stays
+`detected_class`, a plain string). Item `id`s are stable between
+/detect and /process on the same photo (same deterministic code
+path: dedupe → segment → merge → tier).
+
+Note: /detect now runs SAM segmentation (tiering needs masks), so it
+pays the one SAM image encode — expect Stage A to take longer than
+the v2 detect-only pass on CPU (~7–10 s more); NFR-02's ≤5 s analysis
+target was written for GPU hosting.
 
 ## POST /process  (multipart/form-data)
 Fields:
@@ -55,6 +110,25 @@ Fields:
     See RACING_NOTES.md for live verification results.
 - `keep` — optional, comma-separated person ids to keep, e.g. `"0,3"`.
   Empty = automatic keeper choice (largest / most central subject).
+- `remove_items` — optional (v3), comma-separated AMBIGUOUS belonging
+  ids the user chose to remove, e.g. `"1"`. Ids not present in this
+  run's analysis are ignored — a stale client can never invent a
+  removal. Attached belongings need no entry here: they follow their
+  person automatically.
+- `detached_items` — optional (v3), comma-separated ATTACHED
+  belonging ids the user detached from their person on S4. A detached
+  belonging is protected — it is never in any removal mask, even when
+  its person is removed (design X9/X11).
+
+`/process` meta additionally carries (v3): `contract_version: 3`,
+`belongings` (same shape as /detect), `belongings_removed_ids` (every
+belonging actually removed: attached-with-owner + user-included),
+`belongings_detached_ids` (detach requests honoured), and
+`items_removed` (count of user-included ambiguous items only —
+attached belongings are part of their person and are NEVER itemised
+in counts, design X16). The ghost check also re-detects belongings
+classes in crops that carried items: a surviving item retries with a
+re-dilated mask, exactly like a surviving person.
 
 Response `200` JSON:
 ```json
