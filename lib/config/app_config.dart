@@ -41,7 +41,7 @@ class AppConfig {
         'PRIVACY_POLICY_URL',
         defaultValue: 'https://example.invalid/privacy',
       ),
-      useGateway: bool.fromEnvironment('USE_GATEWAY', defaultValue: false),
+      useGateway: bool.fromEnvironment('USE_GATEWAY', defaultValue: true),
       supabaseUrl: String.fromEnvironment(
         'SUPABASE_URL',
         defaultValue: 'https://ietwddgjtcrabqjdxsfp.supabase.co',

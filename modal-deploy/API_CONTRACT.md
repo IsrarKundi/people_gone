@@ -155,11 +155,13 @@ server-side.
   scheduled hourly by pg_cron (job `peoplegone-sweep-hourly`).
 
 Status note (2026-10-14): gateway is deployed and the app client is
-built, but `AppConfig.useGateway` still defaults to FALSE — the
-scripted live end-to-end run from this dev VM is blocked by the VM
-egress proxy (see `supabase/E2E_EVIDENCE.md`); the flag flips only
-after that run passes. Until then the app uses the direct worker path
-shape with the loud-failure credit gate.
+built. The scripted live end-to-end run from this dev VM is blocked
+by the VM egress proxy (see `supabase/E2E_EVIDENCE.md`), and the old
+direct worker path is key-gated (401 without the worker key, which
+the app never holds) — so `AppConfig.useGateway` now defaults to
+TRUE (USE_GATEWAY=false remains as a debug override). The owner's
+device run is the end-to-end verification; the S6 interim copy is
+retired only after that run passes.
 
 ## Not in v2 (planned)
 1. Production move: same container contract on RunPod Serverless behind the
