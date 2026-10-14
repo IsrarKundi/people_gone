@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/utils/result.dart';
 import '../../../services/processing/processing_api.dart';
@@ -70,9 +71,15 @@ class ProposalController extends GetxController {
     isAnalyzing.value = false;
     switch (result) {
       case Success<DetectionProposal>(:final value):
+        diag('proposal', 'persons loaded: ${value.persons.length}');
         _detection = value;
         persons.assignAll(value.persons);
-      case Failure<DetectionProposal>():
+      case Failure<DetectionProposal>(:final failure):
+        diag(
+          'proposal',
+          'detect FAILED code=${failure.code} detail=${failure.detail ?? ''} '
+          '— falling back to single-call processing',
+        );
         Get.offNamed<void>(
           Routes.processing,
           arguments: ProcessingArgs(photoPath: _photoPath),
@@ -121,6 +128,7 @@ class ProposalController extends GetxController {
   /// the KEPT person ids as the keeper override.
   void confirmProposal() {
     final keepIds = persons.where((p) => p.isKeeper).map((p) => p.id).toList();
+    diag('proposal', 'confirm tapped: keep=$keepIds');
 
     Get.offNamed<void>(
       Routes.processing,

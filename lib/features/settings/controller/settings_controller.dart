@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../config/app_config.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/widgets/app_sheet.dart';
@@ -52,6 +53,9 @@ class SettingsController extends GetxController {
   }
 
   void openPrivacyPolicy() => _openLink(Uri.parse(config.privacyPolicyUrl));
+
+  /// Diagnostics (2026-10-14): the shareable step log for failures.
+  void openDiagnostics() => Get.toNamed<void>(Routes.diagnostics);
 
   /// "How your photos are handled" re-opens the exact consent wording,
   /// read-only: a single "Close" action, no Cancel (Review 02 F5/A4).

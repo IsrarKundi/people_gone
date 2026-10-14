@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../config/app_config.dart';
+import '../../core/diagnostics/diagnostics_log.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/utils/result.dart';
 
@@ -120,6 +121,7 @@ class GatewayAuth {
     }
     final nowSeconds = _now().millisecondsSinceEpoch ~/ 1000;
     if (stored != null && stored.expiryEpochSeconds > nowSeconds + 60) {
+      diag('auth', 'stored session reused (user ${DiagnosticsLog.shortId(stored.userId)})');
       return Success<({String accessToken, String userId})>((
         accessToken: stored.accessToken,
         userId: stored.userId,
@@ -167,6 +169,11 @@ class GatewayAuth {
         );
       }
       await _store.write(parsed);
+      diag(
+        'auth',
+        'session established via ${url.split('/').last} '
+        '(user ${DiagnosticsLog.shortId(parsed.userId)})',
+      );
       return Success<({String accessToken, String userId})>((
         accessToken: parsed.accessToken,
         userId: parsed.userId,
@@ -203,6 +210,11 @@ class GatewayAuth {
   }
 
   Failure<T> _authFailure<T>(DioException e) {
+    diag(
+      'auth',
+      'request failed: type=${e.type.name} '
+      'status=${e.response?.statusCode ?? 0}',
+    );
     final status = e.response?.statusCode;
     return Failure<T>(
       AppFailure(

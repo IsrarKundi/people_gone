@@ -68,6 +68,13 @@ class SettingsView extends GetView<SettingsController> {
                   label: AppStrings.settingsPrivacyPolicy.tr,
                   onTap: controller.openPrivacyPolicy,
                 ),
+                Divider(height: 1, color: p.border),
+                _actionRow(
+                  context,
+                  icon: Icons.bug_report_outlined,
+                  label: AppStrings.diagnosticsTitle.tr,
+                  onTap: controller.openDiagnostics,
+                ),
               ],
             ),
           ),

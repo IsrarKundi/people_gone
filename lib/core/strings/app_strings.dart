@@ -116,6 +116,13 @@ abstract final class AppStrings {
   static const String settingsHowHandled = 'settings_how_handled';
   static const String settingsPrivacyPolicy = 'settings_privacy_policy';
 
+  // Diagnostics (owner-requested shareable failure log, 2026-10-14).
+  static const String diagnosticsTitle = 'diagnostics_title';
+  static const String diagnosticsShare = 'diagnostics_share';
+  static const String diagnosticsClear = 'diagnostics_clear';
+  static const String diagnosticsIntro = 'diagnostics_intro';
+  static const String diagnosticsEmpty = 'diagnostics_empty';
+
   // Errors (§4.3: plain language + one recovery action).
   static const String errorGeneric = 'error_generic';
   static const String errorOffline = 'error_offline';
@@ -243,6 +250,14 @@ class AppTranslations extends Translations {
           '@count of 10 free saves left — resets @date',
       AppStrings.settingsProcessingProvider: 'Processing provider',
       AppStrings.settingsProcessingPrivacy: 'Processing & Privacy',
+      AppStrings.diagnosticsTitle: 'Diagnostics',
+      AppStrings.diagnosticsShare: 'Share diagnostics',
+      AppStrings.diagnosticsClear: 'Clear log',
+      AppStrings.diagnosticsIntro:
+          'A step-by-step record of what the app did, for fixing '
+          'problems. It contains no photos, passwords, or sign-in '
+          'details.',
+      AppStrings.diagnosticsEmpty: 'Nothing recorded yet.',
       AppStrings.settingsHowHandled: 'How your photos are handled',
       AppStrings.settingsPrivacyPolicy: 'Privacy Policy',
       AppStrings.errorGeneric: 'Something went wrong. Please try again.',

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'config/app_config.dart';
 import 'core/bindings/initial_binding.dart';
+import 'core/diagnostics/diagnostics_log.dart';
 import 'core/routes/app_pages.dart';
 import 'core/routes/app_routes.dart';
 import 'core/strings/app_strings.dart';
@@ -13,6 +14,11 @@ import 'core/theme/app_theme.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final config = AppConfig.fromEnvironment();
+  diag(
+    'app',
+    'start gateway=${config.useGateway} '
+    'supabaseHost=${Uri.parse(config.supabaseUrl).host}',
+  );
   runApp(PeopleGoneApp(config: config));
 }
 

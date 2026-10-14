@@ -10,4 +10,5 @@ abstract final class Routes {
   static const String history = '/history';
   static const String historyDetail = '/history/detail';
   static const String settings = '/settings';
+  static const String diagnostics = '/diagnostics';
 }

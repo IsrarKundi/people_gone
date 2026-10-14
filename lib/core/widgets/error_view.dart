@@ -14,10 +14,15 @@ class ErrorView extends StatelessWidget {
     required this.messageKey,
     this.onRetry,
     this.actionLabelKey = AppStrings.commonRetry,
+    this.onShareDiagnostics,
   });
 
   final String messageKey;
   final VoidCallback? onRetry;
+
+  /// Optional (2026-10-14): shares the diagnostics log so a failure on
+  /// a real device can be reported with its step trail attached.
+  final VoidCallback? onShareDiagnostics;
 
   /// Label for the single recovery action (§4.3: Retry / Pick another
   /// photo / Go Home — the label names the actual recovery).
@@ -43,6 +48,18 @@ class ErrorView extends StatelessWidget {
             if (onRetry != null) ...<Widget>[
               SizedBox(height: s.lg),
               PrimaryButton(labelKey: actionLabelKey, onPressed: onRetry),
+            ],
+            if (onShareDiagnostics != null) ...<Widget>[
+              SizedBox(height: s.sm),
+              TextButton(
+                onPressed: onShareDiagnostics,
+                child: Text(
+                  AppStrings.diagnosticsShare.tr,
+                  style: context.textStyles.bodySm.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+              ),
             ],
           ],
         ),

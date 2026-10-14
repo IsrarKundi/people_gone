@@ -15,6 +15,7 @@ import '../../features/proposal/view/proposal_view.dart';
 import '../../features/result/binding/result_binding.dart';
 import '../../features/result/view/result_view.dart';
 import '../../features/settings/binding/settings_binding.dart';
+import '../../features/settings/view/diagnostics_view.dart';
 import '../../features/settings/view/settings_view.dart';
 import 'app_routes.dart';
 
@@ -70,6 +71,10 @@ abstract final class AppPages {
       name: Routes.settings,
       page: () => const SettingsView(),
       binding: SettingsBinding(),
+    ),
+    GetPage<dynamic>(
+      name: Routes.diagnostics,
+      page: () => const DiagnosticsView(),
     ),
   ];
 }

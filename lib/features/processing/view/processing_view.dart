@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
@@ -27,7 +29,12 @@ class ProcessingView extends GetView<ProcessingController> {
       body: Obx(() {
         final error = controller.errorMessage.value;
         if (error != null) {
-          return ErrorView(messageKey: error, onRetry: controller.start);
+          return ErrorView(
+            messageKey: error,
+            onRetry: controller.start,
+            onShareDiagnostics: () =>
+                Share.share(DiagnosticsLog.instance.export()),
+          );
         }
         return Container(
           color: const Color(0xFF0B0D11), // Unified darkroom studio canvas

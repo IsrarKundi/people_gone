@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../config/app_config.dart';
+import '../../core/diagnostics/diagnostics_log.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/utils/result.dart';
 import '../storage/local_store.dart';
@@ -153,6 +154,11 @@ class GatewayProcessingApi implements ProcessingApi {
           ),
         );
       }
+      diag(
+        'gateway',
+        'detect ok: job ${DiagnosticsLog.shortId(jobId)} persons='
+        '${(analyse['persons'] as List<dynamic>?)?.length ?? 0}',
+      );
       await _saveJob(jobId, fingerprint, localPath, 'awaitingConfirm');
       return Success<DetectionProposal>(
         gatewayProposalFromMap(analyse, localPath),
@@ -202,12 +208,21 @@ class GatewayProcessingApi implements ProcessingApi {
       final stored = await _localStore.gatewayJob();
       if (stored is Success<GatewayJobRecord?>) record = stored.value;
       final matches = record != null && record.photoFingerprint == fingerprint;
+      diag(
+        'gateway',
+        'process: stored record stage=${record?.stage} matches=$matches',
+      );
       final String jobId;
       if (matches && record.stage == 'processing') {
         jobId = record.jobId; // Reattach after relaunch (§6.7).
       } else if (matches && record.stage == 'awaitingConfirm') {
         jobId = record.jobId;
+        diag(
+          'gateway',
+          'confirm -> job ${DiagnosticsLog.shortId(jobId)} keep=$keepIds',
+        );
         await _confirm(jobId, keepIds, headers, token);
+        diag('gateway', 'confirm ok: job ${DiagnosticsLog.shortId(jobId)}');
         await _saveJob(jobId, fingerprint, localPath, 'processing');
       } else {
         jobId = await _freshJob(
@@ -258,6 +273,7 @@ class GatewayProcessingApi implements ProcessingApi {
   ) async {
     final create = await _post('/create-job', fingerprint, headers, token);
     final jobId = create['job_id'] as String;
+    diag('gateway', 'job created: ${DiagnosticsLog.shortId(jobId)}');
     final uploadUrl = create['upload_url'] as String?;
     if (uploadUrl != null) {
       await _upload(localPath, uploadUrl, token, onUploadProgress);

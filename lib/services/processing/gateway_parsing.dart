@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
+import '../../core/diagnostics/diagnostics_log.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/utils/result.dart';
 import 'processing_api.dart';
@@ -62,6 +63,11 @@ DetectionProposal gatewayProposalFromMap(
 /// Gateway error bodies look like {error: '...'} — the failure detail
 /// always carries the HTTP status plus that server error text.
 Failure<T> gatewayDioFailure<T>(DioException e, String userMessageKey) {
+  diag(
+    'gateway',
+    'request failed: ${e.requestOptions.path} '
+    'type=${e.type.name} status=${e.response?.statusCode ?? 0}',
+  );
   if (e.type == DioExceptionType.cancel) {
     return Failure<T>(
       const AppFailure(
@@ -89,10 +95,13 @@ Failure<T> gatewayDioFailure<T>(DioException e, String userMessageKey) {
   );
 }
 
-Failure<T> gatewayBadResponse<T>(String detail) => Failure<T>(
-  AppFailure(
-    code: 'bad_response',
-    userMessageKey: AppStrings.errorProcessingFailed,
-    detail: detail,
-  ),
-);
+Failure<T> gatewayBadResponse<T>(String detail) {
+  diag('gateway', 'bad response: $detail');
+  return Failure<T>(
+    AppFailure(
+      code: 'bad_response',
+      userMessageKey: AppStrings.errorProcessingFailed,
+      detail: detail,
+    ),
+  );
+}

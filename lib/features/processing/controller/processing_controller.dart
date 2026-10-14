@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
@@ -60,6 +61,10 @@ class ProcessingController extends GetxController {
       elapsed.value += const Duration(seconds: 1);
     });
 
+    diag(
+      'processing',
+      'start photo=${args.photoPath.split('/').last} keepIds=${args.keepIds}',
+    );
     final result = await processingApi.processPhoto(
       localPath: args.photoPath,
       keepIds: args.keepIds,
@@ -73,8 +78,17 @@ class ProcessingController extends GetxController {
 
     switch (result) {
       case Success<ProcessedPhoto>(:final value):
+        diag(
+          'processing',
+          'success: detected=${value.personsDetected} '
+          'removed=${value.removedIds.length} engine=${value.engineUsed}',
+        );
         await _deliver(value);
       case Failure<ProcessedPhoto>(:final failure):
+        diag(
+          'processing',
+          'FAILED code=${failure.code} detail=${failure.detail ?? ''}',
+        );
         if (failure.code == 'cancelled') {
           _goHome();
         } else {

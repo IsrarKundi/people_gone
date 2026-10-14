@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
+import '../../core/diagnostics/diagnostics_log.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/utils/result.dart';
 import 'processing_api.dart';
@@ -66,9 +67,11 @@ class GatewayJobPoller {
       final serverError = data['error'] as String?;
       switch (status) {
         case 'done':
+          diag('gateway', 'poll: job done');
           final rawMeta = data['meta'];
           meta = rawMeta is Map<String, dynamic> ? rawMeta : null;
         case 'failed':
+          diag('gateway', 'poll: job failed: ${serverError ?? 'no detail'}');
           return Failure<ProcessedPhoto>(
             AppFailure(
               code: 'job_failed',
@@ -77,6 +80,7 @@ class GatewayJobPoller {
             ),
           );
         case 'expired':
+          diag('gateway', 'poll: job expired: ${serverError ?? 'no detail'}');
           return Failure<ProcessedPhoto>(
             AppFailure(
               code: 'job_expired',
@@ -144,6 +148,7 @@ class GatewayJobPoller {
           ),
         );
       }
+      diag('gateway', 'result downloaded: ${bytes.length} bytes');
       return Success<ProcessedPhoto>(
         _buildPhoto(meta, Uint8List.fromList(bytes)),
       );
