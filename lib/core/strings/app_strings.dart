@@ -74,6 +74,7 @@ abstract final class AppStrings {
   static const String proposalPersonProtected = 'proposal_person_protected';
   // Phase A belongings (Contract v3, FR-08; design X8-X10).
   static const String proposalIncludesLine = 'proposal_includes_line';
+  static const String proposalIncludesLead = 'proposal_includes_lead';
   static const String belongingClassBackpack = 'belonging_class_backpack';
   static const String belongingClassHandbag = 'belonging_class_handbag';
   static const String belongingClassSuitcase = 'belonging_class_suitcase';
@@ -252,6 +253,7 @@ class AppTranslations extends Translations {
       AppStrings.proposalPersonProtected:
           'Person @n, protected. Double-tap to remove.',
       AppStrings.proposalIncludesLine: 'Includes: @names',
+      AppStrings.proposalIncludesLead: 'Includes:',
       AppStrings.belongingClassBackpack: 'Backpack',
       AppStrings.belongingClassHandbag: 'Handbag',
       AppStrings.belongingClassSuitcase: 'Suitcase',

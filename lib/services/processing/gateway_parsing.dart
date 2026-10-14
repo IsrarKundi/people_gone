@@ -37,23 +37,31 @@ List<DetectedPerson> gatewayParsePersons(dynamic rawList) {
 
 /// Contract v3 belongings entries. An entry whose tier is anything
 /// other than the exact string 'attached' parses as ambiguous — the
-/// safe direction (the user decides), never a silent attachment.
+/// safe direction (the user decides), never a silent attachment —
+/// and its person link is dropped with the tier. Malformed entries
+/// are skipped, never fatal.
 List<DetectedBelonging> gatewayParseBelongings(dynamic rawList) {
   if (rawList is! List) return const <DetectedBelonging>[];
-  return rawList.map((dynamic item) {
-    final m = item as Map<String, dynamic>;
-    final rawBox = m['box'] as List<dynamic>? ?? <dynamic>[];
-    return DetectedBelonging(
-      id: (m['id'] as num?)?.toInt() ?? 0,
-      detectedClass: m['detected_class'] as String? ?? '',
-      box: rawBox.map((dynamic b) => (b as num).toInt()).toList(),
-      score: (m['score'] as num?)?.toDouble() ?? 1.0,
-      tier: m['tier'] == 'attached'
-          ? BelongingTier.attached
-          : BelongingTier.ambiguous,
-      personId: (m['person_id'] as num?)?.toInt(),
+  final parsed = <DetectedBelonging>[];
+  for (final dynamic item in rawList) {
+    if (item is! Map<String, dynamic>) continue;
+    final rawBox = item['box'] as List<dynamic>? ?? <dynamic>[];
+    // A belonging without a full box cannot be drawn, hit-tested,
+    // or decided on — it is malformed, skip it.
+    if (rawBox.length != 4) continue;
+    final attached = item['tier'] == 'attached';
+    parsed.add(
+      DetectedBelonging(
+        id: (item['id'] as num?)?.toInt() ?? 0,
+        detectedClass: item['detected_class'] as String? ?? '',
+        box: rawBox.map((dynamic b) => (b as num).toInt()).toList(),
+        score: (item['score'] as num?)?.toDouble() ?? 1.0,
+        tier: attached ? BelongingTier.attached : BelongingTier.ambiguous,
+        personId: attached ? (item['person_id'] as num?)?.toInt() : null,
+      ),
     );
-  }).toList();
+  }
+  return parsed;
 }
 
 /// Same field mapping as ProcessingApiImpl._parseDetectionResponse.

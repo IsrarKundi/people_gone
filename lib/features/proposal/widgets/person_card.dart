@@ -81,6 +81,10 @@ class PersonCard extends StatelessWidget {
                 isKeeper
                     ? AppStrings.proposalSubjectKept.tr
                     : AppStrings.proposalPersonToRemove.tr,
+                // One line, always: the pill must never grow the
+                // card's height by wrapping (fixed-height tray).
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: context.textStyles.caption.copyWith(
                   color: activeColor,
                   fontWeight: FontWeight.w600,
@@ -98,39 +102,26 @@ class PersonCard extends StatelessWidget {
     );
   }
 
-  /// The "Includes:" line (X9): names this person's attached
-  /// belongings; each name is a small tappable chip that detaches
-  /// (protects) the item or re-attaches it. A detached name reads
-  /// struck-through and secondary — it no longer travels with the
-  /// person.
+  /// The "Includes:" line (X9): one flowing row — the caption plus
+  /// each attached belonging's name as a small tappable chip that
+  /// detaches (protects) the item or re-attaches it. A detached name
+  /// reads struck-through and secondary — it no longer travels with
+  /// the person.
   Widget _includesLine(BuildContext context) {
     final p = context.palette;
-    final names = belongings
-        .map((b) => belongingClassLabelKey(b.detectedClass).tr)
-        .join(' · ');
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 2,
       children: <Widget>[
         Text(
-          AppStrings.proposalIncludesLine.trParams(<String, String>{
-            'names': names,
-          }),
+          AppStrings.proposalIncludesLead.tr,
           style: context.textStyles.caption.copyWith(
             color: p.textSecondary,
             fontSize: 10,
           ),
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
         ),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 2,
-          children: <Widget>[
-            for (final item in belongings)
-              _nameChip(context, item),
-          ],
-        ),
+        for (final item in belongings) _nameChip(context, item),
       ],
     );
   }

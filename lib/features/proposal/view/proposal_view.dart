@@ -144,7 +144,7 @@ class ProposalView extends GetView<ProposalController> {
                         (person) =>
                             controller.attachedBelongingsFor(person.id).isNotEmpty,
                       )
-                      ? 148
+                      ? 164
                       : 118,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
