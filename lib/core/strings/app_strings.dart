@@ -32,22 +32,31 @@ abstract final class AppStrings {
   // Processing (S3/S6).
   static const String processingUploading = 'processing_uploading';
   static const String processingFindingRemoving = 'processing_finding_removing';
+  // Phase B (X15): a job with included distractions names them.
+  static const String processingRemovingCombo = 'processing_removing_combo';
+  static const String processingPartPersonOne = 'processing_part_person_one';
+  static const String processingPartPeople = 'processing_part_people';
+  static const String processingPartDistractionOne =
+      'processing_part_distraction_one';
+  static const String processingPartDistractions =
+      'processing_part_distractions';
   static const String processingConnecting = 'processing_connecting';
   static const String processingExpectation = 'processing_expectation';
   static const String processingLeaveCaption = 'processing_leave_caption';
   static const String processingCancelTitle = 'processing_cancel_title';
   static const String processingCancelBody = 'processing_cancel_body';
   static const String processingCancelConfirm = 'processing_cancel_confirm';
-  static const String processingWorkInBackground = 'processing_work_in_background';
+  static const String processingWorkInBackground =
+      'processing_work_in_background';
 
   // Home Job Banner (Option 3 / backgrounding flow).
   static const String homeJobBannerProcessing = 'home_job_banner_processing';
-  static const String homeJobBannerProcessingSub = 'home_job_banner_processing_sub';
+  static const String homeJobBannerProcessingSub =
+      'home_job_banner_processing_sub';
   static const String homeJobBannerDone = 'home_job_banner_done';
   static const String homeJobBannerDoneSub = 'home_job_banner_done_sub';
   static const String homeJobBannerFailed = 'home_job_banner_failed';
   static const String homeJobBannerFailedSub = 'home_job_banner_failed_sub';
-
 
   // Proposal (S4).
   static const String proposalTitle = 'proposal_title';
@@ -81,18 +90,35 @@ abstract final class AppStrings {
   static const String belongingClassUmbrella = 'belonging_class_umbrella';
   static const String belongingClassOther = 'belonging_class_other';
   static const String proposalBelongingDetach = 'proposal_belonging_detach';
-  static const String proposalBelongingReattach =
-      'proposal_belonging_reattach';
+  static const String proposalBelongingReattach = 'proposal_belonging_reattach';
   static const String proposalBelongingDetachSemantics =
       'proposal_belonging_detach_semantics';
   static const String proposalBelongingDetachedSemantics =
       'proposal_belonging_detached_semantics';
   static const String proposalItemsTitle = 'proposal_items_title';
   static const String proposalItemsCount = 'proposal_items_count';
+  // Phase B distractions (Contract v3; design X1-X7). Category names
+  // are labels of record — every shipped category passed the Phase B
+  // calibration gate (docs/architecture/phase-b-calibration.md).
+  static const String proposalItemsRemoveAll = 'proposal_items_remove_all';
+  static const String proposalItemsKeepAll = 'proposal_items_keep_all';
+  static const String distractionClassCar = 'distraction_class_car';
+  static const String distractionClassBus = 'distraction_class_bus';
+  static const String distractionClassTruck = 'distraction_class_truck';
+  static const String distractionClassMotorbike = 'distraction_class_motorbike';
+  static const String distractionClassBicycle = 'distraction_class_bicycle';
+  static const String distractionClassTrafficLight =
+      'distraction_class_traffic_light';
+  static const String distractionClassParkingMeter =
+      'distraction_class_parking_meter';
+  static const String distractionClassBench = 'distraction_class_bench';
+  static const String distractionClassFireHydrant =
+      'distraction_class_fire_hydrant';
+  static const String distractionClassTrashBin = 'distraction_class_trash_bin';
+  static const String distractionClassStroller = 'distraction_class_stroller';
   static const String proposalItemKeep = 'proposal_item_keep';
   static const String proposalItemRemove = 'proposal_item_remove';
-  static const String proposalItemMarkedRemove =
-      'proposal_item_marked_remove';
+  static const String proposalItemMarkedRemove = 'proposal_item_marked_remove';
   static const String proposalItemKeptSemantics =
       'proposal_item_kept_semantics';
   static const String proposalStatusRemovedItems =
@@ -106,6 +132,10 @@ abstract final class AppStrings {
   static const String proposalPartItemOne = 'proposal_part_item_one';
   static const String resultSummaryItems = 'result_summary_items';
   static const String resultSummaryItemOne = 'result_summary_item_one';
+  // Phase B (X16): distractions are named in the result summary.
+  static const String resultSummaryDistractions = 'result_summary_distractions';
+  static const String resultSummaryDistractionOne =
+      'result_summary_distraction_one';
 
   // Result (S7).
   static const String resultSummary = 'result_summary';
@@ -213,6 +243,11 @@ class AppTranslations extends Translations {
       AppStrings.consentPrivacyLink: 'Full details: Privacy Policy',
       AppStrings.processingUploading: 'Uploading your photo…',
       AppStrings.processingFindingRemoving: 'Finding people and removing them…',
+      AppStrings.processingRemovingCombo: 'Removing @parts…',
+      AppStrings.processingPartPersonOne: '1 person',
+      AppStrings.processingPartPeople: '@count people',
+      AppStrings.processingPartDistractionOne: '1 distraction',
+      AppStrings.processingPartDistractions: '@count distractions',
       AppStrings.processingConnecting: 'Connecting to the processing server…',
       AppStrings.processingExpectation:
           'High-resolution processing takes ~2 minutes.',
@@ -267,6 +302,19 @@ class AppTranslations extends Translations {
           '@name of person @n, detached and protected. Double-tap to re-attach.',
       AppStrings.proposalItemsTitle: 'Distractions',
       AppStrings.proposalItemsCount: '@count',
+      AppStrings.proposalItemsRemoveAll: 'Remove all',
+      AppStrings.proposalItemsKeepAll: 'Keep all',
+      AppStrings.distractionClassCar: 'Car',
+      AppStrings.distractionClassBus: 'Bus',
+      AppStrings.distractionClassTruck: 'Truck',
+      AppStrings.distractionClassMotorbike: 'Motorbike',
+      AppStrings.distractionClassBicycle: 'Bicycle',
+      AppStrings.distractionClassTrafficLight: 'Traffic light',
+      AppStrings.distractionClassParkingMeter: 'Parking meter',
+      AppStrings.distractionClassBench: 'Bench',
+      AppStrings.distractionClassFireHydrant: 'Fire hydrant',
+      AppStrings.distractionClassTrashBin: 'Trash bin',
+      AppStrings.distractionClassStroller: 'Stroller',
       AppStrings.proposalItemKeep: 'Keep',
       AppStrings.proposalItemRemove: 'Remove',
       AppStrings.proposalItemMarkedRemove:
@@ -286,6 +334,10 @@ class AppTranslations extends Translations {
           '@removed of @total people and @items items removed. Your subject stays untouched.',
       AppStrings.resultSummaryItemOne:
           '@removed of @total people and 1 item removed. Your subject stays untouched.',
+      AppStrings.resultSummaryDistractions:
+          '@removed of @total people and @distractions distractions removed. Your subject stays untouched.',
+      AppStrings.resultSummaryDistractionOne:
+          '@removed of @total people and 1 distraction removed. Your subject stays untouched.',
       AppStrings.resultSave: 'Save photo',
       AppStrings.resultSaved: 'Saved',
       AppStrings.resultShare: 'Share',

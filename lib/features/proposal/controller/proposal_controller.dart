@@ -41,6 +41,15 @@ class ProposalController extends GetxController {
   /// explicit user action).
   final includedItemIds = <int>{}.obs;
 
+  /// Distractions from the v3 proposal (Phase B).
+  final distractions = <DetectedDistraction>[].obs;
+
+  /// Distractions the user included for removal (X3: the default is
+  /// Keep, so this set starts empty and only grows by an explicit
+  /// user action — a chip tap, a canvas tap, or the group's
+  /// "Remove all", X4).
+  final includedDistractionIds = <int>{}.obs;
+
   /// True while detectPersons runs on entry (the analysing state).
   final isAnalyzing = false.obs;
 
@@ -70,6 +79,7 @@ class ProposalController extends GetxController {
       _photoPath = seeded.photoPath;
       persons.assignAll(seeded.persons);
       belongings.assignAll(seeded.belongings);
+      distractions.assignAll(seeded.distractions);
     } else {
       _photoPath = args.photoPath ?? '';
       unawaited(_analyze());
@@ -88,16 +98,18 @@ class ProposalController extends GetxController {
         diag(
           'proposal',
           'persons loaded: ${value.persons.length} '
-          'belongings: ${value.belongings.length}',
+              'belongings: ${value.belongings.length} '
+              'distractions: ${value.distractions.length}',
         );
         _detection = value;
         persons.assignAll(value.persons);
         belongings.assignAll(value.belongings);
+        distractions.assignAll(value.distractions);
       case Failure<DetectionProposal>(:final failure):
         diag(
           'proposal',
           'detect FAILED code=${failure.code} detail=${failure.detail ?? ''} '
-          '— falling back to single-call processing',
+              '— falling back to single-call processing',
         );
         Get.offNamed<void>(
           Routes.processing,
@@ -113,19 +125,23 @@ class ProposalController extends GetxController {
 
   /// Attached belongings of one person (chip "Includes:" line, X9).
   List<DetectedBelonging> attachedBelongingsFor(int personId) => belongings
-      .where(
-        (b) => b.tier == BelongingTier.attached && b.personId == personId,
-      )
+      .where((b) => b.tier == BelongingTier.attached && b.personId == personId)
       .toList();
 
   /// Ambiguous belongings — the Distractions group on S4 (X10).
-  List<DetectedBelonging> get ambiguousItems => belongings
-      .where((b) => b.tier == BelongingTier.ambiguous)
-      .toList();
+  List<DetectedBelonging> get ambiguousItems =>
+      belongings.where((b) => b.tier == BelongingTier.ambiguous).toList();
 
   bool isDetached(int itemId) => detachedBelongingIds.contains(itemId);
   bool isItemIncluded(int itemId) => includedItemIds.contains(itemId);
-  int get includedCount => includedItemIds.length;
+  bool isDistractionIncluded(int id) => includedDistractionIds.contains(id);
+  int get includedDistractionCount => includedDistractionIds.length;
+
+  /// Everything the user has opted into removing beyond people —
+  /// ambiguous belongings + distractions (the confirm label and the
+  /// status sentence count them together, X5).
+  int get includedCount =>
+      includedItemIds.length + includedDistractionIds.length;
 
   /// The primary action exists whenever ANYTHING is being removed —
   /// people or included items (Review 04 F3: every reachable state
@@ -201,13 +217,52 @@ class ProposalController extends GetxController {
     }
   }
 
+  /// Include / exclude a distraction (X3: default Keep).
+  void toggleDistractionIncluded(int id) {
+    if (includedDistractionIds.contains(id)) {
+      includedDistractionIds.remove(id);
+    } else {
+      includedDistractionIds.add(id);
+    }
+    includedDistractionIds.refresh();
+  }
+
+  /// Group header "Remove all" (X4): sets EVERY chip in the
+  /// Distractions group — ambiguous belongings and distractions
+  /// share the group, so the action applies to the whole group.
+  void includeAllGroupItems() {
+    includedItemIds
+      ..clear()
+      ..addAll(ambiguousItems.map((b) => b.id));
+    includedItemIds.refresh();
+    includedDistractionIds
+      ..clear()
+      ..addAll(distractions.map((d) => d.id));
+    includedDistractionIds.refresh();
+  }
+
+  /// Group header "Keep all" (X4): clears every inclusion in the
+  /// group. Detached belongings are NOT part of the group and are
+  /// untouched — detaching is a per-person decision (X9).
+  void keepAllGroupItems() {
+    includedItemIds.clear();
+    includedItemIds.refresh();
+    includedDistractionIds.clear();
+    includedDistractionIds.refresh();
+  }
+
   /// User confirms the proposal and starts the clean (S6), carrying
   /// the KEPT person ids as the keeper override plus the v3
   /// belongings decisions (included ambiguous items, detached
   /// attached items).
   void confirmProposal() {
     final keepIds = persons.where((p) => p.isKeeper).map((p) => p.id).toList();
-    final removeItemIds = includedItemIds.toList()..sort();
+    // Belongings and distractions share the worker's remove_item_ids
+    // field (their id ranges never collide — worker contract v3).
+    final removeItemIds = <int>{
+      ...includedItemIds,
+      ...includedDistractionIds,
+    }.toList()..sort();
     final detached = detachedBelongingIds.toList()..sort();
     diag(
       'proposal',
@@ -221,6 +276,8 @@ class ProposalController extends GetxController {
         keepIds: keepIds,
         removeItemIds: removeItemIds,
         detachedBelongingIds: detached,
+        peopleToRemove: removeCount,
+        distractionsIncluded: includedDistractionCount,
       ),
     );
   }

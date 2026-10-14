@@ -82,6 +82,40 @@ class ResultController extends GetxController {
   /// Attached belongings are part of their person and are never
   /// itemised in the summary (design X16).
   int get itemsRemoved => outcome.itemsRemoved;
+
+  /// Distractions removed by this job (v3, Phase B).
+  int get distractionsRemoved => outcome.distractionsRemoved;
+
+  /// The S7 summary line (design X16): extends only when the job
+  /// actually included group items; belongings that travelled with a
+  /// person are never itemised. A distractions-only extension names
+  /// them ("…and 2 distractions removed"); a job that mixed
+  /// belongings and distractions counts them together as items —
+  /// the sentence stays exact, the group was one list on S4.
+  String get summaryLine {
+    final params = <String, String>{
+      'removed': '$removedCount',
+      'total': '$totalCount',
+    };
+    if (distractionsRemoved > 0 && itemsRemoved == 0) {
+      return (distractionsRemoved == 1
+              ? AppStrings.resultSummaryDistractionOne
+              : AppStrings.resultSummaryDistractions)
+          .trParams(<String, String>{
+            ...params,
+            'distractions': '$distractionsRemoved',
+          });
+    }
+    final extras = itemsRemoved + distractionsRemoved;
+    if (extras > 0) {
+      return (extras == 1
+              ? AppStrings.resultSummaryItemOne
+              : AppStrings.resultSummaryItems)
+          .trParams(<String, String>{...params, 'items': '$extras'});
+    }
+    return AppStrings.resultSummary.trParams(params);
+  }
+
   bool get canCorrectKeeper => totalCount >= 2 && !nobodyRemoved;
 
   /// Every detected person id with its kept/removed state, for the

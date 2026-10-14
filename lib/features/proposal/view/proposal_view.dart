@@ -35,6 +35,10 @@ class ProposalView extends GetView<ProposalController> {
                   detachedIds: controller.detachedBelongingIds.toSet(),
                   includedItemIds: controller.includedItemIds.toSet(),
                   onToggleBelonging: controller.toggleBelonging,
+                  distractions: controller.distractions.toList(),
+                  includedDistractionIds: controller.includedDistractionIds
+                      .toSet(),
+                  onToggleDistraction: controller.toggleDistractionIncluded,
                 ),
               ),
             ),
@@ -78,6 +82,7 @@ class ProposalView extends GetView<ProposalController> {
       final overlap = controller.hasOverlapRisk;
       final persons = controller.persons;
       final items = controller.ambiguousItems;
+      final distractions = controller.distractions;
 
       return Container(
         width: double.infinity,
@@ -131,7 +136,7 @@ class ProposalView extends GetView<ProposalController> {
               ),
               SizedBox(height: s.sm),
             ],
-            if (persons.isEmpty && items.isEmpty)
+            if (persons.isEmpty && items.isEmpty && distractions.isEmpty)
               _noPeopleActions(context)
             else ...<Widget>[
               if (persons.isNotEmpty) ...<Widget>[
@@ -141,8 +146,9 @@ class ProposalView extends GetView<ProposalController> {
                   // Taller when any chip carries an "Includes:" line.
                   height:
                       persons.any(
-                        (person) =>
-                            controller.attachedBelongingsFor(person.id).isNotEmpty,
+                        (person) => controller
+                            .attachedBelongingsFor(person.id)
+                            .isNotEmpty,
                       )
                       ? 164
                       : 118,
@@ -175,9 +181,7 @@ class ProposalView extends GetView<ProposalController> {
                         person: person,
                         imagePath: controller.photoPath,
                         onTap: () => controller.togglePerson(person.id),
-                        belongings: controller.attachedBelongingsFor(
-                          person.id,
-                        ),
+                        belongings: controller.attachedBelongingsFor(person.id),
                         detachedIds: controller.detachedBelongingIds.toSet(),
                         onToggleDetach: controller.toggleDetach,
                       );
@@ -186,12 +190,18 @@ class ProposalView extends GetView<ProposalController> {
                 ),
                 SizedBox(height: s.md),
               ],
-              if (items.isNotEmpty) ...<Widget>[
+              if (items.isNotEmpty || distractions.isNotEmpty) ...<Widget>[
                 ProposalItemsGroup(
                   items: items,
+                  distractions: distractions,
                   photoPath: controller.photoPath,
                   includedItemIds: controller.includedItemIds.toSet(),
+                  includedDistractionIds: controller.includedDistractionIds
+                      .toSet(),
                   onToggleItem: controller.toggleItemIncluded,
+                  onToggleDistraction: controller.toggleDistractionIncluded,
+                  onRemoveAll: controller.includeAllGroupItems,
+                  onKeepAll: controller.keepAllGroupItems,
                 ),
                 SizedBox(height: s.md),
               ],

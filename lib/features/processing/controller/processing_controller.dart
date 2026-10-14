@@ -40,6 +40,34 @@ class ProcessingController extends GetxController {
 
   String get photoPath => args.photoPath;
 
+  /// The working-stage line (design X15): a job whose confirmed
+  /// proposal included distractions names them — "Removing 3 people
+  /// and 2 distractions…" — derived from the confirmed counts in the
+  /// args. Jobs without confirmed counts (or with none included)
+  /// keep the generic people line; no count is ever invented.
+  String get workingTitle {
+    final distractions = args.distractionsIncluded ?? 0;
+    if (distractions <= 0) return AppStrings.processingFindingRemoving.tr;
+    final people = args.peopleToRemove ?? 0;
+    final parts = <String>[
+      if (people == 1)
+        AppStrings.processingPartPersonOne.tr
+      else if (people > 1)
+        AppStrings.processingPartPeople.trParams(<String, String>{
+          'count': '$people',
+        }),
+      if (distractions == 1)
+        AppStrings.processingPartDistractionOne.tr
+      else
+        AppStrings.processingPartDistractions.trParams(<String, String>{
+          'count': '$distractions',
+        }),
+    ];
+    return AppStrings.processingRemovingCombo.trParams(<String, String>{
+      'parts': parts.join(' and '),
+    });
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -65,7 +93,7 @@ class ProcessingController extends GetxController {
     diag(
       'processing',
       'start photo=${args.photoPath.split('/').last} keepIds=${args.keepIds} '
-      'items=${args.removeItemIds} detached=${args.detachedBelongingIds}',
+          'items=${args.removeItemIds} detached=${args.detachedBelongingIds}',
     );
     final result = await processingApi.processPhoto(
       localPath: args.photoPath,
@@ -85,7 +113,7 @@ class ProcessingController extends GetxController {
         diag(
           'processing',
           'success: detected=${value.personsDetected} '
-          'removed=${value.removedIds.length} engine=${value.engineUsed}',
+              'removed=${value.removedIds.length} engine=${value.engineUsed}',
         );
         await _deliver(value);
       case Failure<ProcessedPhoto>(:final failure):
@@ -119,13 +147,11 @@ class ProcessingController extends GetxController {
           engineUsed: photo.engineUsed,
           persons: photo.persons,
           itemsRemoved: photo.itemsRemoved,
+          distractionsRemoved: photo.distractionsRemoved,
         );
         JobTracker.instance.trackDone(outcome);
         if (_left) return;
-        Get.offNamed<void>(
-          Routes.result,
-          arguments: outcome,
-        );
+        Get.offNamed<void>(Routes.result, arguments: outcome);
       case Failure<String>():
         JobTracker.instance.trackFailed(AppStrings.errorGeneric);
         if (_left) return;
@@ -167,4 +193,3 @@ class ProcessingController extends GetxController {
     Get.offAllNamed<void>(Routes.home);
   }
 }
-

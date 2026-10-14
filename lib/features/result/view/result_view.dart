@@ -197,19 +197,7 @@ class ResultView extends GetView<ResultController> {
                 // The summary extends only when the job actually
                 // included group items (design X16); belongings that
                 // travelled with a person are never itemised.
-                controller.itemsRemoved > 0
-                    ? (controller.itemsRemoved == 1
-                          ? AppStrings.resultSummaryItemOne
-                          : AppStrings.resultSummaryItems)
-                          .trParams(<String, String>{
-                            'removed': '${controller.removedCount}',
-                            'total': '${controller.totalCount}',
-                            'items': '${controller.itemsRemoved}',
-                          })
-                    : AppStrings.resultSummary.trParams(<String, String>{
-                        'removed': '${controller.removedCount}',
-                        'total': '${controller.totalCount}',
-                      }),
+                controller.summaryLine,
                 style: context.textStyles.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -275,10 +263,10 @@ class ResultView extends GetView<ResultController> {
             final shareSlot = (constraints.maxWidth - s.sm) / 4;
             final fits =
                 labelWidth(
-                      savedNow
-                          ? AppStrings.resultSaved
-                          : AppStrings.resultSave,
-                    ) +
+                          savedNow
+                              ? AppStrings.resultSaved
+                              : AppStrings.resultSave,
+                        ) +
                         savePadding <=
                     saveSlot &&
                 labelWidth(AppStrings.resultShare) + sharePadding <= shareSlot;

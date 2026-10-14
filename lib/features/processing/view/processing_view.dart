@@ -126,7 +126,7 @@ class ProcessingView extends GetView<ProcessingController> {
       title =
           '${AppStrings.processingUploading.tr} ${(fraction * 100).round()}%';
     } else {
-      title = AppStrings.processingFindingRemoving.tr;
+      title = controller.workingTitle;
     }
 
     return Container(
