@@ -137,6 +137,34 @@ class DetectedBelonging {
   final int? personId;
 }
 
+/// A detected distraction (Phase B): a non-person street object the
+/// user may choose to remove (car, bench, trash bin, …). [category]
+/// IS a label of record (unlike belongings' hint class): every shipped
+/// category passed the Phase B calibration gate on its own precision
+/// (docs/architecture/phase-b-calibration.md). Distractions are
+/// DEFAULT KEEP (design X3) — the user opts each one in on S4.
+class DetectedDistraction {
+  const DetectedDistraction({
+    required this.id,
+    required this.category,
+    required this.box,
+    required this.score,
+  });
+
+  /// Item id in the shared confirm id space (worker range ≥ 10000, so
+  /// distraction ids never collide with belongings ids in
+  /// `remove_item_ids`).
+  final int id;
+
+  /// The detector's category (label of record — see class doc).
+  final String category;
+
+  /// Bounding box in pixel coordinates [x1, y1, x2, y2].
+  final List<int> box;
+
+  final double score;
+}
+
 /// Initial proposal returned by Stage A (/detect).
 class DetectionProposal {
   const DetectionProposal({
@@ -147,6 +175,7 @@ class DetectionProposal {
     required this.persons,
     required this.inputDimensions,
     this.belongings = const <DetectedBelonging>[],
+    this.distractions = const <DetectedDistraction>[],
   });
 
   final String photoPath;
@@ -158,6 +187,9 @@ class DetectionProposal {
 
   /// Belongings detected in the photo (Contract v3; empty under v2).
   final List<DetectedBelonging> belongings;
+
+  /// Distractions detected in the photo (Contract v3, Phase B).
+  final List<DetectedDistraction> distractions;
 }
 
 /// A finished clean (S7). The result is returned as bytes and written to
@@ -174,6 +206,7 @@ class ProcessedPhoto {
     required this.engineUsed,
     this.persons = const <DetectedPerson>[],
     this.itemsRemoved = 0,
+    this.distractionsRemoved = 0,
   });
 
   /// Full-resolution result JPEG bytes; dimensions equal the input's.
@@ -199,6 +232,11 @@ class ProcessedPhoto {
   /// (Contract v3 `items_removed`). Attached belongings are part of
   /// their person and are never counted here (design X16).
   final int itemsRemoved;
+
+  /// Distractions the user included and the worker removed
+  /// (Contract v3 `distractions_removed`, Phase B). Counted apart
+  /// from [itemsRemoved] so S7 can name them (design X16).
+  final int distractionsRemoved;
 }
 
 /// Outcome of a brush touch-up (S5 / FR-09): the updated photo bytes,

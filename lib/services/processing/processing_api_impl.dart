@@ -368,6 +368,27 @@ class ProcessingApiImpl implements ProcessingApi {
     return parsed;
   }
 
+  /// Same mapping as gateway_parsing.gatewayParseDistractions (v3,
+  /// Phase B): malformed entries are skipped.
+  List<DetectedDistraction> _parseDistractions(dynamic rawList) {
+    if (rawList is! List) return const <DetectedDistraction>[];
+    final parsed = <DetectedDistraction>[];
+    for (final dynamic item in rawList) {
+      if (item is! Map<String, dynamic>) continue;
+      final rawBox = item['box'] as List<dynamic>? ?? <dynamic>[];
+      if (rawBox.length != 4) continue;
+      parsed.add(
+        DetectedDistraction(
+          id: (item['id'] as num?)?.toInt() ?? 0,
+          category: item['category'] as String? ?? '',
+          box: rawBox.map((dynamic b) => (b as num).toInt()).toList(),
+          score: (item['score'] as num?)?.toDouble() ?? 1.0,
+        ),
+      );
+    }
+    return parsed;
+  }
+
   Result<DetectionProposal> _parseDetectionResponse(
     dynamic data,
     String localPath,
@@ -401,6 +422,7 @@ class ProcessingApiImpl implements ProcessingApi {
           persons: _parsePersons(map['persons']),
           inputDimensions: dims,
           belongings: _parseBelongings(map['belongings']),
+          distractions: _parseDistractions(map['distractions']),
         ),
       );
     } catch (e) {
@@ -445,6 +467,8 @@ class ProcessingApiImpl implements ProcessingApi {
           engineUsed: meta['engine_used'] as String? ?? '',
           persons: _parsePersons(meta['persons']),
           itemsRemoved: (meta['items_removed'] as num?)?.toInt() ?? 0,
+          distractionsRemoved:
+              (meta['distractions_removed'] as num?)?.toInt() ?? 0,
         ),
       );
     } catch (e) {

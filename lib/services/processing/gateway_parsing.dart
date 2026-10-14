@@ -64,6 +64,29 @@ List<DetectedBelonging> gatewayParseBelongings(dynamic rawList) {
   return parsed;
 }
 
+/// Contract v3 distraction entries (Phase B). Malformed entries are
+/// skipped, never fatal — same discipline as belongings. An entry is
+/// only usable with a full box and its worker id (≥ 10000 range; the
+/// id is trusted as sent, the worker owns the range).
+List<DetectedDistraction> gatewayParseDistractions(dynamic rawList) {
+  if (rawList is! List) return const <DetectedDistraction>[];
+  final parsed = <DetectedDistraction>[];
+  for (final dynamic item in rawList) {
+    if (item is! Map<String, dynamic>) continue;
+    final rawBox = item['box'] as List<dynamic>? ?? <dynamic>[];
+    if (rawBox.length != 4) continue;
+    parsed.add(
+      DetectedDistraction(
+        id: (item['id'] as num?)?.toInt() ?? 0,
+        category: item['category'] as String? ?? '',
+        box: rawBox.map((dynamic b) => (b as num).toInt()).toList(),
+        score: (item['score'] as num?)?.toDouble() ?? 1.0,
+      ),
+    );
+  }
+  return parsed;
+}
+
 /// Same field mapping as ProcessingApiImpl._parseDetectionResponse.
 DetectionProposal gatewayProposalFromMap(
   Map<String, dynamic> map,
@@ -87,6 +110,7 @@ DetectionProposal gatewayProposalFromMap(
     persons: persons,
     inputDimensions: dims,
     belongings: gatewayParseBelongings(map['belongings']),
+    distractions: gatewayParseDistractions(map['distractions']),
   );
 }
 
