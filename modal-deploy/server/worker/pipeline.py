@@ -6,6 +6,7 @@ LaMa crop inpaint -> Alpha composite -> Ghost check & retry -> Deliver native-re
 """
 
 import io
+import resource
 import time
 from dataclasses import dataclass, field
 from typing import Union, Optional, List, Dict, Any, Tuple
@@ -475,7 +476,15 @@ class PeopleGonePipeline:
                 "ghost_check_fired": ghost_fired,
                 "retry_count": retry_count,
                 "fallbacks_used": self._get_fallbacks_used(),
-                "model_versions": self._get_model_versions()
+                "model_versions": self._get_model_versions(),
+                # Peak RSS of the worker process so far (Phase B
+                # close-out: the combined-stack memory signal the
+                # spike asked for, read on real jobs). Linux
+                # ru_maxrss is KiB. Additive — older clients ignore it.
+                "worker_peak_rss_mb": round(
+                    resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0,
+                    1,
+                ),
             }
 
         if not remove_ids and not included_items and not included_distractions:
