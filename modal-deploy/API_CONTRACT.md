@@ -279,6 +279,13 @@ server-side.
   meta, and forwards them to the worker as the `remove_items` /
   `detached_items` form fields above. Worker meta (incl.
   `items_removed`) reaches the app verbatim via `job-status`.
+- **Gateway Phase B additions (2026-10-14, functions v3):**
+  `analyse-job` also returns + stores the worker's `distractions`
+  list (same `meta` jsonb, no migration); `create-job` returns it on
+  idempotent retries. `confirm-job` needed NO change — distraction
+  ids ride the existing `remove_item_ids` field opaquely. Worker
+  meta (`distractions_removed`, …) reaches the app via `job-status`
+  exactly like the Phase A fields.
 - `POST worker-callback {job_id, token, meta}` (no JWT; token-hash
   verified) → job `done`, meta stored.
 - `GET job-status?job_id=` → `{job_id, status, error, meta|null}`

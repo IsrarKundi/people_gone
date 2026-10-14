@@ -97,6 +97,10 @@ Deno.serve(async (req) => {
     belongings:
       ((job.meta as Record<string, unknown> | null)?.belongings as unknown) ??
         null,
+    // Phase B: distractions ride the same meta jsonb round-trip.
+    distractions:
+      ((job.meta as Record<string, unknown> | null)?.distractions as unknown) ??
+        null,
     keeper_ids: job.keep_ids ?? null,
     removed_ids: job.persons ? removedIds(job.persons, job.keep_ids) : null,
     input_dimensions: job.input_dimensions ?? null,

@@ -76,10 +76,14 @@ Deno.serve(async (req) => {
   // Contract v3 (Phase A): the worker's belongings list rides in the
   // job's meta jsonb (no schema change) and in this response, so the
   // proposal the user confirms is the proposal the job remembers.
+  // Phase B: distractions ride identically (same meta jsonb, same
+  // response) — the Phase A confirm path already forwards their ids.
   const belongings = detect.belongings ?? [];
+  const distractions = detect.distractions ?? [];
   const meta = {
     ...((job.meta as Record<string, unknown> | null) ?? {}),
     belongings,
+    distractions,
   };
 
   const upd = await service.from("jobs").update({
@@ -102,6 +106,7 @@ Deno.serve(async (req) => {
     removed_ids: detect.removed_ids ?? [],
     persons,
     belongings,
+    distractions,
     input_dimensions: inputDimensions,
   });
 });
