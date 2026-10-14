@@ -117,6 +117,82 @@ class PeopleGonePipeline:
             "tiered": tiered,
         }
 
+    def _build_removal_units(
+        self,
+        orig_rgb: np.ndarray,
+        analysis: Dict[str, Any],
+        remove_item_ids: set,
+        detached_ids: set,
+    ) -> Tuple[List[Dict[str, Any]], List[int], int]:
+        """Builds the removal units for one confirmed job.
+
+        Attached belongings are unioned into their owner's RAW mask
+        BEFORE the standard fill/dilate/shadow prep, so the expanded
+        mask is one region (FR-08). Detached belongings are simply
+        never unioned, which is what protects them (X11). Ambiguous
+        items become standalone units only when the user included
+        them (remove_item_ids).
+
+        Returns (units, belongings_removed_ids, items_removed) where
+        items_removed counts ONLY the user-included ambiguous items
+        (attached belongings are part of their person — X16, never
+        itemised in the result summary).
+        """
+        persons = analysis["persons"]
+        remove_ids = analysis["remove_ids"]
+        tiered = analysis["tiered"]
+        mask_by_item_id = {
+            it["id"]: m
+            for it, m in zip(analysis["items"], analysis["item_masks"])
+        }
+
+        units: List[Dict[str, Any]] = []
+        belongings_removed_ids: List[int] = []
+
+        if remove_ids:
+            person_index = {p["id"]: i for i, p in enumerate(persons)}
+            effective_masks = list(analysis["person_masks"])
+            owners_with_items = set()
+            for t in tiered:
+                if t["tier"] != "attached" or t["id"] in detached_ids:
+                    continue
+                owner = t["person_id"]
+                if owner in remove_ids:
+                    idx = person_index[owner]
+                    effective_masks[idx] = np.maximum(
+                        effective_masks[idx], mask_by_item_id[t["id"]]
+                    )
+                    owners_with_items.add(owner)
+                    belongings_removed_ids.append(t["id"])
+
+            prepared = prepare_individual_removal_masks(
+                orig_rgb, persons, effective_masks, remove_ids,
+                dilation_factor=self.config.initial_dilation_factor
+            )
+            for item in prepared:
+                units.append({
+                    "mask": item["mask"],
+                    "height": item["height"],
+                    "kind": "person",
+                    "has_items": item["person_id"] in owners_with_items,
+                })
+
+        items_removed = 0
+        for t in tiered:
+            if t["tier"] == "ambiguous" and t["id"] in remove_item_ids:
+                units.append({
+                    "mask": prepare_item_removal_mask(
+                        mask_by_item_id[t["id"]], t["box"]
+                    ),
+                    "height": max(1, t["box"][3] - t["box"][1]),
+                    "kind": "item",
+                    "has_items": True,
+                })
+                belongings_removed_ids.append(t["id"])
+                items_removed += 1
+
+        return units, belongings_removed_ids, items_removed
+
     @staticmethod
     def _format_belongings(tiered: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Contract v3 belongings entries (additive over v2). The
@@ -176,10 +252,6 @@ class PeopleGonePipeline:
         keeper_ids = analysis["keeper_ids"]
         remove_ids = analysis["remove_ids"]
         tiered = analysis["tiered"]
-        mask_by_item_id = {
-            it["id"]: m
-            for it, m in zip(analysis["items"], analysis["item_masks"])
-        }
 
         remove_item_ids = set(remove_item_ids or [])
         detached_ids = set(detached_belonging_ids or [])
@@ -237,56 +309,13 @@ class PeopleGonePipeline:
                 0, False, 0, [], 0, total_time_s
             )
 
-        # 5. Mask Preparation — removal units. Attached belongings are
-        # unioned into their owner's RAW mask BEFORE the standard
-        # fill/dilate/shadow prep, so the expanded mask is one region
-        # (FR-08). Detached belongings are simply never unioned, which
-        # is what protects them.
+        # 5. Mask Preparation — removal units (see _build_removal_units)
         t0 = time.perf_counter()
-        units: List[Dict[str, Any]] = []
-        belongings_removed_ids: List[int] = []
-
-        if remove_ids:
-            person_index = {p["id"]: i for i, p in enumerate(persons)}
-            effective_masks = list(analysis["person_masks"])
-            owners_with_items = set()
-            for t in tiered:
-                if t["tier"] != "attached" or t["id"] in detached_ids:
-                    continue
-                owner = t["person_id"]
-                if owner in remove_ids:
-                    idx = person_index[owner]
-                    effective_masks[idx] = np.maximum(
-                        effective_masks[idx], mask_by_item_id[t["id"]]
-                    )
-                    owners_with_items.add(owner)
-                    belongings_removed_ids.append(t["id"])
-
-            prepared = prepare_individual_removal_masks(
-                orig_rgb, persons, effective_masks, remove_ids,
-                dilation_factor=self.config.initial_dilation_factor
+        units, belongings_removed_ids, items_removed = (
+            self._build_removal_units(
+                orig_rgb, analysis, remove_item_ids, detached_ids
             )
-            for item in prepared:
-                units.append({
-                    "mask": item["mask"],
-                    "height": item["height"],
-                    "kind": "person",
-                    "has_items": item["person_id"] in owners_with_items,
-                })
-
-        items_removed = 0
-        for t in included_items:
-            units.append({
-                "mask": prepare_item_removal_mask(
-                    mask_by_item_id[t["id"]], t["box"]
-                ),
-                "height": max(1, t["box"][3] - t["box"][1]),
-                "kind": "item",
-                "has_items": True,
-            })
-            belongings_removed_ids.append(t["id"])
-            items_removed += 1
-
+        )
         timings["mask_prep_ms"] = (time.perf_counter() - t0) * 1000.0
 
         # 6. Inpainting on Native-Resolution Crops per removal unit
