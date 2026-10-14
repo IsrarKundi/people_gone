@@ -130,13 +130,69 @@ positive is small-scale; the textbook mirror case appears only as
 a keeper control because no free-stock photo with two direct
 people before a mirror was sourceable.
 
-## 4. Candidate algorithm (to be frozen after the detection pass)
+## 4. Frozen algorithm (frozen 2026-10-15, before judging)
 
-Detection dumps (RT-DETR persons + OmDet reflective-region and
-reflection prompts) are gathered first; the association rules are
-then written here, frozen, and only then judged against §3.
-Iterations, if any, are recorded in §6 with the numbers that
-motivated them — the frozen version is what the gate judges.
+What the detection pass showed (full dumps in the investigation
+workdir, `results/detections.json`; run: RT-DETR persons +
+OmDet-Turbo with the surface prompts and the reflection prompts,
+production-identical post-processing):
+
+- **The reflection prompts alone are not evidence.** Prompted with
+  "reflected person" / "reflection of a person" / "person
+  reflection" / "person in mirror", OmDet re-boxes the DIRECT
+  people in almost every photo — including the mosque and the
+  metro, where no reflection exists at all. A reflection-prompt box
+  is only meaningful when it does not coincide with a direct
+  person.
+- **RT-DETR rarely detects reflected instances on horizontal
+  surfaces.** In the puddle flagship it found 10 direct people and
+  none of the (clearly visible) reflections; on the salt lake the
+  reflections merged into the people's own boxes. Reflected
+  instances were detected as persons only in the textbook mirror
+  control — where they sit in the removal set and the main pass
+  handles them.
+- **OmDet surfaces are noisy** (the mosque's stone reads "polished
+  floor" at 0.63; a train reads "car"; a whole frame reads
+  "mirror"). Surface boxes can host a candidate; they can never
+  raise a warning by themselves.
+
+The frozen algorithm is the production module
+`modal-deploy/server/worker/reflections.py` (the judged code is the
+shipped code, Phase C pattern). Two independent signals; either
+can raise a warning; warnings attach to REMOVED people only:
+
+**Signal A — candidate boxes.** An OmDet reflection-prompt box
+(score ≥ 0.30, deduped at IoU 0.5) counts when ALL hold:
+(a) it does not coincide with any detected person (IoU < 0.4 and
+containment < 0.6 both ways) — coincident boxes are the direct
+people the prompt re-fires on;
+(b) ≥ 50% of it lies inside a detected reflective surface
+(score ≥ 0.30);
+(c) it associates geometrically to a removed person — vertical
+surfaces (mirror/window/glass/car): vertical overlap ≥ 0.4 of the
+shorter height, horizontal gap ≤ 0.75 person-widths, height ratio
+0.3–1.8; horizontal surfaces (water/puddle/floors): the candidate
+hangs below the person's feet (top ≥ feet − 0.15h, bottom ≤ feet
++ 1.3h), horizontal overlap ≥ 0.3 of the narrower width, height
+≤ 1.2× the person's;
+(d) it does NOT associate to any keeper under the same rules —
+absolute keeper veto.
+
+**Signal B — flip match.** For each removed person at least 8% of
+the image height (smaller templates match noise — measured, §6)
+whose feet sit at a horizontal reflective region (score ≥ 0.35):
+flip the person's own box vertically and template-match it
+(normalized cross-correlation, scales 1.0/0.7/0.5/0.35) in the
+strip below their feet (feet − 0.05h to feet + 1.05h, own span
+± 0.3 widths), the match's top within 0.25h of the feet line.
+Best score ≥ **0.50** warns. 0.50 is the midpoint of the observed
+gap (highest negative 0.424, lowest true positive 0.567) —
+chosen for balanced margin, not fitted to an edge.
+
+A detected person who IS the reflection (textbook mirror) sits in
+the removal set and is removed by the main pass — no warning, by
+design. A reflection with no removed person to belong to never
+warns, whoever it shows.
 
 ## 5. Reflective-surface auto-removal spike — kill criteria (declared BEFORE running)
 
@@ -165,4 +221,71 @@ for the reflective-surface cases. It is bounded as follows:
 
 ## 6. Results
 
-_(To be filled as the investigation runs.)_
+### 6.1 Iteration history (numbers that motivated each step)
+
+- **v1 scoring prototype** (throwaway, workdir
+  `scripts/score_v1.py`): Signal A fired exactly once across the
+  set — the glossy-floor positive (candidate = the reflection
+  streak itself, OmDet 0.543, associated to the removed walking
+  man, no keeper association) — and produced no candidate
+  anywhere else. Signal A is precise but covered 1 of 3
+  positives; the puddle reflections got no box from any detector.
+- **Flip-match v1** (raw grayscale NCC, no size rule) overlapped:
+  true positives 0.507–0.749, but a 48-px-tall mosque detection
+  scored 0.676 and a KEEPER on the floor photo scored 0.591.
+  Keeper scores do not matter (warnings are computed for removed
+  people only), but the tiny-template score does — hence the
+  ≥ 8%-of-image-height rule, under which the mosque's best removed
+  score falls to 0.424.
+- **Variant run** (`scripts/score_v2_variants.py`): a darkness map
+  is identical to grayscale under NCC (affine invariance — same
+  scores to 3 decimals); gradient-magnitude matching was worse on
+  every positive (puddle 0.567 → 0.201). Both variants rejected;
+  raw grayscale kept.
+- **Match locations were eyeballed** on the positives: the puddle
+  match box sits directly below the centre man's feet over his
+  reflected figure; the salt-lake matches sit at the removed
+  walkers' feet. The scores are measuring the reflections, not an
+  artefact of the search window.
+
+### 6.2 Frozen judging (production module, investigation set)
+
+Runner: workdir `scripts/judge_frozen.py` → `results/judged_frozen.json`.
+
+| Photo | GT | System | Evidence |
+|---|---|---|---|
+| 30_puddle_reflection | WARN | **WARN** | flip 0.567, centre man, "polished floor" |
+| px_floor_hallway | WARN | **WARN** | candidate 0.543 (the streak) + flip 0.577 |
+| px_salt_lake_reflection | WARN | **WARN** | flip 0.749 + 0.711, two removed walkers |
+| px_mirror_suit (keeper control) | no | no | reflection is a detected person in the removal set; no candidate survives |
+| px_bookstore_window | no | no | reflection prompts coincide with the direct couple only |
+| 28_museum_gallery | no | no | sheen only; no candidate, no flip window |
+| 13_metro_entrance | no | no | best removed flip score 0.26 |
+| owner_mosque | no | no | best removed flip score 0.424 (< 0.50) |
+| px_glossy_floor_empty (surface control) | no | no | nobody removed |
+| px_window_photographer (hard negative) | no | no | nobody removed |
+| px_store_cleaner (hard negative) | no | no | nobody removed |
+| 29_store_window (hard negative) | no | no | nobody removed; a large candidate box associates to no one |
+
+**Warn precision 1.000 (3/3 warnings correct). Warn recall 1.000
+(3/3 GT-positive photos warned). False warnings on controls: 0 of
+9 negatives, including every required control class.**
+
+Honest bounds on those numbers: the set is 12 photos with 3
+positives (the owner-capped size), so each positive is 33 recall
+points and 1.000/1.000 is a coarse measurement, not a population
+estimate. The flip threshold was selected on this same set (gap
+midpoint, §4) — a real overfitting risk that a bigger set would
+retire; the mitigations are the midpoint choice, the independent
+second signal, and the precision-first design (a miss leaves the
+user exactly where v1 already leaves them). Car-body reflections
+and a two-people-before-a-mirror positive remain unmeasured
+(§3 gaps) — no claim is made for them.
+
+### 6.3 Spike outcome
+
+_(Filled after the §5 spike runs.)_
+
+### 6.4 Gate verdict
+
+_(Filled after the spike: §2 bars + §5 pixel-diff + control rule.)_
