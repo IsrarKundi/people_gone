@@ -11,13 +11,12 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/error_view.dart';
 import '../controller/processing_controller.dart';
+import '../widgets/scan_beam_overlay.dart';
 
-/// Processing (S3/S6) — no app bar; the picked photo full-bleed, dimmed
-/// on its own band only, a staged-progress block in photoChrome
-/// treatment, and one Cancel action (Design Direction §4 S3/S6, A3).
-/// Stage labels are the
-/// requirements' own words; the only numbers shown are the real upload
-/// percentage and the real elapsed time.
+/// Processing (S3/S6) — Option 1: "The Living Canvas with Beam Scan"
+/// Respects system theme (light mode porcelain / dark mode obsidian).
+/// The photo is framed at natural brightness on an elevated canvas with a gentle
+/// sweeping scan beam proving active processing. Allows working in the background.
 class ProcessingView extends GetView<ProcessingController> {
   const ProcessingView({super.key});
 
@@ -37,36 +36,50 @@ class ProcessingView extends GetView<ProcessingController> {
           );
         }
         return Container(
-          color: const Color(0xFF0B0D11), // Unified darkroom studio canvas
+          color: p.background,
           child: SafeArea(
             child: Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                // Framed photographic canvas without letterbox mismatch
+                // Framed photographic canvas in system theme
                 Center(
                   child: Padding(
                     padding: EdgeInsets.symmetric(
                       horizontal: s.screenPadding,
                       vertical: s.xxl,
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(s.radiusLg),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: <Widget>[
-                          Image.file(
-                            File(controller.photoPath),
-                            fit: BoxFit.contain,
-                            cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                          ),
-                          // Subtle darkroom exposure overlay
-                          Positioned.fill(
-                            child: Container(
-                              color: Colors.black.withAlpha(90),
-                            ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: p.surface,
+                        borderRadius: BorderRadius.circular(s.radiusLg),
+                        border: Border.all(color: p.border),
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            color: p.scrim.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
                           ),
                         ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(s.radiusLg - 1),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: <Widget>[
+                            Image.file(
+                              File(controller.photoPath),
+                              fit: BoxFit.contain,
+                              cacheWidth:
+                                  MediaQuery.sizeOf(context).width.toInt(),
+                              errorBuilder: (_, _, _) =>
+                                  const SizedBox.shrink(),
+                            ),
+                            // Smooth scanning beam proving active intelligence
+                            const Positioned.fill(
+                              child: ScanBeamOverlay(),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -81,22 +94,31 @@ class ProcessingView extends GetView<ProcessingController> {
                     children: <Widget>[
                       _progressBlock(context),
                       SizedBox(height: s.md),
-                      TextButton(
-                        onPressed: controller.cancel,
-                        style: TextButton.styleFrom(
-                          backgroundColor: p.photoChromeBg,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: s.xl,
-                            vertical: s.sm,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(s.radiusPill),
+                      // Work in background action
+                      SizedBox(
+                        width: double.infinity,
+                        height: s.buttonSecondary,
+                        child: OutlinedButton.icon(
+                          onPressed: controller.workInBackground,
+                          icon: Icon(Icons.arrow_back_rounded, size: s.iconSm),
+                          label: Text(AppStrings.processingWorkInBackground.tr),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: p.textPrimary,
+                            backgroundColor: p.surface,
+                            side: BorderSide(color: p.border),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(s.radiusPill),
+                            ),
                           ),
                         ),
+                      ),
+                      SizedBox(height: s.xs),
+                      TextButton(
+                        onPressed: controller.cancel,
                         child: Text(
                           AppStrings.commonCancel.tr,
-                          style: context.textStyles.labelLg.copyWith(
-                            color: p.photoChromeFg,
+                          style: context.textStyles.bodySm.copyWith(
+                            color: p.textSecondary,
                           ),
                         ),
                       ),
@@ -121,14 +143,14 @@ class ProcessingView extends GetView<ProcessingController> {
       width: double.infinity,
       padding: EdgeInsets.all(s.lg),
       decoration: BoxDecoration(
-        color: p.photoChromeBg,
+        color: p.surface,
         borderRadius: BorderRadius.circular(s.radiusLg),
-        border: Border.all(color: Colors.white.withAlpha(20)),
+        border: Border.all(color: p.border),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withAlpha(60),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: p.scrim.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -139,7 +161,7 @@ class ProcessingView extends GetView<ProcessingController> {
           LinearProgressIndicator(
             value: uploading ? fraction : null,
             color: p.primary,
-            backgroundColor: Colors.white.withAlpha(30),
+            backgroundColor: p.surfaceVariant,
             minHeight: 4,
             borderRadius: BorderRadius.circular(2),
           ),
@@ -150,7 +172,7 @@ class ProcessingView extends GetView<ProcessingController> {
                       '${(fraction * 100).round()}%'
                 : AppStrings.processingFindingRemoving.tr,
             style: context.textStyles.bodyMd.copyWith(
-              color: p.photoChromeFg,
+              color: p.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -159,7 +181,7 @@ class ProcessingView extends GetView<ProcessingController> {
             '${AppStrings.processingElapsed.trParams(<String, String>{'time': Formatters.elapsed(controller.elapsed.value)})}'
             ' · ${AppStrings.processingExpectation.tr}',
             style: context.textStyles.caption.copyWith(
-              color: p.photoChromeFg.withAlpha(200),
+              color: p.textSecondary,
             ),
           ),
         ],
@@ -167,3 +189,4 @@ class ProcessingView extends GetView<ProcessingController> {
     );
   }
 }
+

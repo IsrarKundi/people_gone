@@ -7,6 +7,7 @@ import '../../../core/routes/app_routes.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/widgets/app_dialog.dart';
+import '../../../services/processing/job_tracker.dart';
 import '../../../services/processing/processing_api.dart';
 import '../../../services/storage/local_store.dart';
 import '../model/processing_args.dart';
@@ -61,6 +62,11 @@ class ProcessingController extends GetxController {
       elapsed.value += const Duration(seconds: 1);
     });
 
+    JobTracker.instance.trackStarted(
+      photoPath: args.photoPath,
+      keepIds: args.keepIds,
+    );
+
     diag(
       'processing',
       'start photo=${args.photoPath.split('/').last} keepIds=${args.keepIds}',
@@ -90,9 +96,13 @@ class ProcessingController extends GetxController {
           'FAILED code=${failure.code} detail=${failure.detail ?? ''}',
         );
         if (failure.code == 'cancelled') {
+          JobTracker.instance.clear();
           _goHome();
         } else {
-          errorMessage.value = failure.userMessageKey;
+          JobTracker.instance.trackFailed(failure.userMessageKey);
+          if (!_left) {
+            errorMessage.value = failure.userMessageKey;
+          }
         }
     }
   }
@@ -101,29 +111,42 @@ class ProcessingController extends GetxController {
     final written = await localStore.writeSessionResult(photo.resultBytes);
     switch (written) {
       case Success<String>(:final value):
+        final outcome = ProcessingOutcome(
+          originalPath: args.photoPath,
+          resultPath: value,
+          personsDetected: photo.personsDetected,
+          keeperIds: photo.keeperIds,
+          removedIds: photo.removedIds,
+          totalSeconds: photo.totalSeconds,
+          engineUsed: photo.engineUsed,
+          persons: photo.persons,
+        );
+        JobTracker.instance.trackDone(outcome);
         if (_left) return;
         Get.offNamed<void>(
           Routes.result,
-          arguments: ProcessingOutcome(
-            originalPath: args.photoPath,
-            resultPath: value,
-            personsDetected: photo.personsDetected,
-            keeperIds: photo.keeperIds,
-            removedIds: photo.removedIds,
-            totalSeconds: photo.totalSeconds,
-            engineUsed: photo.engineUsed,
-            persons: photo.persons,
-          ),
+          arguments: outcome,
         );
       case Failure<String>():
+        JobTracker.instance.trackFailed(AppStrings.errorGeneric);
+        if (_left) return;
         errorMessage.value = AppStrings.errorGeneric;
     }
+  }
+
+  /// User chooses to background the job and return to Home while processing
+  /// continues server-side (Option 3 / backgrounding flow).
+  void workInBackground() {
+    diag('processing', 'user selected workInBackground');
+    _left = true;
+    Get.offAllNamed<void>(Routes.home);
   }
 
   /// Cancel (S6): the confirm dialog states the no-charge guarantee;
   /// cancelling consumes nothing (FR-07).
   Future<void> cancel() async {
     if (!isRunning.value) {
+      JobTracker.instance.clear();
       _goHome();
       return;
     }
@@ -133,7 +156,10 @@ class ProcessingController extends GetxController {
       confirmLabelKey: AppStrings.processingCancelConfirm,
       cancelLabelKey: AppStrings.commonCancel,
     );
-    if (confirmed) processingApi.cancelOngoing();
+    if (confirmed) {
+      JobTracker.instance.clear();
+      processingApi.cancelOngoing();
+    }
   }
 
   void _goHome() {
@@ -142,3 +168,4 @@ class ProcessingController extends GetxController {
     Get.offAllNamed<void>(Routes.home);
   }
 }
+

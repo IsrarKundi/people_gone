@@ -7,9 +7,11 @@ import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/widgets/app_sheet.dart';
 import '../../../core/widgets/consent_sheet.dart';
+import '../../../services/processing/job_tracker.dart';
 import '../../../services/storage/local_store.dart';
 import '../../picker/controller/picker_controller.dart';
 import '../../proposal/model/proposal_args.dart';
+
 
 /// Home (S1): the saves indicator, the one primary action (Pick a
 /// photo), and the recent-history section. Picking runs the consent
@@ -33,6 +35,7 @@ class HomeController extends GetxController {
   static const int freeSavesPerMonth = 10;
 
   final savesLeft = freeSavesPerMonth.obs;
+  final resetDate = Rxn<DateTime>();
   final history = <HistoryEntry>[].obs;
   final errorMessage = RxnString();
 
@@ -45,18 +48,31 @@ class HomeController extends GetxController {
     reloadData();
   }
 
-  /// Reloads the counter + history. Storage failures degrade to the
+  /// Reloads the counter, reset date, and history. Storage failures degrade to the
   /// defaults — Home never blocks on its own bookkeeping.
   Future<void> reloadData() async {
     final used = await localStore.freeSavesUsed();
     if (used case Success<int>(:final value)) {
       savesLeft.value = (freeSavesPerMonth - value).clamp(0, freeSavesPerMonth);
     }
+    final reset = await localStore.freeSavesResetDate();
+    if (reset case Success<DateTime>(:final value)) {
+      resetDate.value = value;
+    }
     final entries = await localStore.history();
     if (entries case Success<List<HistoryEntry>>(:final value)) {
       history.assignAll(value);
     }
+    final jobResult = await localStore.gatewayJob();
+    if (jobResult case Success<GatewayJobRecord?>(:final value)) {
+      if (value != null && value.stage == 'processing') {
+        if (JobTracker.instance.activeJob.value == null) {
+          JobTracker.instance.trackStarted(photoPath: value.photoPath);
+        }
+      }
+    }
   }
+
 
   Future<void> onPickPhoto() async {
     errorMessage.value = null;

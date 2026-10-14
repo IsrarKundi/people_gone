@@ -144,3 +144,35 @@ two customers and a barista behind her). Cleaned by the live worker (MAT):
 4 people detected, subject kept automatically, 3 removed, fill verified clean.
 Installed as `assets/images/demo_original.jpg` / `demo_result.jpg` (639x360,
 as supplied). Supersedes the dune pair of the same date.
+
+---
+
+## 5. Home Option A & Processing Option 1+3 Implementation (2026-10-14)
+
+**Decision & Review Authority:** Owner adopted Home Option A ("Photographic Drop-Zone Studio") and Processing Option 1 ("Living Canvas with Beam Scan") + Option 3's background flow ("Work in background" action + Home job banner).
+
+### A. Grid Supersession Decision (F6 Supersession)
+- **Supersession:** By explicit owner decision, the Home screen diverges from the History screen's 3-column square-crop grid. This supersedes the previous shared-grid convention (F6) for Home only.
+- **Scope:** The S9 History screen itself remains completely unchanged (3-column grid with full history review).
+- **Home Layout:** Home now features a hierarchical editorial layout:
+  1. **First-run:** Interactive before/after split card showcasing the owner's café pair (`demo_original.jpg` / `demo_result.jpg`).
+  2. **With-history:** `FeaturedCleanCard` highlighting the latest clean in its natural, uncropped aspect ratio (read dynamically at render time from the file, without database metadata), paired with `EarlierCleansTray` (horizontal scrolling gallery of previous cleans + quick link to full History).
+
+### B. Home Option A ("Photographic Drop-Zone Studio")
+- **Hero & Action Placement:** 56dp pill "Pick a photo" action positioned prominently above the fold for immediate accessibility across all device viewports.
+- **Quiet Quota Pill:** Replaced the prominent horizontal progress bar with a calm, scannable indicator: `● N of 10 free saves left · Resets <Date>` (e.g. `● 7 of 10 free saves left · Resets 1 Nov`).
+- **No Aspect-Ratio Store:** Avoided schema churn by resolving photo dimensions at render time via `FileImage` image streams clamped to `0.7..1.8`.
+
+### C. Processing Option 1 ("Living Canvas with Beam Scan")
+- **Theme Binding:** Processing canvas background and status card are bound strictly to design tokens (`p.background`, `p.surface`, `p.border`). No hardcoded dark canvas in light mode; dark mode retains its deep photographic obsidian.
+- **Natural Photo Brightness:** The input photo is presented in an elevated, rounded studio card with natural brightness (no dark scrim or contrast cuts).
+- **Scan Beam:** Lightweight `ScanBeamOverlay` custom painter executing a ~3.5s smooth vertical sweep, clipped strictly to the photo geometry with zero expensive GPU blur shaders.
+- **Stage Truthfulness:** Strictly factual states: `uploading` (real bytes percentage) → `processing` (indeterminate pipeline) → `done` / `failed`. Time labels reflect real elapsed time and the honest "~2 minutes" expectation. Scripted clock milestones ("Finalizing details...", "Almost ready") are strictly forbidden.
+
+### D. Background Flow (Option 3 Integration)
+- **Action:** Prominent "Work in background" action in the Processing screen status card.
+- **Home Job Banner:** When a backgrounded job is active, `HomeJobBanner` renders on Home with three real states:
+  1. *Processing:* Live spinner, elapsed time, tap to reattach to the active processing view.
+  2. *Done:* Success checkmark, tap opens the result screen immediately.
+  3. *Failed:* Honest error presentation, retry button, and direct share action for diagnostics logs.
+- **No "Notify me when done":** Explicitly omitted per owner rejection.

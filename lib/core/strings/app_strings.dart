@@ -36,6 +36,16 @@ abstract final class AppStrings {
   static const String processingCancelTitle = 'processing_cancel_title';
   static const String processingCancelBody = 'processing_cancel_body';
   static const String processingCancelConfirm = 'processing_cancel_confirm';
+  static const String processingWorkInBackground = 'processing_work_in_background';
+
+  // Home Job Banner (Option 3 / backgrounding flow).
+  static const String homeJobBannerProcessing = 'home_job_banner_processing';
+  static const String homeJobBannerProcessingSub = 'home_job_banner_processing_sub';
+  static const String homeJobBannerDone = 'home_job_banner_done';
+  static const String homeJobBannerDoneSub = 'home_job_banner_done_sub';
+  static const String homeJobBannerFailed = 'home_job_banner_failed';
+  static const String homeJobBannerFailedSub = 'home_job_banner_failed_sub';
+
 
   // Proposal (S4).
   static const String proposalTitle = 'proposal_title';
@@ -168,11 +178,20 @@ class AppTranslations extends Translations {
       AppStrings.processingFindingRemoving: 'Finding people and removing them…',
       AppStrings.processingElapsed: 'Elapsed @time',
       AppStrings.processingExpectation:
-          'High-resolution processing takes ~2 minutes. Keep the app open while we work.',
+          'High-resolution processing takes ~2 minutes. You can safely leave the app.',
       AppStrings.processingCancelTitle: 'Cancel this clean?',
       AppStrings.processingCancelBody:
           'Nothing will be charged to your free saves.',
       AppStrings.processingCancelConfirm: 'Cancel clean',
+      AppStrings.processingWorkInBackground: 'Work in background',
+      AppStrings.homeJobBannerProcessing: 'Cleaning photo in background…',
+      AppStrings.homeJobBannerProcessingSub:
+          'Takes ~2 minutes · Tap to return to preview',
+      AppStrings.homeJobBannerDone: 'Clean complete!',
+      AppStrings.homeJobBannerDoneSub: 'Tap to view and save your photo',
+      AppStrings.homeJobBannerFailed: 'Clean could not be completed',
+      AppStrings.homeJobBannerFailedSub: 'Tap to see diagnostics or try again',
+
       AppStrings.proposalTitle: 'Review people to remove',
       AppStrings.proposalRemoveCount: 'Remove @count people',
       AppStrings.proposalRemoveOne: 'Remove 1 person',

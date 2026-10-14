@@ -13,6 +13,8 @@ class PrimaryButton extends StatelessWidget {
     this.isLoading = false,
     this.labelParams,
     this.icon,
+    this.height,
+    this.borderRadius,
   });
 
   /// String key; buttons are named by their outcome (Design Direction §1).
@@ -21,14 +23,18 @@ class PrimaryButton extends StatelessWidget {
   final bool isLoading;
   final Map<String, String>? labelParams;
   final IconData? icon;
+  final double? height;
+  final double? borderRadius;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
     final disabled = isLoading || onPressed == null;
+    final h = height ?? s.buttonPrimary;
+    final r = borderRadius ?? s.radiusLg;
     return SizedBox(
-      height: s.buttonPrimary,
+      height: h,
       width: double.infinity,
       child: ElevatedButton(
         onPressed: disabled ? null : onPressed,
@@ -40,12 +46,13 @@ class PrimaryButton extends StatelessWidget {
           elevation: disabled ? 0 : 2,
           shadowColor: p.primary.withValues(alpha: 0.35),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(s.radiusLg),
+            borderRadius: BorderRadius.circular(r),
           ),
           textStyle: context.textStyles.labelLg.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
+
         child: isLoading
             ? SizedBox(
                 width: s.iconSm,

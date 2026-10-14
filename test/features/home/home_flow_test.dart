@@ -11,10 +11,16 @@ import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
-import 'package:people_gone/features/history/widgets/history_grid.dart';
+import 'package:people_gone/features/home/widgets/earlier_cleans_tray.dart';
+import 'package:people_gone/features/home/widgets/featured_clean_card.dart';
+import 'package:people_gone/features/home/widgets/home_job_banner.dart';
 import 'package:people_gone/features/picker/controller/picker_controller.dart';
+import 'package:people_gone/services/processing/job_tracker.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
+
+
+
 
 import '../processing/processing_flow_test.dart' show pngBytes;
 
@@ -308,7 +314,7 @@ void main() {
     );
   });
 
-  testWidgets('Home history strip uses the shared 3-column grid (F6)', (
+  testWidgets('Home history shows latest clean card and earlier cleans tray (Option A)', (
     tester,
   ) async {
     store.entries = <HistoryEntry>[
@@ -320,8 +326,20 @@ void main() {
         ),
     ];
     await pumpHome(tester);
-    final grid = tester.widget<HistoryGrid>(find.byType(HistoryGrid));
-    expect(grid.crossAxisCount, 3);
-    expect(grid.entries.length, 3);
+    expect(find.byType(FeaturedCleanCard), findsOneWidget);
+    expect(find.byType(EarlierCleansTray), findsOneWidget);
+    final tray = tester.widget<EarlierCleansTray>(find.byType(EarlierCleansTray));
+    expect(tray.entries.length, 3);
+  });
+
+  testWidgets('Home shows active job banner when a background clean is processing', (
+    tester,
+  ) async {
+    JobTracker.instance.trackStarted(photoPath: picked.path);
+    await pumpHome(tester);
+    expect(find.byType(HomeJobBanner), findsOneWidget);
+    expect(find.text('Cleaning photo in background…'), findsOneWidget);
+    JobTracker.instance.clear();
   });
 }
+

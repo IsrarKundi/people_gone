@@ -7,17 +7,18 @@ import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/section_header.dart';
-import '../../history/widgets/history_grid.dart';
+import '../../../services/processing/job_tracker.dart';
 import '../controller/home_controller.dart';
+import '../widgets/earlier_cleans_tray.dart';
+import '../widgets/featured_clean_card.dart';
+import '../widgets/home_job_banner.dart';
 import '../widgets/interactive_demo_card.dart';
 import '../widgets/saves_indicator.dart';
 
-/// Home (S1) — Design Review 01 layout: the wordmark lives ONLY in the
-/// app bar (left-aligned, Inter 800); the body is one top-anchored
-/// column: saves indicator (line + thin bar), the one primary action,
-/// then either the teaching line (no history yet) in flow, or the
-/// History section. No spacers, no floating text, the app name appears
-/// exactly once on this screen.
+/// Home (S1) — Option A: "The Photographic Drop-Zone Studio"
+/// Leads with the primary 56dp action pill and quiet quota pill, followed
+/// immediately by visual proof (interactive café before/after card on first run,
+/// natural-aspect latest clean card + earlier cleans tray on return).
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
@@ -45,24 +46,40 @@ class HomeView extends GetView<HomeController> {
             actionLabelKey: AppStrings.errorPickAnother,
           );
         }
+
+        final activeJob = JobTracker.instance.activeJob.value;
+
         return SingleChildScrollView(
           padding: EdgeInsets.all(s.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              // In-flight or completed background job banner
+              if (activeJob != null) HomeJobBanner(job: activeJob),
+
+              // Floating 56dp Pill Primary Button
               PrimaryButton(
                 labelKey: AppStrings.homePickPhoto,
                 icon: Icons.add_photo_alternate_rounded,
+                height: 56,
+                borderRadius: 28,
                 isLoading: controller.isPicking,
                 onPressed: controller.onPickPhoto,
               ),
-              SizedBox(height: s.md),
+
+              SizedBox(height: s.sm),
+
+              // Quiet Quota Pill
               SavesIndicator(
                 savesLeft: controller.savesLeft.value,
                 of: HomeController.freeSavesPerMonth,
+                resetDate: controller.resetDate.value,
               ),
+
+              SizedBox(height: s.lg),
+
+              // Hero section:
               if (!controller.hasHistory) ...<Widget>[
-                SizedBox(height: s.xl),
                 Text(
                   AppStrings.homeEmptyLine.tr,
                   style: context.textStyles.bodyLg,
@@ -70,27 +87,30 @@ class HomeView extends GetView<HomeController> {
                 SizedBox(height: s.md),
                 const InteractiveDemoCard(),
               ] else ...<Widget>[
-                SizedBox(height: s.xxl),
                 SectionHeader(
                   titleKey: AppStrings.homeHistory,
                   actionLabelKey: AppStrings.homeSeeAll,
                   onAction: controller.openHistory,
                 ),
-                SizedBox(height: s.md),
-                // The same shared HistoryGrid as S9 — first row of 3,
-                // never a Home-only 4-across variant (Review 02 F6).
-                HistoryGrid(
-                  entries: controller.history.take(3).toList(),
-                  shrinkWrap: true,
-                  onTap: controller.openHistoryDetail,
+                SizedBox(height: s.sm),
+                // Latest Cleaned Photo in its natural aspect ratio
+                FeaturedCleanCard(
+                  entry: controller.history.first,
+                  onTap: () => controller.openHistoryDetail(controller.history.first),
                 ),
-                SizedBox(height: s.xxl),
-                const InteractiveDemoCard(),
+                if (controller.history.length > 1) ...<Widget>[
+                  SizedBox(height: s.lg),
+                  EarlierCleansTray(
+                    entries: controller.history.skip(1).take(10).toList(),
+                    onTap: controller.openHistoryDetail,
+                  ),
+                ],
               ],
+
+              SizedBox(height: s.lg),
             ],
           ),
         );
-
       }),
     );
   }
