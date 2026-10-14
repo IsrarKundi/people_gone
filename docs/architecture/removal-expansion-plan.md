@@ -1,7 +1,7 @@
 # Removal Expansion — Implementation Plan (Distractions · Belongings · Shadows/Reflections)
 
 **Date:** 2026-10-14
-**Status:** PLAN ONLY — no code written. Owner approval required per phase.
+**Status:** PLAN ONLY — no code written. **Owner decision 2026-10-14: direction APPROVED; Phase A investigation approved; every phase ships only after passing its test gate — no phase is pre-approved, and phases are not started in parallel.** Amendments from the owner's review (same date) are folded into §4 Phase A (association tiers tightened), §4 Phase D (reflective-surface spike), and §5 (final-composite pixel-diff acceptance test).
 **Inputs:**
 - Code review of the shipped pipeline (this plan, §1) — verified from `modal-deploy/` source.
 - Technical research: `~/workspace/research_notes/peoplegone-removal-expansion-tech-resear-20261014-1512/report.md` (claims labelled Observed vs Inference there; figures quoted here keep those labels).
@@ -50,7 +50,7 @@
 **Worker** (`modal-deploy/server/worker/`):
 1. `detector.py`: return COCO belongings classes (backpack, handbag, suitcase, umbrella; bicycle as a candidate class) alongside persons from the same RT-DETR pass.
 2. `segmentor.py`: SAM masks for belongings boxes (same path as persons).
-3. New `belongings.py` (mask prep): tiered association (halo-overlap → proximity/contact → ambiguous), keeper-proximity veto, per-person attached lists + ambiguity flags.
+3. New `belongings.py` (mask prep): tiered association, keeper-proximity veto, per-person attached lists + ambiguity flags. **Tier rule (tightened 2026-10-14):** automatic attachment requires the belonging's mask to be contiguous with / overlapping **exactly one** person's dilated halo and no other person's. Mere proximity or contact is never sufficient for automatic attachment, and **anything touching two people is ambiguous by construction** (→ object chip, default Keep, per X10). This is the stranger-standing-beside-the-keeper case: a keeper's held bag near a removed person must never auto-attach to the removed person.
 4. `pipeline.py`: attached belongings' masks union into their person's removal mask *before* dilation/shadow prep; `detect()` returns belongings + association tiers; ghost check extended to re-detect belongings classes in finished crops (a surviving bag retries like a surviving person).
 5. Contract v3 fields for belongings (OQ6).
 **Gateway:** analyse/confirm payloads pass the new fields through; no schema migration (meta JSON).
@@ -76,6 +76,7 @@
 1. License check first (mirror segmentation models/datasets) — no check, no ship.
 2. Mirror-region detection (segmentation) + person detections *inside* mirror regions (textbook-mirror case); ghost check learns to not false-alarm on reflected persons.
 3. When a removed person has a probable reflection: job meta flags it.
+4. **Research spike (timeboxed):** reflective surfaces beyond mirrors — water, shop/car windows, glossy floors. Mirror-region detection does not cover these; the spike evaluates reflective-surface detection as *warn targets only*, plus whether a removed person's reflection inside a detected reflective region can be segmented and fed to the existing inpaint path (the only credible route to automatic removal in this pipeline). Explicit kill criteria: if warn precision on the §5 reflection test set cannot reach the Phase D gate, the surface class is dropped from warnings; automatic removal is claimed only if it passes real-image tests — otherwise it stays a brush case permanently.
 **App:** Result gains an honest notice + one-tap path into the Brush with the reflection region pre-suggested as a starting paint (still user-painted, X14); **no promise is made anywhere** (X13). No S4 items.
 **Gate:** warn precision/recall measured on a mirror/window/gloss test set; a warn that cries wolf gets its threshold raised or the phase doesn't ship.
 
@@ -88,7 +89,8 @@
 ## 5. Quality programme (applies to every phase)
 
 - **Expansion test set** (built before Phase A ships): staged + real photos per capability — keeper holding a bag; bag between keeper and stranger; ground-placed bag; backpack on a removed person; car/bus/pole/sign/bin street scenes; a pole crossing the keeper; long evening shadows; shadows on walls; mirror, shop-window, water, and glossy-floor reflections; busy-crowd scenes. Stock-photo caveat from the Phase 0 set applies (real phone photos are harder) — include owner-shot photos where possible.
-- **Ship gates per phase** (all must hold): **zero protected-set damage** (keeper + their belongings + kept items — pixel-verified by the composite construction and checked in tests); removal success at or above the current people-removal bar on the same photos (would-post method from Requirements §3); no regression on the existing 30-photo set.
+- **Ship gates per phase** (all must hold): **zero protected-set damage** (keeper + their belongings + kept items); removal success at or above the current people-removal bar on the same photos (would-post method from Requirements §3); no regression on the existing 30-photo set.
+- **Final-composite pixel-diff acceptance test (added 2026-10-14):** protected-set integrity is proven at the *output*, not assumed from the mask logic — an automated test asserts that the composited image array, outside the union of removal masks, is pixel-identical to the source array before the delivery encode, run over the expansion test set for every phase.
 - **Blind A/B** wherever a heuristic is replaced (Phase C) or a threshold is set (Phase B): raters don't know which output is which.
 - **Honesty invariants:** no silent fallbacks (a failed detector pass fails the job loudly, per standing rule); fallbacks only behind the existing `PG_ALLOW_FALLBACKS` flag; every estimate in this plan is replaced by a measured number during its phase's spike/calibration step, and the plan doc is updated with the measured values.
 
