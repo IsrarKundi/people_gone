@@ -21,7 +21,9 @@ import '../widgets/scan_beam_overlay.dart';
 /// the first byte moves the stage is "connecting"; the percentage and
 /// bar exist only while bytes actually transfer; the server stage is
 /// indeterminate (the beam is the activity signal) with the honest
-/// expectation line. No stopwatch (R5).
+/// expectation line. No stopwatch (R5). The frame hugs the photo's own
+/// aspect (Review 06 F1 / D13): user photos are never cropped, and the
+/// spare space falls on the canvas outside the frame, never inside it.
 class ProcessingView extends GetView<ProcessingController> {
   const ProcessingView({super.key});
 
@@ -45,8 +47,9 @@ class ProcessingView extends GetView<ProcessingController> {
           child: SafeArea(
             child: Column(
               children: <Widget>[
-                // Framed photographic canvas, flexing in the space
-                // above the tray (gallery air, not a terminal void).
+                // Framed photographic canvas: the frame is fitted to
+                // the photo's aspect and centred in the space above
+                // the tray; the canvas around it is the gallery air.
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -55,37 +58,7 @@ class ProcessingView extends GetView<ProcessingController> {
                       s.screenPadding,
                       s.md,
                     ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: p.surface,
-                        borderRadius: BorderRadius.circular(s.radiusLg),
-                        border: Border.all(color: p.border),
-                        boxShadow: <BoxShadow>[
-                          BoxShadow(
-                            color: p.scrim.withValues(alpha: 0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(s.radiusLg - 1),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: <Widget>[
-                            Image.file(
-                              File(controller.photoPath),
-                              fit: BoxFit.contain,
-                              cacheWidth:
-                                  MediaQuery.sizeOf(context).width.toInt(),
-                              errorBuilder: (_, _, _) =>
-                                  const SizedBox.shrink(),
-                            ),
-                            const Positioned.fill(child: ScanBeamOverlay()),
-                          ],
-                        ),
-                      ),
-                    ),
+                    child: _FittedPhotoFrame(photoPath: controller.photoPath),
                   ),
                 ),
                 // Bottom tray — in flow, anchored to the screen bottom.
@@ -188,12 +161,112 @@ class ProcessingView extends GetView<ProcessingController> {
           SizedBox(height: s.xs),
           Text(
             AppStrings.processingExpectation.tr,
-            style: context.textStyles.caption.copyWith(
-              color: p.textSecondary,
-            ),
+            style: context.textStyles.caption.copyWith(color: p.textSecondary),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The photo's frame, fitted to the photo's own aspect ratio (resolved
+/// from the file) and centred in the available area — the frame hugs
+/// the photo (D13), so no band of empty surface ever sits inside it.
+class _FittedPhotoFrame extends StatefulWidget {
+  const _FittedPhotoFrame({required this.photoPath});
+
+  final String photoPath;
+
+  @override
+  State<_FittedPhotoFrame> createState() => _FittedPhotoFrameState();
+}
+
+class _FittedPhotoFrameState extends State<_FittedPhotoFrame> {
+  double _aspectRatio = 4 / 3;
+  ImageStream? _stream;
+  ImageStreamListener? _listener;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  @override
+  void dispose() {
+    _detach();
+    super.dispose();
+  }
+
+  void _detach() {
+    if (_stream != null && _listener != null) {
+      _stream!.removeListener(_listener!);
+    }
+    _stream = null;
+    _listener = null;
+  }
+
+  void _resolve() {
+    final file = File(widget.photoPath);
+    if (!file.existsSync()) return;
+    _stream = FileImage(file).resolve(const ImageConfiguration());
+    _listener = ImageStreamListener((info, _) {
+      if (!mounted) return;
+      final w = info.image.width;
+      final h = info.image.height;
+      if (w > 0 && h > 0) {
+        setState(() => _aspectRatio = (w / h).clamp(0.5, 2.4).toDouble());
+      }
+    }, onError: (_, _) {});
+    _stream!.addListener(_listener!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final s = context.sizes;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        var w = constraints.maxWidth;
+        var h = w / _aspectRatio;
+        if (h > constraints.maxHeight) {
+          h = constraints.maxHeight;
+          w = h * _aspectRatio;
+        }
+        return Center(
+          child: Container(
+            width: w,
+            height: h,
+            decoration: BoxDecoration(
+              color: p.surface,
+              borderRadius: BorderRadius.circular(s.radiusLg),
+              border: Border.all(color: p.border),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: p.scrim.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(s.radiusLg - 1),
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  Image.file(
+                    File(widget.photoPath),
+                    fit: BoxFit.contain,
+                    cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  ),
+                  const Positioned.fill(child: ScanBeamOverlay()),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
