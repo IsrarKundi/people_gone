@@ -16,8 +16,9 @@ enum ProcessingStage { uploading, working }
 
 /// Processing (S3/S6): uploads the picked photo to our server and waits
 /// for the clean. Progress is honest (Design Direction §1.5/§6): the
-/// upload percentage is real bytes; the server stage is indeterminate
-/// with a live elapsed time — never a fake percentage.
+/// upload percentage is real bytes and appears only once bytes move
+/// (Review 05 F1); the server stage is indeterminate — never a fake
+/// percentage, and no stopwatch (Review 05 Supplement R5).
 class ProcessingController extends GetxController {
   ProcessingController({required this.processingApi, required this.localStore});
 
@@ -28,11 +29,13 @@ class ProcessingController extends GetxController {
 
   final stage = ProcessingStage.uploading.obs;
   final uploadFraction = 0.0.obs;
-  final elapsed = Duration.zero.obs;
+
+  /// True once the first upload-progress callback reports bytes moved;
+  /// before that the honest stage label is "connecting" (F1).
+  final uploadMoved = false.obs;
   final errorMessage = RxnString();
   final isRunning = false.obs;
 
-  Timer? _timer;
   bool _left = false;
 
   String get photoPath => args.photoPath;
@@ -44,23 +47,13 @@ class ProcessingController extends GetxController {
     unawaited(start());
   }
 
-  @override
-  void onClose() {
-    _timer?.cancel();
-    super.onClose();
-  }
-
   Future<void> start() async {
     if (isRunning.value) return;
     isRunning.value = true;
     errorMessage.value = null;
     stage.value = ProcessingStage.uploading;
     uploadFraction.value = 0;
-    elapsed.value = Duration.zero;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      elapsed.value += const Duration(seconds: 1);
-    });
+    uploadMoved.value = false;
 
     JobTracker.instance.trackStarted(
       photoPath: args.photoPath,
@@ -76,10 +69,10 @@ class ProcessingController extends GetxController {
       keepIds: args.keepIds,
       onUploadProgress: (fraction) {
         uploadFraction.value = fraction;
+        if (fraction > 0) uploadMoved.value = true;
         if (fraction >= 1.0) stage.value = ProcessingStage.working;
       },
     );
-    _timer?.cancel();
     isRunning.value = false;
 
     switch (result) {

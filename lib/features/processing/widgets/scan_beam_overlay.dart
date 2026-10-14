@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/theme_ext.dart';
 
-/// Animated scan beam that sweeps vertically over the photo (~3.5s period)
-/// to prove active, responsive processing without any blur or heavy GPU shaders
-/// (safe on budget Android minSdk 24).
+/// Animated scan beam that sweeps vertically over the photo (5s period)
+/// as an indeterminate activity signal — it claims motion, never
+/// measurement (Review 05). Weight reduced per Supplement R8: a minutes-
+/// long sweep has no competitor precedent, so it is dosed low. No blur
+/// or heavy GPU shaders (safe on budget Android minSdk 24).
 class ScanBeamOverlay extends StatefulWidget {
   const ScanBeamOverlay({super.key});
 
@@ -21,7 +23,7 @@ class _ScanBeamOverlayState extends State<ScanBeamOverlay>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3500),
+      duration: const Duration(milliseconds: 5000),
     )..repeat();
   }
 
@@ -73,9 +75,9 @@ class _ScanBeamPainter extends CustomPainter {
         end: Alignment.bottomCenter,
         colors: <Color>[
           color.withValues(alpha: 0.0),
-          color.withValues(alpha: 0.12),
-          color.withValues(alpha: 0.28),
-          color.withValues(alpha: 0.12),
+          color.withValues(alpha: 0.06),
+          color.withValues(alpha: 0.15),
+          color.withValues(alpha: 0.06),
           color.withValues(alpha: 0.0),
         ],
         stops: const <double>[0.0, 0.3, 0.5, 0.7, 1.0],
@@ -85,7 +87,7 @@ class _ScanBeamPainter extends CustomPainter {
 
     // Crisp 1.5dp center beam line
     final linePaint = Paint()
-      ..color = color.withValues(alpha: 0.65)
+      ..color = color.withValues(alpha: 0.35)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 

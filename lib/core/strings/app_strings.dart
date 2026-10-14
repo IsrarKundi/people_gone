@@ -31,8 +31,9 @@ abstract final class AppStrings {
   // Processing (S3/S6).
   static const String processingUploading = 'processing_uploading';
   static const String processingFindingRemoving = 'processing_finding_removing';
-  static const String processingElapsed = 'processing_elapsed';
+  static const String processingConnecting = 'processing_connecting';
   static const String processingExpectation = 'processing_expectation';
+  static const String processingLeaveCaption = 'processing_leave_caption';
   static const String processingCancelTitle = 'processing_cancel_title';
   static const String processingCancelBody = 'processing_cancel_body';
   static const String processingCancelConfirm = 'processing_cancel_confirm';
@@ -176,9 +177,10 @@ class AppTranslations extends Translations {
       AppStrings.consentPrivacyLink: 'Full details: Privacy Policy',
       AppStrings.processingUploading: 'Uploading your photo…',
       AppStrings.processingFindingRemoving: 'Finding people and removing them…',
-      AppStrings.processingElapsed: 'Elapsed @time',
+      AppStrings.processingConnecting: 'Connecting to the processing server…',
       AppStrings.processingExpectation:
-          'High-resolution processing takes ~2 minutes. You can safely leave the app.',
+          'High-resolution processing takes ~2 minutes.',
+      AppStrings.processingLeaveCaption: 'You can safely leave the app.',
       AppStrings.processingCancelTitle: 'Cancel this clean?',
       AppStrings.processingCancelBody:
           'Nothing will be charged to your free saves.',

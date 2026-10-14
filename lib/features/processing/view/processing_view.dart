@@ -7,16 +7,21 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
-import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/error_view.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../controller/processing_controller.dart';
 import '../widgets/scan_beam_overlay.dart';
 
-/// Processing (S3/S6) — Option 1: "The Living Canvas with Beam Scan"
-/// Respects system theme (light mode porcelain / dark mode obsidian).
-/// The photo is framed at natural brightness on an elevated canvas with a gentle
-/// sweeping scan beam proving active processing. Allows working in the background.
+/// Processing (S3/S6) — "The Living Canvas", finished per Review 05
+/// Supplement (R1, R4–R6, R8, F1): the layout is a column, not a stack
+/// of overlaps — the framed photo flexes in the space above a bottom
+/// tray that sits in normal flow (status card, the primary action, its
+/// caption, Cancel). Stage copy names only real client states: before
+/// the first byte moves the stage is "connecting"; the percentage and
+/// bar exist only while bytes actually transfer; the server stage is
+/// indeterminate (the beam is the activity signal) with the honest
+/// expectation line. No stopwatch (R5).
 class ProcessingView extends GetView<ProcessingController> {
   const ProcessingView({super.key});
 
@@ -38,15 +43,17 @@ class ProcessingView extends GetView<ProcessingController> {
         return Container(
           color: p.background,
           child: SafeArea(
-            child: Stack(
-              fit: StackFit.expand,
+            child: Column(
               children: <Widget>[
-                // Framed photographic canvas in system theme
-                Center(
+                // Framed photographic canvas, flexing in the space
+                // above the tray (gallery air, not a terminal void).
+                Expanded(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: s.screenPadding,
-                      vertical: s.xxl,
+                    padding: EdgeInsets.fromLTRB(
+                      s.screenPadding,
+                      s.xxl,
+                      s.screenPadding,
+                      s.md,
                     ),
                     child: Container(
                       decoration: BoxDecoration(
@@ -64,7 +71,7 @@ class ProcessingView extends GetView<ProcessingController> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(s.radiusLg - 1),
                         child: Stack(
-                          alignment: Alignment.center,
+                          fit: StackFit.expand,
                           children: <Widget>[
                             Image.file(
                               File(controller.photoPath),
@@ -74,42 +81,38 @@ class ProcessingView extends GetView<ProcessingController> {
                               errorBuilder: (_, _, _) =>
                                   const SizedBox.shrink(),
                             ),
-                            // Smooth scanning beam proving active intelligence
-                            const Positioned.fill(
-                              child: ScanBeamOverlay(),
-                            ),
+                            const Positioned.fill(child: ScanBeamOverlay()),
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
-                // Bottom control and status tray
-                Positioned(
-                  left: s.screenPadding,
-                  right: s.screenPadding,
-                  bottom: s.screenPadding,
+                // Bottom tray — in flow, anchored to the screen bottom.
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    s.screenPadding,
+                    0,
+                    s.screenPadding,
+                    s.screenPadding,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      _progressBlock(context),
+                      _statusCard(context),
                       SizedBox(height: s.md),
-                      // Work in background action
-                      SizedBox(
-                        width: double.infinity,
-                        height: s.buttonSecondary,
-                        child: OutlinedButton.icon(
-                          onPressed: controller.workInBackground,
-                          icon: Icon(Icons.arrow_back_rounded, size: s.iconSm),
-                          label: Text(AppStrings.processingWorkInBackground.tr),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: p.textPrimary,
-                            backgroundColor: p.surface,
-                            side: BorderSide(color: p.border),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(s.radiusPill),
-                            ),
-                          ),
+                      PrimaryButton(
+                        labelKey: AppStrings.processingWorkInBackground,
+                        icon: Icons.arrow_back_rounded,
+                        height: 56,
+                        borderRadius: 28,
+                        onPressed: controller.workInBackground,
+                      ),
+                      SizedBox(height: s.xs),
+                      Text(
+                        AppStrings.processingLeaveCaption.tr,
+                        style: context.textStyles.caption.copyWith(
+                          color: p.textSecondary,
                         ),
                       ),
                       SizedBox(height: s.xs),
@@ -133,11 +136,25 @@ class ProcessingView extends GetView<ProcessingController> {
     );
   }
 
-  Widget _progressBlock(BuildContext context) {
+  /// Status card: the stage title (a real client state, F1), the real
+  /// upload bar ONLY while bytes transfer (R4), and the expectation.
+  Widget _statusCard(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
     final uploading = controller.stage.value == ProcessingStage.uploading;
+    final moved = controller.uploadMoved.value;
     final fraction = controller.uploadFraction.value;
+    final showBar = uploading && moved;
+
+    final String title;
+    if (uploading && !moved) {
+      title = AppStrings.processingConnecting.tr;
+    } else if (uploading) {
+      title =
+          '${AppStrings.processingUploading.tr} ${(fraction * 100).round()}%';
+    } else {
+      title = AppStrings.processingFindingRemoving.tr;
+    }
 
     return Container(
       width: double.infinity,
@@ -146,31 +163,23 @@ class ProcessingView extends GetView<ProcessingController> {
         color: p.surface,
         borderRadius: BorderRadius.circular(s.radiusLg),
         border: Border.all(color: p.border),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: p.scrim.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          LinearProgressIndicator(
-            value: uploading ? fraction : null,
-            color: p.primary,
-            backgroundColor: p.surfaceVariant,
-            minHeight: 4,
-            borderRadius: BorderRadius.circular(2),
-          ),
-          SizedBox(height: s.md),
+          if (showBar) ...<Widget>[
+            LinearProgressIndicator(
+              value: fraction,
+              color: p.primary,
+              backgroundColor: p.surfaceVariant,
+              minHeight: 4,
+              borderRadius: BorderRadius.circular(2),
+            ),
+            SizedBox(height: s.md),
+          ],
           Text(
-            uploading
-                ? '${AppStrings.processingUploading.tr} '
-                      '${(fraction * 100).round()}%'
-                : AppStrings.processingFindingRemoving.tr,
+            title,
             style: context.textStyles.bodyMd.copyWith(
               color: p.textPrimary,
               fontWeight: FontWeight.w600,
@@ -178,8 +187,7 @@ class ProcessingView extends GetView<ProcessingController> {
           ),
           SizedBox(height: s.xs),
           Text(
-            '${AppStrings.processingElapsed.trParams(<String, String>{'time': Formatters.elapsed(controller.elapsed.value)})}'
-            ' · ${AppStrings.processingExpectation.tr}',
+            AppStrings.processingExpectation.tr,
             style: context.textStyles.caption.copyWith(
               color: p.textSecondary,
             ),
@@ -189,4 +197,3 @@ class ProcessingView extends GetView<ProcessingController> {
     );
   }
 }
-
