@@ -332,3 +332,39 @@ Against the §2 bars, applied exactly as declared:
 
 Ship scope is therefore exactly the plan's v1: detect + warn +
 guided brush. Automatic reflection removal does NOT ship (§6.3).
+
+### 6.5 Build + live verification (2026-10-15)
+
+- **Worker:** `worker/reflections.py` (frozen logic) wired into
+  `/process`: two extra OmDet passes + the warn logic run when
+  somebody is removed; meta gains `reflection_warning` +
+  `reflection_regions` (additive, contract stays v3). No gateway
+  change — worker-callback stores meta verbatim and job-status
+  returns it, verified from the function sources. 10 new synthetic
+  unit tests; full worker suite **52 OK** (2 env-gated skips);
+  **§5 pixel-diff acceptance passes** on the built worker
+  (`PG_RUN_PIXEL_DIFF=1`, both test classes, 0 px beyond the
+  allowed union).
+- **App:** the warning parses in BOTH paths (gateway poller +
+  direct impl, malformed regions skipped, never fatal) into
+  `ProcessedPhoto` → `ProcessingOutcome`; Result shows the factual
+  warning line + "Fix with brush", which opens the existing Brush
+  with the first region outlined as a starting guide (the user
+  still paints; the outline is never part of the mask). No new
+  screens, no promise language. `flutter analyze` clean; **Flutter
+  suite 158/158** (9 new tests: parsing ×3, Result warning/UI ×3,
+  painter ×3).
+- **Live (deployed worker, exactly 2 photos):**
+  1. Puddle flagship, keep=[1]: 10 persons, 9 removed,
+     **`reflection_warning: true`** with the frozen region
+     (person 2, flip 0.567, "polished floor") — identical to the
+     investigation judging. Output verified by eye: the removed
+     people are gone, the keeper stands intact, and the removed
+     people's reflections remain visible in the puddle — the
+     warning is truthful. 71.8 s total; the reflection pass added
+     7.4 s on this 18 MP photo (1.3 s on the 1.4 MP mosque).
+     Peak RSS 7,413/8,192 MB.
+  2. Owner mosque, keep=[0] (control): 13 persons, 12 removed,
+     **`reflection_warning: false`**, regions []. Phase A
+     regression intact (handbag still attached to person 4);
+     dimensions in = out; no fallbacks on either job.
