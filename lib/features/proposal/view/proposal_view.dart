@@ -9,6 +9,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../controller/proposal_controller.dart';
 import '../widgets/person_card.dart';
+import '../widgets/proposal_items_group.dart';
 import '../widgets/proposal_photo_canvas.dart';
 
 /// Proposal (S4): reviews detected people with visual face chips,
@@ -30,6 +31,10 @@ class ProposalView extends GetView<ProposalController> {
                   persons: controller.persons.toList(),
                   imageSize: controller.imageSize,
                   onTogglePerson: controller.togglePerson,
+                  belongings: controller.belongings.toList(),
+                  detachedIds: controller.detachedBelongingIds.toSet(),
+                  includedItemIds: controller.includedItemIds.toSet(),
+                  onToggleBelonging: controller.toggleBelonging,
                 ),
               ),
             ),
@@ -70,9 +75,9 @@ class ProposalView extends GetView<ProposalController> {
 
     return Obx(() {
       if (controller.isAnalyzing.value) return _analyzingPanel(context);
-      final removes = controller.removeCount;
       final overlap = controller.hasOverlapRisk;
       final persons = controller.persons;
+      final items = controller.ambiguousItems;
 
       return Container(
         width: double.infinity,
@@ -126,62 +131,88 @@ class ProposalView extends GetView<ProposalController> {
               ),
               SizedBox(height: s.sm),
             ],
-            if (persons.isEmpty)
+            if (persons.isEmpty && items.isEmpty)
               _noPeopleActions(context)
             else ...<Widget>[
-              _statusSentence(context),
-              SizedBox(height: s.sm),
-              SizedBox(
-                height: 118,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: persons.length + 1,
-                  separatorBuilder: (_, _) => SizedBox(width: s.sm),
-                  itemBuilder: (context, index) {
-                    if (index == persons.length) {
-                      // End-of-tray cue (Review 04 F4): the total
-                      // count, reached when the tray is scrolled out —
-                      // it tells the user how many people exist in all.
-                      return SizedBox(
-                        width: 64,
-                        child: Center(
-                          child: Text(
-                            AppStrings.proposalPeopleCount.trParams(
-                              <String, String>{'count': '${persons.length}'},
+              if (persons.isNotEmpty) ...<Widget>[
+                _statusSentence(context),
+                SizedBox(height: s.sm),
+                SizedBox(
+                  // Taller when any chip carries an "Includes:" line.
+                  height:
+                      persons.any(
+                        (person) =>
+                            controller.attachedBelongingsFor(person.id).isNotEmpty,
+                      )
+                      ? 148
+                      : 118,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: persons.length + 1,
+                    separatorBuilder: (_, _) => SizedBox(width: s.sm),
+                    itemBuilder: (context, index) {
+                      if (index == persons.length) {
+                        // End-of-tray cue (Review 04 F4): the total
+                        // count, reached when the tray is scrolled out —
+                        // it tells the user how many people exist in all.
+                        return SizedBox(
+                          width: 64,
+                          child: Center(
+                            child: Text(
+                              AppStrings.proposalPeopleCount.trParams(
+                                <String, String>{'count': '${persons.length}'},
+                              ),
+                              style: context.textStyles.bodySm.copyWith(
+                                color: p.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            style: context.textStyles.bodySm.copyWith(
-                              color: p.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
                           ),
+                        );
+                      }
+                      final person = persons[index];
+                      return PersonCard(
+                        person: person,
+                        imagePath: controller.photoPath,
+                        onTap: () => controller.togglePerson(person.id),
+                        belongings: controller.attachedBelongingsFor(
+                          person.id,
                         ),
+                        detachedIds: controller.detachedBelongingIds.toSet(),
+                        onToggleDetach: controller.toggleDetach,
                       );
-                    }
-                    final person = persons[index];
-                    return PersonCard(
-                      person: person,
-                      imagePath: controller.photoPath,
-                      onTap: () => controller.togglePerson(person.id),
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
-              SizedBox(height: s.md),
-              if (removes > 0)
-                PrimaryButton(
-                  labelKey: removes > 1
-                      ? AppStrings.proposalRemoveCount
-                      : AppStrings.proposalRemoveOne,
-                  labelParams: <String, String>{'count': '$removes'},
-                  onPressed: controller.confirmProposal,
+                SizedBox(height: s.md),
+              ],
+              if (items.isNotEmpty) ...<Widget>[
+                ProposalItemsGroup(
+                  items: items,
+                  photoPath: controller.photoPath,
+                  includedItemIds: controller.includedItemIds.toSet(),
+                  onToggleItem: controller.toggleItemIncluded,
+                ),
+                SizedBox(height: s.md),
+              ],
+              if (controller.hasRemovals)
+                ProposalConfirmButton(
+                  removes: controller.removeCount,
+                  items: controller.includedCount,
+                  onConfirm: controller.confirmProposal,
                 )
-              else
+              else if (persons.isNotEmpty)
                 // Keep-all (Review 04 F3): completes locally with the
                 // original photo — the label says exactly that.
                 PrimaryButton(
                   labelKey: AppStrings.proposalKeepAllAction,
                   onPressed: controller.completeKeepAll,
-                ),
+                )
+              else
+                // No people, only unattached items, nothing included:
+                // the plain no-people exits stay available below the
+                // group (never a dead or disabled primary, F3).
+                _noPeopleActions(context),
             ],
           ],
         ),
@@ -232,10 +263,20 @@ class ProposalView extends GetView<ProposalController> {
   Widget _statusSentence(BuildContext context) {
     final removes = controller.removeCount;
     final keepers = controller.keeperCount;
+    final included = controller.includedCount;
     final removedPart = removes == 1
         ? AppStrings.proposalStatusRemovedOne.tr
         : AppStrings.proposalStatusRemoved.trParams(<String, String>{
             'count': '$removes',
+          });
+    // Included ambiguous items get their own clause (X5 pattern):
+    // counts are stated only for what the user actually included.
+    final itemsPart = included == 0
+        ? null
+        : included == 1
+        ? AppStrings.proposalStatusRemovedItemOne.tr
+        : AppStrings.proposalStatusRemovedItems.trParams(<String, String>{
+            'count': '$included',
           });
     final protectedPart = keepers == 1
         ? AppStrings.proposalStatusProtectedOne.tr
@@ -245,7 +286,7 @@ class ProposalView extends GetView<ProposalController> {
     return Semantics(
       liveRegion: true,
       child: Text(
-        '$removedPart · $protectedPart',
+        <String>[removedPart, ?itemsPart, protectedPart].join(' · '),
         style: context.textStyles.bodyMd.copyWith(
           color: context.palette.textSecondary,
         ),

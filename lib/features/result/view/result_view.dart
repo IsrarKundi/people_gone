@@ -194,10 +194,22 @@ class ResultView extends GetView<ResultController> {
             SizedBox(width: s.xs),
             Expanded(
               child: Text(
-                AppStrings.resultSummary.trParams(<String, String>{
-                  'removed': '${controller.removedCount}',
-                  'total': '${controller.totalCount}',
-                }),
+                // The summary extends only when the job actually
+                // included group items (design X16); belongings that
+                // travelled with a person are never itemised.
+                controller.itemsRemoved > 0
+                    ? (controller.itemsRemoved == 1
+                          ? AppStrings.resultSummaryItemOne
+                          : AppStrings.resultSummaryItems)
+                          .trParams(<String, String>{
+                            'removed': '${controller.removedCount}',
+                            'total': '${controller.totalCount}',
+                            'items': '${controller.itemsRemoved}',
+                          })
+                    : AppStrings.resultSummary.trParams(<String, String>{
+                        'removed': '${controller.removedCount}',
+                        'total': '${controller.totalCount}',
+                      }),
                 style: context.textStyles.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
                 ),

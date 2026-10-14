@@ -77,6 +77,11 @@ class ResultController extends GetxController {
   bool get nobodyRemoved => outcome.nobodyRemoved;
   int get removedCount => outcome.removedIds.length;
   int get totalCount => outcome.personsDetected;
+
+  /// User-included ambiguous belongings removed by this job (v3).
+  /// Attached belongings are part of their person and are never
+  /// itemised in the summary (design X16).
+  int get itemsRemoved => outcome.itemsRemoved;
   bool get canCorrectKeeper => totalCount >= 2 && !nobodyRemoved;
 
   /// Every detected person id with its kept/removed state, for the

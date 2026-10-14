@@ -6,6 +6,7 @@ import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/person_thumbnail.dart';
 import '../../../services/processing/processing_api.dart';
+import '../model/belonging_label.dart';
 
 /// Interactive person card displayed in the proposal tray.
 /// Tapping toggles keep vs remove status.
@@ -15,11 +16,20 @@ class PersonCard extends StatelessWidget {
     required this.person,
     required this.imagePath,
     required this.onTap,
+    this.belongings = const <DetectedBelonging>[],
+    this.detachedIds = const <int>{},
+    this.onToggleDetach,
   });
 
   final DetectedPerson person;
   final String imagePath;
   final VoidCallback onTap;
+
+  /// This person's attached belongings (Phase A, X9): named on the
+  /// "Includes:" line, each name tappable to detach/re-attach it.
+  final List<DetectedBelonging> belongings;
+  final Set<int> detachedIds;
+  final void Function(int itemId)? onToggleDetach;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +88,83 @@ class PersonCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (belongings.isNotEmpty) ...<Widget>[
+              SizedBox(height: s.xs),
+              _includesLine(context),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  /// The "Includes:" line (X9): names this person's attached
+  /// belongings; each name is a small tappable chip that detaches
+  /// (protects) the item or re-attaches it. A detached name reads
+  /// struck-through and secondary — it no longer travels with the
+  /// person.
+  Widget _includesLine(BuildContext context) {
+    final p = context.palette;
+    final names = belongings
+        .map((b) => belongingClassLabelKey(b.detectedClass).tr)
+        .join(' · ');
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          AppStrings.proposalIncludesLine.trParams(<String, String>{
+            'names': names,
+          }),
+          style: context.textStyles.caption.copyWith(
+            color: p.textSecondary,
+            fontSize: 10,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 2,
+          children: <Widget>[
+            for (final item in belongings)
+              _nameChip(context, item),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _nameChip(BuildContext context, DetectedBelonging item) {
+    final p = context.palette;
+    final s = context.sizes;
+    final detached = detachedIds.contains(item.id);
+    final name = belongingClassLabelKey(item.detectedClass).tr;
+    return Semantics(
+      button: true,
+      label: detached
+          ? AppStrings.proposalBelongingReattach.trParams(<String, String>{
+              'name': name,
+            })
+          : AppStrings.proposalBelongingDetach.trParams(<String, String>{
+              'name': name,
+            }),
+      child: InkWell(
+        onTap: onToggleDetach == null
+            ? null
+            : () => onToggleDetach!(item.id),
+        borderRadius: BorderRadius.circular(s.radiusPill),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Text(
+            name,
+            style: context.textStyles.caption.copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: detached ? p.textSecondary : p.textPrimary,
+              decoration: detached ? TextDecoration.lineThrough : null,
+            ),
+          ),
         ),
       ),
     );

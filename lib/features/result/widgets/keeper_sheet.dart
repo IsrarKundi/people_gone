@@ -60,7 +60,9 @@ class KeeperSheet extends StatelessWidget {
                   color: p.surfaceVariant.withAlpha(60),
                   borderRadius: BorderRadius.circular(s.radiusLg),
                   border: Border.all(
-                    color: person.kept ? AppColors.emerald.withAlpha(100) : p.border,
+                    color: person.kept
+                        ? AppColors.emerald.withAlpha(100)
+                        : p.border,
                   ),
                 ),
                 child: Row(
@@ -81,7 +83,9 @@ class KeeperSheet extends StatelessWidget {
                               'n': '${person.id + 1}',
                             }),
                         style: context.textStyles.bodyMd.copyWith(
-                          fontWeight: person.kept ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: person.kept
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ),

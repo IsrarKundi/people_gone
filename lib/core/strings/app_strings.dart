@@ -72,6 +72,39 @@ abstract final class AppStrings {
   static const String proposalPersonMarkedRemove =
       'proposal_person_marked_remove';
   static const String proposalPersonProtected = 'proposal_person_protected';
+  // Phase A belongings (Contract v3, FR-08; design X8-X10).
+  static const String proposalIncludesLine = 'proposal_includes_line';
+  static const String belongingClassBackpack = 'belonging_class_backpack';
+  static const String belongingClassHandbag = 'belonging_class_handbag';
+  static const String belongingClassSuitcase = 'belonging_class_suitcase';
+  static const String belongingClassUmbrella = 'belonging_class_umbrella';
+  static const String belongingClassOther = 'belonging_class_other';
+  static const String proposalBelongingDetach = 'proposal_belonging_detach';
+  static const String proposalBelongingReattach =
+      'proposal_belonging_reattach';
+  static const String proposalBelongingDetachSemantics =
+      'proposal_belonging_detach_semantics';
+  static const String proposalBelongingDetachedSemantics =
+      'proposal_belonging_detached_semantics';
+  static const String proposalItemsTitle = 'proposal_items_title';
+  static const String proposalItemsCount = 'proposal_items_count';
+  static const String proposalItemKeep = 'proposal_item_keep';
+  static const String proposalItemRemove = 'proposal_item_remove';
+  static const String proposalItemMarkedRemove =
+      'proposal_item_marked_remove';
+  static const String proposalItemKeptSemantics =
+      'proposal_item_kept_semantics';
+  static const String proposalStatusRemovedItems =
+      'proposal_status_removed_items';
+  static const String proposalStatusRemovedItemOne =
+      'proposal_status_removed_item_one';
+  static const String proposalRemoveCombo = 'proposal_remove_combo';
+  static const String proposalPartPeople = 'proposal_part_people';
+  static const String proposalPartPersonOne = 'proposal_part_person_one';
+  static const String proposalPartItems = 'proposal_part_items';
+  static const String proposalPartItemOne = 'proposal_part_item_one';
+  static const String resultSummaryItems = 'result_summary_items';
+  static const String resultSummaryItemOne = 'result_summary_item_one';
 
   // Result (S7).
   static const String resultSummary = 'result_summary';
@@ -218,8 +251,39 @@ class AppTranslations extends Translations {
           'Person @n, marked to remove. Double-tap to keep.',
       AppStrings.proposalPersonProtected:
           'Person @n, protected. Double-tap to remove.',
+      AppStrings.proposalIncludesLine: 'Includes: @names',
+      AppStrings.belongingClassBackpack: 'Backpack',
+      AppStrings.belongingClassHandbag: 'Handbag',
+      AppStrings.belongingClassSuitcase: 'Suitcase',
+      AppStrings.belongingClassUmbrella: 'Umbrella',
+      AppStrings.belongingClassOther: 'Item',
+      AppStrings.proposalBelongingDetach: 'Detach @name',
+      AppStrings.proposalBelongingReattach: 'Re-attach @name',
+      AppStrings.proposalBelongingDetachSemantics:
+          '@name of person @n, removed with them. Double-tap to detach and keep it.',
+      AppStrings.proposalBelongingDetachedSemantics:
+          '@name of person @n, detached and protected. Double-tap to re-attach.',
+      AppStrings.proposalItemsTitle: 'Distractions',
+      AppStrings.proposalItemsCount: '@count',
+      AppStrings.proposalItemKeep: 'Keep',
+      AppStrings.proposalItemRemove: 'Remove',
+      AppStrings.proposalItemMarkedRemove:
+          '@name, marked to remove. Double-tap to keep.',
+      AppStrings.proposalItemKeptSemantics:
+          '@name, kept. Double-tap to remove.',
+      AppStrings.proposalStatusRemovedItems: '@count items will be removed',
+      AppStrings.proposalStatusRemovedItemOne: '1 item will be removed',
+      AppStrings.proposalRemoveCombo: 'Remove @parts',
+      AppStrings.proposalPartPeople: '@count people',
+      AppStrings.proposalPartPersonOne: '1 person',
+      AppStrings.proposalPartItems: '@count items',
+      AppStrings.proposalPartItemOne: '1 item',
       AppStrings.resultSummary:
           '@removed of @total people removed. Your subject stays untouched.',
+      AppStrings.resultSummaryItems:
+          '@removed of @total people and @items items removed. Your subject stays untouched.',
+      AppStrings.resultSummaryItemOne:
+          '@removed of @total people and 1 item removed. Your subject stays untouched.',
       AppStrings.resultSave: 'Save photo',
       AppStrings.resultSaved: 'Saved',
       AppStrings.resultShare: 'Share',
