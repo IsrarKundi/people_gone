@@ -220,6 +220,18 @@ would-post bar.
   items; copy frozen), no Phase B shipped-set change, no new
   dependency.
 
+**Live verification (deployed worker, bounded to exactly the two
+agreed photos):** redeployed from `modal-deploy/` after the gate
+pass. (1) Owner mosque photo, keep=[0]: ok, 13 persons, keeper [0],
+12 removed, the Phase A handbag still detected attached to person 4
+(box/score byte-identical to the pre-Phase-C build — no regression),
+900×1600 in = out, total 130.9s (mask_prep 0.32s), no fallbacks.
+(2) 22_sunset_sidewalk, keep=[0,1]: ok, walker (id 2) removed,
+4413×5516 in = out, total 16.9s warm (mask_prep 2.3s at 24MP), no
+fallbacks; visually verified — **the walker's long shadow streak is
+gone from the deployed output and the keepers' shadows are fully
+preserved** (evidence in the working folder, `live/`).
+
 **Known limits (carried honestly):** v1 fires only where cast
 evidence is strong — faint shadows on bright ground (piazza),
 midday pools (promenade), and B&W texture chaos (arch) stay at the
