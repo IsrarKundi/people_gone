@@ -7,6 +7,12 @@ ignore the new fields and behave exactly as under v2. The gateway
 (Supabase) section at the bottom describes the v2 gateway surface plus
 its v3 additions.
 
+**Phase B (2026-10-14, distractions) is additive over the Phase A
+shape in the same way:** v3 only ADDS the `distractions` list (below)
+and the `/process` meta fields `distractions`,
+`distractions_removed`, `distractions_removed_ids`. No field changed
+meaning; `contract_version` stays 3.
+
 Base URL: whatever Modal prints on deploy (looks like
 `https://<workspace>--peoplegone-worker-web.modal.run`).
 
@@ -65,6 +71,22 @@ Response `200` JSON:
       "tier": "ambiguous",
       "person_id": null
     }
+  ],
+  "distractions": [
+    {
+      "id": 10000,
+      "kind": "distraction",
+      "category": "car",
+      "box": [1600, 500, 1900, 800],
+      "score": 0.93
+    },
+    {
+      "id": 10001,
+      "kind": "distraction",
+      "category": "trash bin",
+      "box": [300, 600, 380, 780],
+      "score": 0.85
+    }
   ]
 }
 ```
@@ -98,6 +120,28 @@ pays the one SAM image encode — expect Stage A to take longer than
 the v2 detect-only pass on CPU (~7–10 s more); NFR-02's ≤5 s analysis
 target was written for GPU hosting.
 
+**Distractions (v3, Phase B).** Non-person street objects the user
+may choose to remove (design X1–X7; default KEEP — nothing is removed
+unless the confirm payload includes the id). Two detector sources:
+the same RT-DETR pass for the COCO classes car, bus, truck, motorbike
+(the checkpoint's own label), bicycle, traffic light, parking meter,
+bench, fire hydrant — and OmDet-Turbo Tiny (Apache-2.0, run ONCE per
+analysis) for the prompts "trash bin" and "stroller". Every category
+carries a per-category score threshold from the Phase B calibration
+(`docs/architecture/phase-b-calibration.md`; config lives in
+`server/worker/distractions.py` — the ONE place thresholds are set).
+Poles and street signs are withheld entirely (spike verdict), and
+stop sign is withheld on thin evidence (calibration doc) — they
+never appear. Dedupe guarantees one physical object = one item:
+persons are never distractions, an attached/ambiguous belonging is
+never also a distraction, and an OmDet candidate whose SAM mask is
+the same object as a person/belonging/RT-DETR item is suppressed
+(RT-DETR wins its own classes). Distraction `id`s live in their own
+range (≥ 10000) so they can share the `remove_items` confirm field
+with belonging ids without collisions. `category` IS a label of
+record (unlike belongings' `detected_class` hint): the calibration
+gate passed per category.
+
 ## POST /process  (multipart/form-data)
 Fields:
 - `file` — the photo (JPEG/PNG), required.
@@ -114,7 +158,9 @@ Fields:
   ids the user chose to remove, e.g. `"1"`. Ids not present in this
   run's analysis are ignored — a stale client can never invent a
   removal. Attached belongings need no entry here: they follow their
-  person automatically.
+  person automatically. **Phase B:** DISTRACTION ids (≥ 10000) ride
+  this same field — a distraction is removed only when its id is
+  included here; kept distractions are protected (below).
 - `detached_items` — optional (v3), comma-separated ATTACHED
   belonging ids the user detached from their person on S4. A detached
   belonging is protected — it is never in any removal mask, even when
@@ -129,6 +175,19 @@ attached belongings are part of their person and are NEVER itemised
 in counts, design X16). The ghost check also re-detects belongings
 classes in crops that carried items: a surviving item retries with a
 re-dilated mask, exactly like a surviving person.
+
+Phase B meta additions: `distractions` (same shape as /detect),
+`distractions_removed` (count) and `distractions_removed_ids`.
+An included distraction is inpainted on its own native-res crop
+through the same engine path (MAT default; large items ride the
+racing under `engine="auto"`). **Protected-set clipping (hard
+rule):** every distraction mask is clipped to exclude protected
+pixels — keeper persons + their belongings + detached belongings +
+belongings not included + distractions not included — before
+inpainting, and the ghost-retry re-dilation is re-clipped. The
+distraction ghost check re-detects the item's own category on its
+finished crop with the same detector that found it (residual must
+overlap the original box); one retry, mirroring the person pattern.
 
 Response `200` JSON:
 ```json

@@ -82,6 +82,11 @@ class FakeDetector:
         self._items_served = True
         return [dict(i) for i in ITEMS]
 
+    def detect_distractions(self, image_np):
+        # Phase B stage exists in the pipeline; this fixture's world
+        # contains no distractions.
+        return []
+
 
 class FakeSegmentor:
     fallback_used = False
@@ -99,10 +104,13 @@ class FakeInpainter:
 
 def make_pipeline():
     pipe = PeopleGonePipeline.__new__(PeopleGonePipeline)
-    pipe.config = PipelineConfig()
+    # OmDet disabled: these tests model the RT-DETR world only (the
+    # OmDet stage has its own fakes in test_distractions.py).
+    pipe.config = PipelineConfig(omdet_enabled=False)
     pipe.detector = FakeDetector()
     pipe.segmentor = FakeSegmentor()
     pipe.inpainter = FakeInpainter()
+    pipe._omdet_detector = None
     return pipe
 
 

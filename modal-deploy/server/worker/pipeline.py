@@ -26,8 +26,21 @@ from .belongings import (
     prepare_item_removal_mask,
     tier_belongings,
 )
+from .distractions import (
+    DISTRACTION_ID_BASE,
+    OmDetDetector,
+    build_distraction_candidates,
+    clip_mask,
+    prepare_distraction_mask,
+    suppress_omdet_duplicates,
+    union_of,
+)
 from .inpainter import LamaInpainter, get_crop_bounds, composite_with_feather
-from .ghost_check import check_for_ghost_residuals, check_for_belongings_residuals
+from .ghost_check import (
+    check_for_ghost_residuals,
+    check_for_belongings_residuals,
+    check_for_distraction_residuals,
+)
 
 RUNPOD_16GB_PER_SEC_RATE = 0.00016  # $0.576 / hour
 
@@ -41,6 +54,11 @@ class PipelineConfig:
     retry_dilation_factor: float = 0.05
     runpod_rate_per_sec: float = RUNPOD_16GB_PER_SEC_RATE
     jpeg_quality: int = 95
+    # Phase B: OmDet-Turbo pass for the COCO-missing distraction
+    # prompts ("trash bin", "stroller"). Can be disabled for tests
+    # running on transformers < 4.45 (OmDet classes absent) — the
+    # production image pins 4.46.3 and always enables it.
+    omdet_enabled: bool = True
 
 class PeopleGonePipeline:
     def __init__(self, config: Optional[PipelineConfig] = None):
@@ -51,6 +69,18 @@ class PeopleGonePipeline:
         )
         self.segmentor = SamSegmentor(checkpoint=self.config.sam_checkpoint)
         self.inpainter = LamaInpainter(checkpoint_path=self.config.lama_checkpoint)
+        self._omdet_detector: Optional[OmDetDetector] = None
+
+    def _get_omdet(self) -> Optional[OmDetDetector]:
+        """Lazy OmDet handle (weights load on first analysis, not at
+        pipeline construction). None when disabled by config."""
+        if not getattr(self.config, "omdet_enabled", True):
+            return None
+        det = getattr(self, "_omdet_detector", None)
+        if det is None:
+            det = OmDetDetector()
+            self._omdet_detector = det
+        return det
 
     def _analyse(
         self,
@@ -75,6 +105,17 @@ class PeopleGonePipeline:
         items = self.detector.detect_belongings(orig_rgb)
         timings["detection_ms"] = (time.perf_counter() - t0) * 1000.0
 
+        # Phase B: distraction candidates (box stage). OmDet runs
+        # ONCE per analysis — never per crop (spike constraint).
+        t0 = time.perf_counter()
+        rt_distractions = self.detector.detect_distractions(orig_rgb)
+        omdet = self._get_omdet()
+        omdet_detections = omdet.detect(orig_rgb) if omdet is not None else []
+        candidates = build_distraction_candidates(
+            rt_distractions, omdet_detections
+        )
+        timings["distraction_detection_ms"] = (time.perf_counter() - t0) * 1000.0
+
         keeper_ids: set = set()
         remove_ids: set = set()
         if persons:
@@ -87,16 +128,20 @@ class PeopleGonePipeline:
         person_masks: List[np.ndarray] = []
         item_masks: List[np.ndarray] = []
         tiered: List[Dict[str, Any]] = []
-        if persons or items:
+        distractions: List[Dict[str, Any]] = []
+        distraction_masks: List[np.ndarray] = []
+        if persons or items or candidates:
             t0 = time.perf_counter()
             all_boxes = (
                 [{"box": p["box"]} for p in persons]
                 + [{"box": it["box"]} for it in items]
+                + [{"box": c["box"]} for c in candidates]
             )
             all_masks = self.segmentor.segment_boxes(orig_rgb, all_boxes)
             timings["segmentation_ms"] = (time.perf_counter() - t0) * 1000.0
             person_masks = all_masks[: len(persons)]
-            item_masks = all_masks[len(persons):]
+            item_masks = all_masks[len(persons): len(persons) + len(items)]
+            distraction_masks = all_masks[len(persons) + len(items):]
 
             # Adjustment 2: merge duplicate belongings detections by
             # mask IoU BEFORE tiering (ids of merged-away items simply
@@ -107,6 +152,32 @@ class PeopleGonePipeline:
                 persons, person_masks, keeper_ids, items, item_masks
             )
 
+            # Phase B mask stage: an OmDet candidate whose mask is
+            # the same physical object as a person / belonging /
+            # RT-DETR item is suppressed (RT-DETR wins its classes).
+            if candidates:
+                reference_masks = (
+                    list(person_masks)
+                    + list(item_masks)
+                    + [
+                        m for c, m in zip(candidates, distraction_masks)
+                        if c["source"] == "rtdetr"
+                    ]
+                )
+                candidates, distraction_masks = suppress_omdet_duplicates(
+                    candidates, distraction_masks, reference_masks
+                )
+                distractions = [
+                    {
+                        "id": DISTRACTION_ID_BASE + i,
+                        "category": c["category"],
+                        "box": [int(b) for b in c["box"]],
+                        "score": float(c["score"]),
+                        "source": c["source"],
+                    }
+                    for i, c in enumerate(candidates)
+                ]
+
         return {
             "persons": persons,
             "keeper_ids": keeper_ids,
@@ -115,6 +186,8 @@ class PeopleGonePipeline:
             "items": items,
             "item_masks": item_masks,
             "tiered": tiered,
+            "distractions": distractions,
+            "distraction_masks": distraction_masks,
         }
 
     def _build_removal_units(
@@ -123,7 +196,7 @@ class PeopleGonePipeline:
         analysis: Dict[str, Any],
         remove_item_ids: set,
         detached_ids: set,
-    ) -> Tuple[List[Dict[str, Any]], List[int], int]:
+    ) -> Tuple[List[Dict[str, Any]], List[int], int, List[int]]:
         """Builds the removal units for one confirmed job.
 
         Attached belongings are unioned into their owner's RAW mask
@@ -133,10 +206,18 @@ class PeopleGonePipeline:
         items become standalone units only when the user included
         them (remove_item_ids).
 
-        Returns (units, belongings_removed_ids, items_removed) where
-        items_removed counts ONLY the user-included ambiguous items
-        (attached belongings are part of their person — X16, never
-        itemised in the result summary).
+        Phase B: distractions (ids >= DISTRACTION_ID_BASE in the same
+        remove_item_ids set) become standalone units only when the
+        user included them. Every distraction mask is clipped against
+        the PROTECTED SET (design X11): keeper persons + their
+        belongings + detached belongings + belongings NOT included +
+        distractions NOT included. A car overlapping the keeper loses
+        the overlap, never the keeper.
+
+        Returns (units, belongings_removed_ids, items_removed,
+        distractions_removed_ids) where items_removed counts ONLY the
+        user-included ambiguous items (attached belongings are part
+        of their person — X16, never itemised in the result summary).
         """
         persons = analysis["persons"]
         remove_ids = analysis["remove_ids"]
@@ -191,7 +272,58 @@ class PeopleGonePipeline:
                 belongings_removed_ids.append(t["id"])
                 items_removed += 1
 
-        return units, belongings_removed_ids, items_removed
+        # Phase B: distraction units + the protected set they clip
+        # against. Protected = everything the user did NOT ask to
+        # remove that the pipeline knows about (X11). Removal-person
+        # masks and included items/distractions are NOT protected.
+        distractions = analysis.get("distractions", [])
+        distraction_masks = analysis.get("distraction_masks", [])
+        distractions_removed_ids: List[int] = []
+        included_distractions = [
+            (d, m) for d, m in zip(distractions, distraction_masks)
+            if d["id"] in remove_item_ids
+        ]
+        if included_distractions:
+            keeper_ids = analysis["keeper_ids"]
+            person_index = {p["id"]: i for i, p in enumerate(persons)}
+            protected_masks: List[np.ndarray] = []
+            for pid in keeper_ids:
+                if pid in person_index:
+                    protected_masks.append(
+                        analysis["person_masks"][person_index[pid]]
+                    )
+            for t in tiered:
+                item_mask = mask_by_item_id.get(t["id"])
+                if item_mask is None:
+                    continue
+                if t["tier"] == "attached" and (
+                    t["person_id"] in keeper_ids or t["id"] in detached_ids
+                ):
+                    protected_masks.append(item_mask)
+                elif t["tier"] == "ambiguous" and t["id"] not in remove_item_ids:
+                    protected_masks.append(item_mask)
+            for d, m in zip(distractions, distraction_masks):
+                if d["id"] not in remove_item_ids:
+                    protected_masks.append(m)
+            protected_union = union_of(protected_masks)
+
+            for d, m in included_distractions:
+                units.append({
+                    "mask": prepare_distraction_mask(
+                        m, d["box"], protected_union
+                    ),
+                    "height": max(1, d["box"][3] - d["box"][1]),
+                    "kind": "distraction",
+                    "has_items": False,
+                    "category": d["category"],
+                    "source": d["source"],
+                    "box": d["box"],
+                    "id": d["id"],
+                    "protected_union": protected_union,
+                })
+                distractions_removed_ids.append(d["id"])
+
+        return units, belongings_removed_ids, items_removed, distractions_removed_ids
 
     @staticmethod
     def _format_belongings(tiered: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -210,10 +342,34 @@ class PeopleGonePipeline:
             for t in tiered
         ]
 
+    @staticmethod
+    def _format_distractions(
+        distractions: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Contract v3 distractions entries (additive over the
+        Phase A shape). `kind` discriminates the entry in the shared
+        item id space; `category` is the detector's class — unlike
+        belongings it IS a label of record here, because the
+        calibration gate passed per category (a category that cannot
+        be told apart from another does not ship)."""
+        return [
+            {
+                "id": d["id"],
+                "kind": "distraction",
+                "category": d["category"],
+                "box": [int(b) for b in d["box"]],
+                "score": float(d["score"]),
+            }
+            for d in distractions
+        ]
+
     def _get_fallbacks_used(self) -> List[str]:
         fallbacks = []
         if getattr(self.detector, "fallback_used", False):
             fallbacks.append("detector")
+        omdet = getattr(self, "_omdet_detector", None)
+        if omdet is not None and getattr(omdet, "fallback_used", False):
+            fallbacks.append("omdet")
         if getattr(self.segmentor, "fallback_used", False):
             fallbacks.append("segmentor")
         if getattr(self.inpainter, "fallback_used", False):
@@ -235,6 +391,12 @@ class PeopleGonePipeline:
         Attached belongings of removed persons are removed with their
         person by default (FR-08); attached belongings of keepers and
         detached belongings are never in any removal mask (X11).
+
+        Phase B: remove_item_ids ALSO carries DISTRACTION ids
+        (>= DISTRACTION_ID_BASE) the user chose to remove. A
+        distraction is removed only when included; every distraction
+        mask is clipped against the protected set (X11) — see
+        _build_removal_units.
         """
         t_start = time.perf_counter()
         timings = {}
@@ -263,6 +425,13 @@ class PeopleGonePipeline:
             t for t in tiered
             if t["tier"] == "ambiguous" and t["id"] in remove_item_ids
         ]
+        # Phase B: distraction ids ride the same remove_item_ids set
+        # (their own high id range keeps the spaces apart). Unknown
+        # ids are ignored, exactly like stale item ids.
+        distractions = analysis.get("distractions", [])
+        included_distractions = [
+            d for d in distractions if d["id"] in remove_item_ids
+        ]
         honoured_detached = sorted(
             t["id"] for t in tiered
             if t["tier"] == "attached" and t["id"] in detached_ids
@@ -270,7 +439,9 @@ class PeopleGonePipeline:
 
         def _meta(crops_inpainted: int, ghost_fired: bool, retry_count: int,
                   belongings_removed_ids: List[int], items_removed: int,
-                  total_time_s: float) -> Dict[str, Any]:
+                  total_time_s: float,
+                  distractions_removed_ids: Optional[List[int]] = None,
+                  ) -> Dict[str, Any]:
             return {
                 "contract_version": 3,
                 "input_dimensions": [w, h],
@@ -291,6 +462,11 @@ class PeopleGonePipeline:
                 "belongings_removed_ids": sorted(belongings_removed_ids),
                 "belongings_detached_ids": honoured_detached,
                 "items_removed": items_removed,
+                "distractions": self._format_distractions(distractions),
+                "distractions_removed": len(distractions_removed_ids or []),
+                "distractions_removed_ids": sorted(
+                    distractions_removed_ids or []
+                ),
                 "crops_inpainted": crops_inpainted,
                 "timings_ms": timings,
                 "total_seconds": round(total_time_s, 4),
@@ -302,7 +478,7 @@ class PeopleGonePipeline:
                 "model_versions": self._get_model_versions()
             }
 
-        if not remove_ids and not included_items:
+        if not remove_ids and not included_items and not included_distractions:
             total_time_s = time.perf_counter() - t_start
             timings["total_e2e_ms"] = total_time_s * 1000.0
             return self._encode_jpeg(orig_pil), _meta(
@@ -311,7 +487,7 @@ class PeopleGonePipeline:
 
         # 5. Mask Preparation — removal units (see _build_removal_units)
         t0 = time.perf_counter()
-        units, belongings_removed_ids, items_removed = (
+        units, belongings_removed_ids, items_removed, distractions_removed_ids = (
             self._build_removal_units(
                 orig_rgb, analysis, remove_item_ids, detached_ids
             )
@@ -368,6 +544,13 @@ class PeopleGonePipeline:
                     composited, cb, self.detector
                 )
                 fired = fired or fired_item
+            if unit["kind"] == "distraction":
+                fired_distraction, _ = check_for_distraction_residuals(
+                    composited, cb,
+                    unit["category"], unit["source"], unit["box"],
+                    self.detector, self._get_omdet(),
+                )
+                fired = fired or fired_distraction
             if fired:
                 ghost_fired = True
                 ghost_affected_records.append(rec)
@@ -384,6 +567,13 @@ class PeopleGonePipeline:
                 bh = item["height"]
                 retry_dilation_px = max(12, int(bh * self.config.retry_dilation_factor))
                 dilated_retry_mask = dilate_mask(item["mask"], retry_dilation_px)
+                # Distraction retries re-clip against the protected
+                # set: the bigger dilation must not buy the retry
+                # any protected pixels (X11 hard rule).
+                if item.get("protected_union") is not None:
+                    dilated_retry_mask = clip_mask(
+                        dilated_retry_mask, item["protected_union"]
+                    )
 
                 image_crop = composited[cy1:cy2, cx1:cx2]
                 mask_crop_retry = dilated_retry_mask[cy1:cy2, cx1:cx2]
@@ -404,7 +594,8 @@ class PeopleGonePipeline:
 
         return output_bytes, _meta(
             crops_inpainted, ghost_fired, retry_count,
-            belongings_removed_ids, items_removed, total_time_s
+            belongings_removed_ids, items_removed, total_time_s,
+            distractions_removed_ids=distractions_removed_ids,
         )
 
     def touchup(
@@ -499,6 +690,9 @@ class PeopleGonePipeline:
             "removed_ids": sorted(list(remove_ids)),
             "persons": formatted_persons,
             "belongings": self._format_belongings(analysis["tiered"]),
+            "distractions": self._format_distractions(
+                analysis.get("distractions", [])
+            ),
         }
 
     def _load_image(self, photo: Union[str, bytes, np.ndarray, Image.Image]) -> Image.Image:

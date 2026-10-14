@@ -105,12 +105,18 @@ class PersonDetector:
                     "Silent fallbacks are disabled. Set PG_ALLOW_FALLBACKS=1 only for offline development."
                 ) from e
 
-    def _raw_detections(self, image_np: np.ndarray) -> Optional[List[Dict[str, Any]]]:
+    def _raw_detections(
+        self, image_np: np.ndarray, threshold: Optional[float] = None
+    ) -> Optional[List[Dict[str, Any]]]:
         """Runs the detector once and returns EVERY detection above the
         confidence threshold as {'box', 'score', 'label'} (no id yet),
         or None when the model is unavailable and fallbacks are enabled
         (the caller then decides its fallback behaviour). Raises when
-        fallbacks are disabled, exactly as before."""
+        fallbacks are disabled, exactly as before. `threshold`
+        overrides the instance threshold for this call only (the
+        distractions pass runs at the same 0.35 floor today; the
+        parameter keeps the per-category bars in distractions.py)."""
+        threshold = self.confidence_threshold if threshold is None else threshold
         h, w = image_np.shape[:2]
         self._lazy_init()
 
@@ -127,7 +133,7 @@ class PersonDetector:
 
                 target_sizes = torch.tensor([[h, w]]).to(self.device)
                 results = self._processor.post_process_object_detection(
-                    outputs, target_sizes=target_sizes, threshold=self.confidence_threshold
+                    outputs, target_sizes=target_sizes, threshold=threshold
                 )[0]
 
                 detections = []
@@ -214,6 +220,50 @@ class PersonDetector:
         for idx, item in enumerate(items):
             item["id"] = idx
         return items
+
+    def detect_distractions(self, image_np: np.ndarray) -> List[Dict[str, Any]]:
+        """
+        Detects the RT-DETR distraction classes (Phase B — car, bus,
+        truck, motorbike, bicycle, traffic light, parking meter,
+        bench, fire hydrant) in the same detector family. Returns raw
+        [{'box', 'score', 'label'}] at the instance floor (0.35);
+        per-category thresholds, cross-class dedupe and id assignment
+        live in worker/distractions.py + the pipeline (the labels are
+        config there, so this method deliberately does NOT use the
+        strict 0.85 dedupe: distraction boxes legitimately nest —
+        a bench under a person — and the Phase B dedupe rule is the
+        geometric one in distractions.py). No ids are assigned here.
+        """
+        self.fallback_used = False
+        raw = self._raw_detections(image_np)
+        if raw is None:
+            return []
+
+        from .distractions import RT_DETR_DISTRACTION_LABELS
+
+        return [
+            {"box": d["box"], "score": d["score"], "label": d["label"]}
+            for d in raw
+            if d["label"] in RT_DETR_DISTRACTION_LABELS
+            and (d["box"][2] - d["box"][0]) > 8
+            and (d["box"][3] - d["box"][1]) > 8
+        ]
+
+    def detect_category(
+        self, image_np: np.ndarray, category: str
+    ) -> List[Dict[str, Any]]:
+        """Detections of ONE RT-DETR category (ghost check for
+        distractions re-detects the removed item's own class on its
+        finished crop with the same detector that found it)."""
+        self.fallback_used = False
+        raw = self._raw_detections(image_np)
+        if raw is None:
+            return []
+        return [
+            {"box": d["box"], "score": d["score"], "label": d["label"]}
+            for d in raw
+            if d["label"] == category
+        ]
 
     def _heuristic_fallback(self, image_np: np.ndarray) -> List[Dict[str, Any]]:
         """Fallback detector when neural network weights are offline."""
