@@ -193,7 +193,7 @@ class AppTranslations extends Translations {
       AppStrings.homeJobBannerDone: 'Your cleaned photo is ready',
       AppStrings.homeJobBannerDoneSub: 'Tap to view and save your photo',
       AppStrings.homeJobBannerFailed: 'Clean could not be completed',
-      AppStrings.homeJobBannerFailedSub: 'Tap to share diagnostics',
+      AppStrings.homeJobBannerFailedSub: 'No save was used',
 
       AppStrings.proposalTitle: 'Review people to remove',
       AppStrings.proposalRemoveCount: 'Remove @count people',

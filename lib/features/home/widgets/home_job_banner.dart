@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 
-import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -67,9 +65,10 @@ class HomeJobBanner extends StatelessWidget {
         );
         title = AppStrings.homeJobBannerFailed.tr;
         subtitle = AppStrings.homeJobBannerFailedSub.tr;
-        onTap = () {
-          Share.share(DiagnosticsLog.instance.export());
-        };
+        // Failed (Review 06 F2): the banner states the user's fact
+        // ("No save was used") and tapping dismisses it — diagnostics
+        // sharing lives on the error view and in Settings, not here.
+        onTap = JobTracker.instance.clear;
     }
 
     // One card language (D12): neutral hairline border at the shared
