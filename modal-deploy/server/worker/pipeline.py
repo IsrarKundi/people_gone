@@ -37,6 +37,11 @@ from .distractions import (
     union_of,
 )
 from .inpainter import LamaInpainter, get_crop_bounds, composite_with_feather
+from .reflections import (
+    REFLECTION_PROMPTS,
+    SURFACE_PROMPTS,
+    reflection_warnings,
+)
 from .ghost_check import (
     check_for_ghost_residuals,
     check_for_belongings_residuals,
@@ -194,6 +199,40 @@ class PeopleGonePipeline:
             "distractions": distractions,
             "distraction_masks": distraction_masks,
         }
+
+    def _reflection_regions(
+        self,
+        orig_rgb: np.ndarray,
+        persons: List[Dict[str, Any]],
+        keeper_ids,
+        remove_ids,
+        timings: Optional[Dict[str, float]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Phase D reflection warnings (worker/reflections.py).
+
+        Two extra OmDet passes (reflective surfaces, then
+        reflection-of-a-person prompts) judged against the frozen
+        warn logic. Runs only when somebody is being removed —
+        a reflection with no removed person to belong to never
+        warns. Meta-only: the composite is never touched.
+        """
+        if not remove_ids:
+            return []
+        omdet = self._get_omdet()
+        if omdet is None:
+            return []
+        t0 = time.perf_counter()
+        surfaces = omdet.detect(orig_rgb, prompts=SURFACE_PROMPTS)
+        refl = omdet.detect(orig_rgb, prompts=REFLECTION_PROMPTS)
+        import cv2
+
+        gray = cv2.cvtColor(orig_rgb, cv2.COLOR_RGB2GRAY)
+        regions = reflection_warnings(
+            persons, keeper_ids, remove_ids, surfaces, refl, gray
+        )
+        if timings is not None:
+            timings["reflection_ms"] = (time.perf_counter() - t0) * 1000.0
+        return regions
 
     def _build_removal_units(
         self,
@@ -443,6 +482,13 @@ class PeopleGonePipeline:
             if t["tier"] == "attached" and t["id"] in detached_ids
         )
 
+        # Phase D: reflection warnings for the removed people in
+        # this job (meta-only; computed before any mask work and
+        # never fed back into the composite).
+        reflection_regions = self._reflection_regions(
+            orig_rgb, persons, keeper_ids, remove_ids, timings
+        )
+
         def _meta(crops_inpainted: int, ghost_fired: bool, retry_count: int,
                   belongings_removed_ids: List[int], items_removed: int,
                   total_time_s: float,
@@ -473,6 +519,12 @@ class PeopleGonePipeline:
                 "distractions_removed_ids": sorted(
                     distractions_removed_ids or []
                 ),
+                # Phase D (additive, Contract v3): a removed person
+                # probably left a visible reflection behind. The app
+                # warns on the Result screen and offers the brush;
+                # reflections are never auto-removed in v1 (X13).
+                "reflection_warning": bool(reflection_regions),
+                "reflection_regions": reflection_regions,
                 "crops_inpainted": crops_inpainted,
                 "timings_ms": timings,
                 "total_seconds": round(total_time_s, 4),

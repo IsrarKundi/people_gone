@@ -22,6 +22,17 @@ failed the removal-quality gate (see
 is enabled there. The contract surface below is unchanged and fully
 implemented — this is a config state, not a missing feature.
 
+**Phase D (2026-10-15, reflections — detect + warn only, FR-09) is
+additive over the Phase B shape:** `/process` meta only ADDS
+`reflection_warning` (bool) and `reflection_regions` (list of
+`{person_id, box, surface, kind, score}` — the probable reflection
+of a REMOVED person, in original-image pixels). Reflections are
+never auto-removed in v1 and never appear in `/detect`; the fields
+ride the existing gateway meta round-trip unchanged (worker-callback
+stores meta verbatim, job-status returns it when done), so no
+gateway change was needed. `contract_version` stays 3. Gate +
+evidence: `docs/architecture/phase-d-investigation.md`.
+
 Base URL: whatever Modal prints on deploy (looks like
 `https://<workspace>--peoplegone-worker-web.modal.run`).
 
