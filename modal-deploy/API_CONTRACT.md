@@ -212,6 +212,14 @@ server-side.
   fires the worker `/process` with a per-job callback token (sha256
   stored on the job row) and a signed result-upload URL; the worker
   PUTs the result JPEG there, then POSTs `worker-callback`.
+- **Gateway v3 additions (Phase A, 2026-10-14):** `analyse-job`
+  returns the worker's `belongings` list and stores it on the job
+  (`meta` jsonb — no schema migration); `create-job` returns it with
+  the stored proposal on idempotent retries; `confirm-job` accepts
+  `remove_item_ids` + `detached_belonging_ids`, records them in job
+  meta, and forwards them to the worker as the `remove_items` /
+  `detached_items` form fields above. Worker meta (incl.
+  `items_removed`) reaches the app verbatim via `job-status`.
 - `POST worker-callback {job_id, token, meta}` (no JWT; token-hash
   verified) → job `done`, meta stored.
 - `GET job-status?job_id=` → `{job_id, status, error, meta|null}`
