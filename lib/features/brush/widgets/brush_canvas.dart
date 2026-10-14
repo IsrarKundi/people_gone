@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/photo_surface.dart';
 import 'brush_mask_painter.dart';
@@ -29,6 +31,7 @@ class BrushCanvas extends StatefulWidget {
     required this.onStrokePoint,
     required this.onStrokeEnd,
     required this.onScaleResolved,
+    required this.hintVisible,
   });
 
   final String imagePath;
@@ -39,6 +42,9 @@ class BrushCanvas extends StatefulWidget {
   final void Function(Offset imagePoint) onStrokePoint;
   final VoidCallback onStrokeEnd;
   final void Function(double scale) onScaleResolved;
+
+  /// The hint chip shows until the first stroke lands (Review 07 B2).
+  final bool hintVisible;
 
   @override
   State<BrushCanvas> createState() => _BrushCanvasState();
@@ -74,7 +80,7 @@ class _BrushCanvasState extends State<BrushCanvas> {
           );
         }
 
-        return InteractiveViewer(
+        final viewer = InteractiveViewer(
           minScale: 1,
           maxScale: 4,
           panEnabled: false,
@@ -125,6 +131,48 @@ class _BrushCanvasState extends State<BrushCanvas> {
               ],
             ),
           ),
+        );
+
+        // The hint chip anchors to the photo's FITTED rectangle
+        // (Review 07 B2/D14) — inside its top edge, content-sized,
+        // outside the zoom transform — and fades out for good once
+        // the first stroke has landed.
+        final s = context.sizes;
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            viewer,
+            Positioned(
+              top: band.top + s.sm,
+              left: band.left + s.sm,
+              right: area.width - band.right + s.sm,
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: widget.hintVisible ? 1 : 0,
+                  duration: const Duration(milliseconds: 250),
+                  child: Center(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: s.md,
+                        vertical: s.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: p.photoChromeBg,
+                        borderRadius: BorderRadius.circular(s.radiusPill),
+                      ),
+                      child: Text(
+                        AppStrings.brushHint.tr,
+                        style: context.textStyles.bodySm.copyWith(
+                          color: p.photoChromeFg,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

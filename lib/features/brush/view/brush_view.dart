@@ -9,10 +9,14 @@ import '../../../core/widgets/primary_button.dart';
 import '../controller/brush_controller.dart';
 import '../widgets/brush_canvas.dart';
 
-/// Brush (S5) — full-screen photo surface in the photoChrome idiom:
-/// the sanctioned hint in a pill on the photo, drawing controls in the
-/// bottom bar. Apply is disabled-with-visible-state when there is
-/// nothing painted, never a dead tap.
+/// Brush (S5) — finished per Review 07 (B1–B6): the canvas is the
+/// fitted photo itself (a work surface, no frame); the hint is a
+/// content-sized chip anchored to the photo's fitted top edge that
+/// fades once the first stroke lands (B2/D14); the fixing state lives
+/// in the dock (B4) — the primary keeps its spinner + "Fixing…"
+/// label, a thin determinate bar runs along the dock's top edge while
+/// the fix uploads, and Cancel NEVER disables (D15). The size row
+/// carries a footprint dot whose diameter tracks the slider (B3).
 class BrushView extends GetView<BrushController> {
   const BrushView({super.key});
 
@@ -42,12 +46,11 @@ class BrushView extends GetView<BrushController> {
           Expanded(child: _photoArea(context)),
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(s.screenPadding),
             decoration: BoxDecoration(
               color: p.surface,
               border: Border(top: BorderSide(color: p.border)),
             ),
-            child: Obx(() => _bottomBar(context)),
+            child: Obx(() => _dock(context)),
           ),
         ],
       ),
@@ -55,8 +58,6 @@ class BrushView extends GetView<BrushController> {
   }
 
   Widget _photoArea(BuildContext context) {
-    final p = context.palette;
-    final s = context.sizes;
     return Obx(() {
       final loadError = controller.loadError.value;
       if (loadError != null) {
@@ -65,128 +66,120 @@ class BrushView extends GetView<BrushController> {
           onRetry: controller.loadImageSize,
         );
       }
-      return Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          BrushCanvas(
-            imagePath: controller.args.imagePath,
-            imageSize: controller.imageSize.value,
-            strokes: controller.strokes
-                .map((stroke) => List<Offset>.of(stroke))
-                .toList(),
-            strokeDiameterImagePx: controller.brushDiameterImagePx,
-            onStrokeStart: controller.startStroke,
-            onStrokePoint: controller.addStrokePoint,
-            onStrokeEnd: controller.endStroke,
-            onScaleResolved: controller.setFittedScale,
-          ),
-          Positioned(
-            left: s.screenPadding,
-            right: s.screenPadding,
-            top: s.sm,
-            child: IgnorePointer(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: s.md, vertical: s.sm),
-                decoration: BoxDecoration(
-                  color: p.photoChromeBg,
-                  borderRadius: BorderRadius.circular(s.radiusPill),
-                ),
-                child: Text(
-                  AppStrings.brushHint.tr,
-                  style: context.textStyles.bodySm.copyWith(
-                    color: p.photoChromeFg,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ),
-          if (controller.isBusy.value)
-            Positioned(
-              left: s.screenPadding,
-              right: s.screenPadding,
-              bottom: s.sm,
-              child: Container(
-                padding: EdgeInsets.all(s.md),
-                decoration: BoxDecoration(
-                  color: p.photoChromeBg,
-                  borderRadius: BorderRadius.circular(s.radiusLg),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    LinearProgressIndicator(
-                      value:
-                          controller.uploadFraction.value > 0 &&
-                              controller.uploadFraction.value < 1
-                          ? controller.uploadFraction.value
-                          : null,
-                      color: p.primary,
-                    ),
-                    SizedBox(height: s.sm),
-                    Text(
-                      AppStrings.brushFixing.tr,
-                      style: context.textStyles.bodyMd.copyWith(
-                        color: p.photoChromeFg,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
+      return BrushCanvas(
+        imagePath: controller.args.imagePath,
+        imageSize: controller.imageSize.value,
+        strokes: controller.strokes
+            .map((stroke) => List<Offset>.of(stroke))
+            .toList(),
+        strokeDiameterImagePx: controller.brushDiameterImagePx,
+        onStrokeStart: controller.startStroke,
+        onStrokePoint: controller.addStrokePoint,
+        onStrokeEnd: controller.endStroke,
+        onScaleResolved: controller.setFittedScale,
+        hintVisible: !controller.hintDismissed.value,
       );
     });
   }
 
-  Widget _bottomBar(BuildContext context) {
+  Widget _dock(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
     final hasStrokes = controller.hasStrokes;
     final busy = controller.isBusy.value;
+    final fraction = controller.uploadFraction.value;
+    final uploading = busy && fraction > 0 && fraction < 1;
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Text(AppStrings.brushSize.tr, style: context.textStyles.labelMd),
-            SizedBox(width: s.sm),
-            Expanded(
-              child: Slider(
-                value: controller.brushSizeDisplay.value,
-                min: 8,
-                max: 64,
-                activeColor: p.primary,
-                onChanged: busy ? null : controller.setBrushSize,
+        // Dock top-edge bar: real upload fraction only (B4).
+        SizedBox(
+          height: 3,
+          child: uploading
+              ? LinearProgressIndicator(
+                  value: fraction,
+                  color: p.primary,
+                  backgroundColor: p.surfaceVariant,
+                  minHeight: 3,
+                )
+              : null,
+        ),
+        Padding(
+          padding: EdgeInsets.all(s.screenPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Text(
+                    AppStrings.brushSize.tr,
+                    style: context.textStyles.labelMd,
+                  ),
+                  SizedBox(width: s.sm),
+                  Expanded(
+                    child: Slider(
+                      value: controller.brushSizeDisplay.value,
+                      min: 8,
+                      max: 64,
+                      activeColor: p.primary,
+                      onChanged: busy ? null : controller.setBrushSize,
+                    ),
+                  ),
+                  SizedBox(width: s.sm),
+                  // Footprint preview: the dot IS the brush diameter
+                  // at display scale, in a fixed slot so the row
+                  // never jitters as the size changes (B3).
+                  SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: Center(
+                      child: Container(
+                        width: controller.brushSizeDisplay.value,
+                        height: controller.brushSizeDisplay.value,
+                        decoration: BoxDecoration(
+                          color: p.overlayRemoved.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        Row(
-          children: <Widget>[
-            TextButton.icon(
-              onPressed: hasStrokes && !busy ? controller.undoStroke : null,
-              icon: Icon(Icons.undo, size: s.iconSm),
-              label: Text(AppStrings.brushUndo.tr),
-            ),
-            TextButton.icon(
-              onPressed: hasStrokes && !busy ? controller.clearStrokes : null,
-              icon: Icon(Icons.clear, size: s.iconSm),
-              label: Text(AppStrings.brushClear.tr),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: busy ? null : controller.cancel,
-              child: Text(AppStrings.commonCancel.tr),
-            ),
-          ],
-        ),
-        SizedBox(height: s.sm),
-        PrimaryButton(
-          labelKey: AppStrings.brushApply,
-          isLoading: busy,
-          onPressed: controller.canApply ? controller.apply : null,
+              Row(
+                children: <Widget>[
+                  TextButton.icon(
+                    onPressed: hasStrokes && !busy
+                        ? controller.undoStroke
+                        : null,
+                    icon: Icon(Icons.undo, size: s.iconSm),
+                    label: Text(AppStrings.brushUndo.tr),
+                  ),
+                  TextButton.icon(
+                    onPressed: hasStrokes && !busy
+                        ? controller.clearStrokes
+                        : null,
+                    icon: Icon(Icons.clear, size: s.iconSm),
+                    label: Text(AppStrings.brushClear.tr),
+                  ),
+                  const Spacer(),
+                  // The exit never disables (D15) — cancelling a fix
+                  // in flight simply drops its result.
+                  TextButton(
+                    onPressed: controller.cancel,
+                    child: Text(AppStrings.commonCancel.tr),
+                  ),
+                ],
+              ),
+              SizedBox(height: s.sm),
+              PrimaryButton(
+                labelKey: AppStrings.brushApply,
+                loadingLabelKey: AppStrings.brushFixing,
+                isLoading: busy,
+                onPressed: controller.canApply ? controller.apply : null,
+              ),
+            ],
+          ),
         ),
       ],
     );

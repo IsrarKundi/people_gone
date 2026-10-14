@@ -37,6 +37,17 @@ class BrushController extends GetxController {
 
   final isBusy = false.obs;
 
+  /// The hint chip's job ends at the first stroke (Review 07 B2): once
+  /// any stroke has landed it stays dismissed for this photo.
+  final hintDismissed = false.obs;
+
+  /// True once the user has left via Cancel — including mid-fix
+  /// (Review 07 B4/D15: the exit never disables). A fix that completes
+  /// after the user left is dropped silently: no navigation, no
+  /// snackbar, and a touch-up never consumed a save, so there is
+  /// nothing to refund.
+  bool _left = false;
+
   /// Real upload fraction for the touch-up call (0.0–1.0); determinate
   /// progress is shown for the upload only (Design Direction R3).
   final uploadFraction = 0.0.obs;
@@ -113,6 +124,7 @@ class BrushController extends GetxController {
 
   void startStroke(Offset imagePoint) {
     if (isBusy.value) return;
+    hintDismissed.value = true;
     strokes.add(<Offset>[imagePoint]);
   }
 
@@ -196,6 +208,13 @@ class BrushController extends GetxController {
       maskPng: maskPng,
       onUploadProgress: (fraction) => uploadFraction.value = fraction,
     );
+    if (_left) {
+      // The user cancelled mid-fix (the exit never disables, D15):
+      // the completed fix is dropped silently — no navigation, no
+      // snackbar, nothing was charged.
+      isBusy.value = false;
+      return null;
+    }
     switch (result) {
       case Success<TouchupOutcome>(:final value):
         final written = await localStore.writeSessionResult(value.resultBytes);
@@ -217,5 +236,8 @@ class BrushController extends GetxController {
     }
   }
 
-  void cancel() => Get.back<String>();
+  void cancel() {
+    _left = true;
+    Get.back<String>();
+  }
 }

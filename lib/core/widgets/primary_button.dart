@@ -15,6 +15,7 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.height,
     this.borderRadius,
+    this.loadingLabelKey,
   });
 
   /// String key; buttons are named by their outcome (Design Direction §1).
@@ -25,6 +26,12 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
   final double? height;
   final double? borderRadius;
+
+  /// When set, the loading state keeps a label beside the spinner
+  /// (Review 07 B4: a loading button keeps its label — it never
+  /// collapses into a blank slab). When null, loading shows the
+  /// spinner alone, as before.
+  final String? loadingLabelKey;
 
   @override
   Widget build(BuildContext context) {
@@ -45,22 +52,30 @@ class PrimaryButton extends StatelessWidget {
           disabledForegroundColor: p.textTertiary,
           elevation: disabled ? 0 : 2,
           shadowColor: p.primary.withValues(alpha: 0.35),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(r),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(r)),
           textStyle: context.textStyles.labelLg.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
 
         child: isLoading
-            ? SizedBox(
-                width: s.iconSm,
-                height: s.iconSm,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: p.onPrimary,
-                ),
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(
+                    width: s.iconSm,
+                    height: s.iconSm,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: p.onPrimary,
+                    ),
+                  ),
+                  if (loadingLabelKey != null) ...<Widget>[
+                    SizedBox(width: s.sm),
+                    Text(loadingLabelKey!.tr),
+                  ],
+                ],
               )
             : Row(
                 mainAxisSize: MainAxisSize.min,
@@ -70,11 +85,14 @@ class PrimaryButton extends StatelessWidget {
                     Icon(icon, size: s.iconSm, color: p.onPrimary),
                     SizedBox(width: s.sm),
                   ],
-                  Text(labelParams != null ? labelKey.trParams(labelParams!) : labelKey.tr),
+                  Text(
+                    labelParams != null
+                        ? labelKey.trParams(labelParams!)
+                        : labelKey.tr,
+                  ),
                 ],
               ),
       ),
     );
   }
 }
-
