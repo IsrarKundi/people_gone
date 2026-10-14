@@ -148,6 +148,8 @@ class ProcessingController extends GetxController {
           persons: photo.persons,
           itemsRemoved: photo.itemsRemoved,
           distractionsRemoved: photo.distractionsRemoved,
+          reflectionWarning: photo.reflectionWarning,
+          reflectionRegions: photo.reflectionRegions,
         );
         JobTracker.instance.trackDone(outcome);
         if (_left) return;

@@ -155,6 +155,10 @@ abstract final class AppStrings {
   static const String resultKeepThisPerson = 'result_keep_this_person';
   static const String resultRerunNote = 'result_rerun_note';
   static const String resultBrushFix = 'result_brush_fix';
+  // Phase D (X13/X14): the reflection warning + its brush action.
+  // Plain factual wording; flagged for design-lead review.
+  static const String resultReflectionWarning = 'result_reflection_warning';
+  static const String resultReflectionFix = 'result_reflection_fix';
   static const String resultPickAnother = 'result_pick_another';
   static const String resultBefore = 'result_before';
   static const String resultAfter = 'result_after';
@@ -169,6 +173,9 @@ abstract final class AppStrings {
   static const String brushTitle = 'brush_title';
   static const String brushApply = 'brush_apply';
   static const String brushHint = 'brush_hint';
+  // Phase D: shown in Brush when a reflection region was suggested
+  // from the Result screen; the outline is a guide, the user paints.
+  static const String brushReflectionGuide = 'brush_reflection_guide';
   static const String brushUndo = 'brush_undo';
   static const String brushClear = 'brush_clear';
   static const String brushSize = 'brush_size';
@@ -357,6 +364,9 @@ class AppTranslations extends Translations {
       AppStrings.resultKeepThisPerson: 'Keep this person instead',
       AppStrings.resultRerunNote: 'Re-running is free — it never uses a save.',
       AppStrings.resultBrushFix: 'Brush fix',
+      AppStrings.resultReflectionWarning:
+          'A reflection of a removed person may still be visible.',
+      AppStrings.resultReflectionFix: 'Fix with brush',
       AppStrings.resultPickAnother: 'Pick another photo',
       AppStrings.resultBefore: 'Before',
       AppStrings.resultAfter: 'After',
@@ -374,6 +384,9 @@ class AppTranslations extends Translations {
       AppStrings.brushApply: 'Remove painted area',
       AppStrings.brushHint:
           'Paint over anything that should also be removed — including its shadow.',
+      AppStrings.brushReflectionGuide:
+          'The outlined area is where a reflection may still be visible. '
+          'Paint over it to remove it.',
       AppStrings.brushUndo: 'Undo',
       AppStrings.brushClear: 'Clear',
       AppStrings.brushSize: 'Brush size',

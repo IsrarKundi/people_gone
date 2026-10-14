@@ -11,6 +11,7 @@ import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
+import 'package:people_gone/features/brush/model/brush_args.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
 import 'package:people_gone/features/result/controller/result_controller.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
@@ -308,6 +309,22 @@ void main() {
     );
   }
 
+  ProcessingOutcome reflectionOutcome() {
+    return ProcessingOutcome(
+      originalPath: original.path,
+      resultPath: resultFile.path,
+      personsDetected: 2,
+      keeperIds: const <int>[0],
+      removedIds: const <int>[1],
+      totalSeconds: 4.2,
+      engineUsed: 'mat',
+      reflectionWarning: true,
+      reflectionRegions: const <List<int>>[
+        <int>[100, 500, 300, 900],
+      ],
+    );
+  }
+
   Future<void> pumpResult(
     WidgetTester tester, {
     AppConfig? configOverride,
@@ -507,6 +524,56 @@ void main() {
     await pumpResult(tester, outcomeOverride: outcome(removed: const <int>[]));
     expect(find.text('Brush fix'), findsOneWidget);
     expect(find.text('Pick another photo'), findsOneWidget);
+  });
+
+  testWidgets('reflection warning shows with its brush action (Phase D)', (
+    tester,
+  ) async {
+    await pumpResult(tester, outcomeOverride: reflectionOutcome());
+    expect(
+      find.text('A reflection of a removed person may still be visible.'),
+      findsOneWidget,
+    );
+    expect(find.text('Fix with brush'), findsOneWidget);
+    // The controller exposes the region as the brush's guide.
+    final controller = Get.find<ResultController>();
+    expect(controller.reflectionWarning, isTrue);
+    expect(controller.reflectionRegion, <int>[100, 500, 300, 900]);
+  });
+
+  testWidgets('no reflection warning without the flag (Phase D)', (
+    tester,
+  ) async {
+    await pumpResult(tester);
+    expect(
+      find.text('A reflection of a removed person may still be visible.'),
+      findsNothing,
+    );
+    expect(find.text('Fix with brush'), findsNothing);
+  });
+
+  testWidgets('reflection fix opens brush with the suggested region', (
+    tester,
+  ) async {
+    // The warning block makes the action zone taller than the
+    // default test surface; give this case a taller view.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    stubReturnPath = resultFile.path;
+    await pumpResult(
+      tester,
+      outcomeOverride: reflectionOutcome(),
+      stubBrush: true,
+    );
+    await tester.tap(find.text('Fix with brush'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Stub brush return'), findsOneWidget);
+    final args = Get.arguments;
+    expect(args, isA<BrushArgs>());
+    expect((args as BrushArgs).suggestedRegion, <int>[100, 500, 300, 900]);
+    expect(args.imagePath, resultFile.path);
   });
 
   testWidgets('gateway save: credit consumed BEFORE the gallery save', (

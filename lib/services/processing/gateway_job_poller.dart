@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../../core/diagnostics/diagnostics_log.dart';
 import '../../core/strings/app_strings.dart';
 import '../../core/utils/result.dart';
+import 'gateway_parsing.dart';
 import 'processing_api.dart';
 
 /// Polls a gateway job to completion, then downloads its result
@@ -175,6 +176,10 @@ class GatewayJobPoller {
       persons: _parsePersons(m['persons']),
       itemsRemoved: (m['items_removed'] as num?)?.toInt() ?? 0,
       distractionsRemoved: (m['distractions_removed'] as num?)?.toInt() ?? 0,
+      reflectionWarning: m['reflection_warning'] == true,
+      reflectionRegions: gatewayParseReflectionRegions(
+        m['reflection_regions'],
+      ),
     );
   }
 

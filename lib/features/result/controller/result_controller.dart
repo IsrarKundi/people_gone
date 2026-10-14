@@ -220,17 +220,42 @@ class ResultController extends GetxController {
     isSaving.value = false;
   }
 
+  /// Phase D (X13): the worker flagged a probable reflection of a
+  /// removed person. Shown only when somebody was actually removed.
+  bool get reflectionWarning =>
+      outcome.reflectionWarning && !nobodyRemoved;
+
+  /// The first probable reflection region, handed to Brush as its
+  /// starting guide (X14) — the user still paints it themselves.
+  List<int>? get reflectionRegion =>
+      outcome.reflectionRegions.isNotEmpty
+      ? outcome.reflectionRegions.first
+      : null;
+
   /// Brush fix (S5 / FR-09): paints a missed area on the CURRENT
   /// result and re-runs a touch-up. A touch-up never consumes a
   /// credit; the touched result's later Save is a new save cycle.
   Future<void> openTouchUp() async {
+    await _openBrush(BrushArgs(imagePath: resultPath.value));
+  }
+
+  /// The reflection warning's action (Phase D): the same brush
+  /// flow, with the probable reflection region pre-suggested as a
+  /// starting outline (X14).
+  Future<void> openReflectionFix() async {
+    await _openBrush(
+      BrushArgs(
+        imagePath: resultPath.value,
+        suggestedRegion: reflectionRegion,
+      ),
+    );
+  }
+
+  Future<void> _openBrush(BrushArgs args) async {
     // Untyped navigation + cast: every GetPage in AppPages is
     // GetPage<dynamic>, and a typed Get.toNamed<String> cannot cast
     // its route (verified in result_flow_test's touch-up case).
-    final raw = await Get.toNamed<dynamic>(
-      Routes.brush,
-      arguments: BrushArgs(imagePath: resultPath.value),
-    );
+    final raw = await Get.toNamed<dynamic>(Routes.brush, arguments: args);
     final newPath = raw as String?;
     if (newPath != null && newPath != resultPath.value) {
       resultPath.value = newPath;

@@ -48,6 +48,8 @@ class ProcessingOutcome {
     this.persons = const <DetectedPerson>[],
     this.itemsRemoved = 0,
     this.distractionsRemoved = 0,
+    this.reflectionWarning = false,
+    this.reflectionRegions = const <List<int>>[],
   });
 
   final String originalPath;
@@ -69,6 +71,15 @@ class ProcessingOutcome {
   /// Distractions the user included that were removed (Contract v3,
   /// Phase B) — named separately in the S7 summary (design X16).
   final int distractionsRemoved;
+
+  /// A removed person probably left a visible reflection behind
+  /// (Phase D). S7 shows the warning and offers the brush with
+  /// [reflectionRegions] as the starting guide (design X13/X14).
+  final bool reflectionWarning;
+
+  /// Probable reflection regions ([x1, y1, x2, y2], original-image
+  /// pixels). Empty when [reflectionWarning] is false.
+  final List<List<int>> reflectionRegions;
 
   /// True when the pipeline found nobody to take out (FR-06): the
   /// result screen shows the plain message and no save is possible.

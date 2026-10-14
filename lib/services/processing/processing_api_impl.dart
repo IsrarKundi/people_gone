@@ -341,6 +341,20 @@ class ProcessingApiImpl implements ProcessingApi {
     }).toList();
   }
 
+  /// Same mapping as gateway_parsing.gatewayParseReflectionRegions
+  /// (v3, Phase D): boxes only; malformed entries are skipped.
+  List<List<int>> _parseReflectionRegions(dynamic rawList) {
+    if (rawList is! List) return const <List<int>>[];
+    final parsed = <List<int>>[];
+    for (final dynamic item in rawList) {
+      if (item is! Map<String, dynamic>) continue;
+      final rawBox = item['box'] as List<dynamic>? ?? <dynamic>[];
+      if (rawBox.length != 4) continue;
+      parsed.add(rawBox.map((dynamic b) => (b as num).toInt()).toList());
+    }
+    return parsed;
+  }
+
   /// Same mapping as gateway_parsing.gatewayParseBelongings (v3):
   /// unknown tiers parse as ambiguous with the person link dropped;
   /// malformed entries are skipped.
@@ -469,6 +483,10 @@ class ProcessingApiImpl implements ProcessingApi {
           itemsRemoved: (meta['items_removed'] as num?)?.toInt() ?? 0,
           distractionsRemoved:
               (meta['distractions_removed'] as num?)?.toInt() ?? 0,
+          reflectionWarning: meta['reflection_warning'] == true,
+          reflectionRegions: _parseReflectionRegions(
+            meta['reflection_regions'],
+          ),
         ),
       );
     } catch (e) {

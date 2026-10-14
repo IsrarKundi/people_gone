@@ -107,6 +107,41 @@ void main() {
     expect(value.engineUsed, 'mat');
   });
 
+  test('parses the Phase D reflection warning meta (additive v3)', () async {
+    final fixture = contractFixture();
+    (fixture['meta'] as Map<String, dynamic>)['reflection_warning'] = true;
+    (fixture['meta'] as Map<String, dynamic>)['reflection_regions'] =
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'person_id': 1,
+            'box': <int>[100, 500, 300, 900],
+            'surface': 'water',
+            'kind': 'flip',
+            'score': 0.567,
+          },
+          <String, dynamic>{'person_id': 2}, // malformed: no box
+        ];
+    final adapter = FakeAdapter((options, call) async {
+      return jsonBody(fixture, 200);
+    });
+    final result = await apiWith(adapter).processPhoto(localPath: photo.path);
+    final value = (result as Success<ProcessedPhoto>).value;
+    expect(value.reflectionWarning, isTrue);
+    expect(value.reflectionRegions, <List<int>>[
+      <int>[100, 500, 300, 900],
+    ]);
+  });
+
+  test('no reflection fields parse as no warning', () async {
+    final adapter = FakeAdapter((options, call) async {
+      return jsonBody(contractFixture(), 200);
+    });
+    final result = await apiWith(adapter).processPhoto(localPath: photo.path);
+    final value = (result as Success<ProcessedPhoto>).value;
+    expect(value.reflectionWarning, isFalse);
+    expect(value.reflectionRegions, isEmpty);
+  });
+
   test('sends multipart file + engine=mat, and keep when given', () async {
     final adapter = FakeAdapter((options, call) async {
       return jsonBody(contractFixture(), 200);

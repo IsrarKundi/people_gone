@@ -78,6 +78,7 @@ class BrushView extends GetView<BrushController> {
         onStrokeEnd: controller.endStroke,
         onScaleResolved: controller.setFittedScale,
         hintVisible: !controller.hintDismissed.value,
+        suggestedRegion: controller.args.suggestedRegion,
       );
     });
   }

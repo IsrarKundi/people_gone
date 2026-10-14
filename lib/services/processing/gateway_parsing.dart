@@ -87,6 +87,23 @@ List<DetectedDistraction> gatewayParseDistractions(dynamic rawList) {
   return parsed;
 }
 
+/// Contract v3 reflection regions (Phase D): probable reflections
+/// of removed people, as [x1, y1, x2, y2] boxes in original-image
+/// pixels. Only the box is carried — it is the brush's starting
+/// guide (design X14). Malformed entries are skipped, never fatal —
+/// same discipline as belongings/distractions.
+List<List<int>> gatewayParseReflectionRegions(dynamic rawList) {
+  if (rawList is! List) return const <List<int>>[];
+  final parsed = <List<int>>[];
+  for (final dynamic item in rawList) {
+    if (item is! Map<String, dynamic>) continue;
+    final rawBox = item['box'] as List<dynamic>? ?? <dynamic>[];
+    if (rawBox.length != 4) continue;
+    parsed.add(rawBox.map((dynamic b) => (b as num).toInt()).toList());
+  }
+  return parsed;
+}
+
 /// Same field mapping as ProcessingApiImpl._parseDetectionResponse.
 DetectionProposal gatewayProposalFromMap(
   Map<String, dynamic> map,

@@ -9,6 +9,8 @@ class BrushMaskPainter extends CustomPainter {
     required this.strokeDiameterImagePx,
     required this.scale,
     required this.color,
+    this.suggestedRegion,
+    this.guideColor,
   });
 
   final List<List<Offset>> strokes;
@@ -16,8 +18,34 @@ class BrushMaskPainter extends CustomPainter {
   final double scale;
   final Color color;
 
+  /// Phase D (X14): a suggested region outline ([x1, y1, x2, y2] in
+  /// image pixels) — a starting guide only; it paints nothing and
+  /// is never part of the touch-up mask.
+  final List<int>? suggestedRegion;
+  final Color? guideColor;
+
   @override
   void paint(Canvas canvas, Size size) {
+    final region = suggestedRegion;
+    if (region != null && region.length == 4 && guideColor != null) {
+      final rect = Rect.fromLTRB(
+        region[0] * scale,
+        region[1] * scale,
+        region[2] * scale,
+        region[3] * scale,
+      );
+      canvas.drawRect(
+        rect,
+        Paint()..color = guideColor!.withValues(alpha: 0.10),
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = guideColor!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
     final diameter = strokeDiameterImagePx * scale;
     final strokePaint = Paint()
       ..color = color

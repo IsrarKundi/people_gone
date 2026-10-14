@@ -97,6 +97,30 @@ void main() {
     expect(gatewayParseBelongings('junk'), isEmpty);
   });
 
+  test('reflection regions parse boxes only, malformed skipped (Phase D)',
+      () {
+    final regions = gatewayParseReflectionRegions(<dynamic>[
+      <String, dynamic>{
+        'person_id': 2,
+        'box': <int>[1905, 2701, 2332, 3864],
+        'surface': 'polished floor',
+        'kind': 'flip',
+        'score': 0.567,
+      },
+      'not-a-map',
+      <String, dynamic>{'person_id': 3}, // no box
+      <String, dynamic>{
+        'person_id': 4,
+        'box': <int>[1, 2, 3], // short box
+      },
+    ]);
+    expect(regions, <List<int>>[
+      <int>[1905, 2701, 2332, 3864],
+    ]);
+    expect(gatewayParseReflectionRegions(null), isEmpty);
+    expect(gatewayParseReflectionRegions('junk'), isEmpty);
+  });
+
   test('malformed belonging entries are skipped, not fatal', () {
     final items = gatewayParseBelongings(<dynamic>[
       'not-a-map',

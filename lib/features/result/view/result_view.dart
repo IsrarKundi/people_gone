@@ -223,6 +223,31 @@ class ResultView extends GetView<ResultController> {
             style: context.textStyles.caption.copyWith(color: p.textTertiary),
           ),
         ],
+        // Phase D (X13): a probable reflection of a removed person
+        // is stated plainly, with the brush as its one action. It
+        // never appears when nobody was removed.
+        if (controller.reflectionWarning) ...<Widget>[
+          SizedBox(height: s.sm),
+          Row(
+            children: <Widget>[
+              Icon(Icons.info_outline, size: 18, color: p.textSecondary),
+              SizedBox(width: s.xs),
+              Expanded(
+                child: Text(
+                  AppStrings.resultReflectionWarning.tr,
+                  style: context.textStyles.bodySm.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: s.sm),
+          SecondaryButton(
+            labelKey: AppStrings.resultReflectionFix,
+            onPressed: controller.openReflectionFix,
+          ),
+        ],
         SizedBox(height: s.md),
         // Dominant action row: Save takes 75%, Share 25%. When both
         // labels cannot fit their slots at the current text scale the

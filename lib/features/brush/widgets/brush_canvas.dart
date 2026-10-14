@@ -32,6 +32,7 @@ class BrushCanvas extends StatefulWidget {
     required this.onStrokeEnd,
     required this.onScaleResolved,
     required this.hintVisible,
+    this.suggestedRegion,
   });
 
   final String imagePath;
@@ -45,6 +46,11 @@ class BrushCanvas extends StatefulWidget {
 
   /// The hint chip shows until the first stroke lands (Review 07 B2).
   final bool hintVisible;
+
+  /// Phase D (X14): when a reflection region was suggested from the
+  /// Result screen, the canvas outlines it and the hint chip names
+  /// it instead of the generic brush hint.
+  final List<int>? suggestedRegion;
 
   @override
   State<BrushCanvas> createState() => _BrushCanvasState();
@@ -123,6 +129,8 @@ class _BrushCanvasState extends State<BrushCanvas> {
                         strokeDiameterImagePx: widget.strokeDiameterImagePx,
                         scale: scale,
                         color: p.overlayRemoved,
+                        suggestedRegion: widget.suggestedRegion,
+                        guideColor: p.primary,
                       ),
                       child: SizedBox(width: band.width, height: band.height),
                     ),
@@ -161,7 +169,10 @@ class _BrushCanvasState extends State<BrushCanvas> {
                         borderRadius: BorderRadius.circular(s.radiusPill),
                       ),
                       child: Text(
-                        AppStrings.brushHint.tr,
+                        (widget.suggestedRegion != null
+                                ? AppStrings.brushReflectionGuide
+                                : AppStrings.brushHint)
+                            .tr,
                         style: context.textStyles.bodySm.copyWith(
                           color: p.photoChromeFg,
                         ),

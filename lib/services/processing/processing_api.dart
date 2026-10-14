@@ -207,6 +207,8 @@ class ProcessedPhoto {
     this.persons = const <DetectedPerson>[],
     this.itemsRemoved = 0,
     this.distractionsRemoved = 0,
+    this.reflectionWarning = false,
+    this.reflectionRegions = const <List<int>>[],
   });
 
   /// Full-resolution result JPEG bytes; dimensions equal the input's.
@@ -237,6 +239,17 @@ class ProcessedPhoto {
   /// (Contract v3 `distractions_removed`, Phase B). Counted apart
   /// from [itemsRemoved] so S7 can name them (design X16).
   final int distractionsRemoved;
+
+  /// A removed person probably left a visible reflection behind
+  /// (Contract v3 `reflection_warning`, Phase D). The Result screen
+  /// says so and offers the brush — reflections are never
+  /// auto-removed in v1 (design X13).
+  final bool reflectionWarning;
+
+  /// Probable reflection regions ([x1, y1, x2, y2], original-image
+  /// pixels) for [reflectionWarning]; the first is the brush's
+  /// starting guide. Empty when there is no warning.
+  final List<List<int>> reflectionRegions;
 }
 
 /// Outcome of a brush touch-up (S5 / FR-09): the updated photo bytes,
