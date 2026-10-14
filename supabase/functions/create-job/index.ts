@@ -92,6 +92,11 @@ Deno.serve(async (req) => {
     status: job.status,
     upload_url: uploadUrl,
     persons: job.persons ?? null,
+    // Contract v3: belongings stored on the job by analyse-job (meta
+    // jsonb) come back with the proposal on an idempotent retry.
+    belongings:
+      ((job.meta as Record<string, unknown> | null)?.belongings as unknown) ??
+        null,
     keeper_ids: job.keep_ids ?? null,
     removed_ids: job.persons ? removedIds(job.persons, job.keep_ids) : null,
     input_dimensions: job.input_dimensions ?? null,

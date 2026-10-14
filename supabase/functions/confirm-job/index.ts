@@ -55,6 +55,14 @@ Deno.serve(async (req) => {
 
   const keepIds = (body.keep_ids as number[] | undefined) ?? job.keep_ids ?? [];
   const engine = (body.engine as string | undefined) ?? job.engine ?? "mat";
+  // Contract v3 (Phase A): the user's belongings decisions — ambiguous
+  // items to remove, attached items to detach/protect. They are kept
+  // on the job's meta (jsonb) for observability and forwarded to the
+  // worker as CSV form fields; the worker re-derives the items from
+  // its own analysis, so these ids are the ONLY new trust surface.
+  const removeItemIds = (body.remove_item_ids as number[] | undefined) ?? [];
+  const detachedBelongingIds =
+    (body.detached_belonging_ids as number[] | undefined) ?? [];
 
   // Callback token: raw value goes ONLY to the worker; we store its hash.
   const raw = new Uint8Array(32);
@@ -65,6 +73,11 @@ Deno.serve(async (req) => {
   const upd = await service.from("jobs").update({
     keep_ids: keepIds,
     engine,
+    meta: {
+      ...((job.meta as Record<string, unknown> | null) ?? {}),
+      remove_item_ids: removeItemIds,
+      detached_belonging_ids: detachedBelongingIds,
+    },
     status: "processing",
     callback_token_hash: tokenHash,
     updated_at: new Date().toISOString(),
@@ -84,6 +97,12 @@ Deno.serve(async (req) => {
   form.append("file", new Blob([bytes], { type: "image/jpeg" }), "photo.jpg");
   form.append("engine", engine);
   if (keepIds.length > 0) form.append("keep", keepIds.join(","));
+  if (removeItemIds.length > 0) {
+    form.append("remove_items", removeItemIds.join(","));
+  }
+  if (detachedBelongingIds.length > 0) {
+    form.append("detached_items", detachedBelongingIds.join(","));
+  }
   form.append(
     "callback_url",
     `${Deno.env.get("SUPABASE_URL")}/functions/v1/worker-callback`,

@@ -73,12 +73,21 @@ Deno.serve(async (req) => {
   const keeperIds = (detect.keeper_ids as number[]) ?? [];
   const persons = detect.persons ?? null;
   const inputDimensions = detect.input_dimensions ?? null;
+  // Contract v3 (Phase A): the worker's belongings list rides in the
+  // job's meta jsonb (no schema change) and in this response, so the
+  // proposal the user confirms is the proposal the job remembers.
+  const belongings = detect.belongings ?? [];
+  const meta = {
+    ...((job.meta as Record<string, unknown> | null) ?? {}),
+    belongings,
+  };
 
   const upd = await service.from("jobs").update({
     persons,
     keep_ids: keeperIds,
     people_count: (detect.persons_detected as number) ?? null,
     input_dimensions: inputDimensions,
+    meta,
     status: "awaiting_confirm",
     error: null,
     updated_at: new Date().toISOString(),
@@ -87,10 +96,12 @@ Deno.serve(async (req) => {
 
   return json({
     ok: true,
+    contract_version: detect.contract_version ?? null,
     persons_detected: detect.persons_detected ?? null,
     keeper_ids: keeperIds,
     removed_ids: detect.removed_ids ?? [],
     persons,
+    belongings,
     input_dimensions: inputDimensions,
   });
 });
