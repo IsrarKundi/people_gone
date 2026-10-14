@@ -13,6 +13,15 @@ and the `/process` meta fields `distractions`,
 `distractions_removed`, `distractions_removed_ids`. No field changed
 meaning; `contract_version` stays 3.
 
+**Phase B close-out (2026-10-15):** the shipped distraction category
+set is EMPTY at launch (`SHIPPED_DISTRACTION_CATEGORIES` in
+`server/worker/distractions.py`). Every detection-calibrated category
+failed the removal-quality gate (see
+`docs/architecture/phase-b-calibration.md`), so `/detect` returns
+`distractions: []` and the app group never renders until a category
+is enabled there. The contract surface below is unchanged and fully
+implemented — this is a config state, not a missing feature.
+
 Base URL: whatever Modal prints on deploy (looks like
 `https://<workspace>--peoplegone-worker-web.modal.run`).
 

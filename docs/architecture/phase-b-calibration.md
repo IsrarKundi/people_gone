@@ -88,8 +88,11 @@ Failure families worth naming:
 
 ## Ship decisions (detection gate)
 
-Shipped config — measured **83 TP / 0 FP (100%)** in the production
-simulation at these per-category thresholds:
+Detection-calibrated registry — measured **83 TP / 0 FP (100%)** in
+the production simulation at these per-category thresholds. (This
+table is the DETECTION gate's outcome. Whether any of these actually
+SHIPS is decided by the removal-quality gate at the bottom of this
+doc — read that before treating this table as a feature list.)
 
 | category | source | threshold | sim items |
 |---|---|---|---|
@@ -114,7 +117,7 @@ up as a measurement — the category stays out until a test set with
 several real stop signs at street distance says otherwise. It can be
 re-enabled by adding one config line; nothing else changes.
 
-Thin-evidence disclosures (shipped, but stated plainly): truck TPs = 2
+Thin-evidence disclosures (detection gate, stated plainly): truck TPs = 2
 physical trucks; bus = 3 items / 2 physical buses (one articulated bus
 counts as 2 items — front + rear units); parking meter = 4 detections /
 3 physical meters across 3 photos; stroller = 2 physical strollers;
@@ -130,7 +133,48 @@ removing that category must judge **would-post**. Samples run against
 the built worker (MAT, protected-set clipping active), before/afters in
 `~/workspace/peoplegone/phase-b-build/evidence/`:
 
-<!-- REMOVAL_RESULTS -->
-_(filled in when the removal evidence run completes; any category that
-fails is removed from the shipped config and named here with its
-evidence.)_
+### Results (2026-10-15) — SHIPPED SET: EMPTY
+
+Every category failed this gate on its evidence sample, or produced
+no sample at all. Per the owner's ship rule the shipped set is
+therefore **empty** (`SHIPPED_DISTRACTION_CATEGORIES = set()` in
+`server/worker/distractions.py`): the machinery is built, deployed
+and tested end-to-end, `/detect` returns `distractions: []`, and the
+S4 group never renders. Enabling a category later is one line — add
+its name to the shipped set after a passing removal sample.
+
+How the samples were chosen (stated plainly, because it bounds what
+this verdict means): one sample per category, targeting the
+highest-scoring detected instance — in practice the LARGEST instance
+in the frame. That is the pipeline's known weak case (the same
+large-hole MAT fill limit documented for people since Phase 0: small
+removals are clean, frame-filling removals smear). A typical-scale
+second round was designed but NOT run — the owner capped photo
+testing on 2026-10-15 ("dont test too much or alot of street
+photos"). These verdicts therefore read: "not proven would-post;
+failed at large scale" — not "can never work". The named untested
+levers for a future pass are (a) typical-scale samples, and (b)
+`engine="auto"` (PowerPaint racing on large crops — PowerPaint was
+the best large-area fill in the Phase 0 engine tests; all samples
+below ran the MAT default).
+
+| category | sample (evidence file) | verdict |
+|---|---|---|
+| car | minivan, close range, px_hydrant_street (`car_minivan_ba.jpg`) | FAIL — dark smear across the van's area; ghost check fired + retried, fill still smeared |
+| bus | articulated bus, px_bus_intersection (`bus_articulated_ba.jpg`) | FAIL — fill invented a kiosk/poster scene + a blob object on the sidewalk |
+| truck | box truck, ~55% of frame, px_truck_white (`truck_street_ba.jpg`) | FAIL — worst sample: mangled glass-like architecture, invented signs |
+| motorbike | red scooter, 15_night_bazaar (`motorbike_scooter_ba.jpg`) | FAIL (sample confounded: the job also removed 19 people in a dense night crowd; the clean as a whole is a neon-smear disaster and the scooter area with it) |
+| bicycle | front bikes of an interlocked row, px_bicycles_cruisers (`bicycle_row_ba.jpg`) | FAIL — left half melted into smeared wall + distorted wheel arcs (both people in frame were keepers and stayed pixel-clean) |
+| traffic light | left unit of a 3-unit stack vs plain sky, px_traffic_stop (`traffic_light_stack_ba.jpg`) | FAIL — closest call: sky fill is clean except a visible translucent GHOST of the removed unit; ghost check fired + retried and the residual remained |
+| parking meter | two meters, extreme close-up, px_meters (`parking_meter_ba.jpg`) | FAIL — melted black remnant with a white ring left standing in the road |
+| bench | mid-distance bench, px_benches (`bench_row_ba.jpg`) | FAIL (sample confounded: the removed bench had a sitting person who was also removed; the combined hole filled as a whitish smear on the promenade) |
+| fire hydrant | hydrant, ~45% of frame height, px_hydrant_red (`hydrant_red_ba.jpg`) | FAIL — dark fragments of the hydrant left floating over the road + a hole-like patch on the bricks; ghost check fired + retried |
+| trash bin | px_bin_truck (`bin_wheelie`) | NO SAMPLE — production `/detect` returned NO bin on this photo (only the truck). Calibration had measured the bin TP at 0.853, but with a 5-prompt OmDet set; production ships a 2-prompt set ("trash bin", "stroller") and scores/suppression differ. No removal evidence exists → cannot ship |
+| stroller | stroller between its two parents, spike photo (`stroller_parents_ba.jpg`) | FAIL — both parents kept and pixel-clean (protected-set clipping worked exactly as designed), but the stroller's place is a melted grey-blue smear with an invented white blob at the father's hand |
+
+What DID pass, for the record: the §5 final-composite pixel-diff
+acceptance (belongs + distraction cases, real models) — an included
+distraction's mask contained ZERO keeper pixels and the composite was
+pixel-identical outside the removal union. Protected-set clipping is
+proven; it is the FILL that fails at these scales, not the safety
+machinery.

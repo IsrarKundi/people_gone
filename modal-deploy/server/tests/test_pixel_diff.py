@@ -153,6 +153,7 @@ class TestDistractionPixelDiff(unittest.TestCase):
     def test_distraction_removal_respects_protected_set(self):
         from PIL import Image, ImageOps
 
+        from worker import distractions as distractions_module
         from worker.mask_prep import dilate_mask
         from worker.pipeline import PeopleGonePipeline, PipelineConfig
 
@@ -161,6 +162,29 @@ class TestDistractionPixelDiff(unittest.TestCase):
         )
         if not os.path.exists(photo_path):
             self.skipTest(f"fixture photo not present: {photo_path}")
+
+        # Production ships the category set EMPTY (removal-quality
+        # gate outcome — phase-b-calibration.md). This acceptance
+        # test exercises the machinery, so it enables the calibrated
+        # registry for its own run and restores the shipped state.
+        saved_categories = distractions_module.DISTRACTION_CATEGORIES
+        saved_labels = distractions_module.RT_DETR_DISTRACTION_LABELS
+        distractions_module.DISTRACTION_CATEGORIES = dict(
+            distractions_module.CALIBRATED_DISTRACTION_CATEGORIES
+        )
+        distractions_module.RT_DETR_DISTRACTION_LABELS = {
+            cat
+            for cat, cfg in (
+                distractions_module.CALIBRATED_DISTRACTION_CATEGORIES.items()
+            )
+            if cfg["source"] == "rtdetr"
+        }
+
+        def _restore():
+            distractions_module.DISTRACTION_CATEGORIES = saved_categories
+            distractions_module.RT_DETR_DISTRACTION_LABELS = saved_labels
+
+        self.addCleanup(_restore)
 
         pipe = PeopleGonePipeline(PipelineConfig(omdet_enabled=False))
 

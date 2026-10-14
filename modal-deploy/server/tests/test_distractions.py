@@ -10,8 +10,12 @@ Two layers, mirroring test_pipeline_belongings.py:
      clipped out of its mask, a kept distraction untouched, unknown
      ids ignored.
 
-The calibration evidence behind the shipped category set lives in
-docs/architecture/phase-b-calibration.md.
+The calibration evidence behind the category registry lives in
+docs/architecture/phase-b-calibration.md. NOTE: the SHIPPED set is
+EMPTY at Phase B close-out (every calibrated category failed the
+removal-quality gate — same doc), so pipeline tests here patch the
+active config back to the calibrated registry to exercise the built
+machinery; the shipped-empty state has its own assertions.
 
 Run:  cd modal-deploy/server && python -m unittest discover -s tests -t .
 """
@@ -20,9 +24,12 @@ import unittest
 
 import numpy as np
 
+from worker import distractions as distractions_module
 from worker.distractions import (
+    CALIBRATED_DISTRACTION_CATEGORIES,
     DISTRACTION_CATEGORIES,
     DISTRACTION_ID_BASE,
+    SHIPPED_DISTRACTION_CATEGORIES,
     build_distraction_candidates,
     clip_mask,
     dedupe_distractions,
@@ -51,17 +58,25 @@ def det(label, score, box):
 
 
 class TestThresholdConfig(unittest.TestCase):
-    def test_shipped_category_set_is_exact(self):
-        # The calibration gate's shipped list. Stop sign and poles
-        # are withheld and must NOT appear here.
+    def test_calibrated_registry_is_exact(self):
+        # The DETECTION calibration's passing list. Stop sign and
+        # poles are withheld and must NOT appear here either.
         self.assertEqual(
-            set(DISTRACTION_CATEGORIES),
+            set(CALIBRATED_DISTRACTION_CATEGORIES),
             {
                 "car", "bus", "truck", "motorbike", "bicycle",
                 "traffic light", "parking meter", "bench",
                 "fire hydrant", "trash bin", "stroller",
             },
         )
+        self.assertNotIn("stop sign", CALIBRATED_DISTRACTION_CATEGORIES)
+
+    def test_shipped_set_empty_at_phase_b_close(self):
+        # The removal-quality gate's outcome (calibration doc): no
+        # category produced a would-post clean, so NOTHING ships —
+        # the active config the pipeline reads is empty.
+        self.assertEqual(SHIPPED_DISTRACTION_CATEGORIES, set())
+        self.assertEqual(DISTRACTION_CATEGORIES, {})
 
     def test_per_category_thresholds_applied(self):
         dets = [
@@ -73,11 +88,15 @@ class TestThresholdConfig(unittest.TestCase):
             det("trash bin", 0.70, [100, 100, 110, 110]),
             det("helicopter", 0.99, [120, 120, 130, 130]),
         ]
-        kept = filter_by_threshold(dets)
+        kept = filter_by_threshold(
+            dets, categories=CALIBRATED_DISTRACTION_CATEGORIES
+        )
         self.assertEqual(
             [(d["label"], d["score"]) for d in kept],
             [("car", 0.45), ("traffic light", 0.65), ("trash bin", 0.70)],
         )
+        # And against the ACTIVE (shipped) config, nothing passes.
+        self.assertEqual(filter_by_threshold(dets), [])
 
 
 class TestDedupe(unittest.TestCase):
@@ -108,7 +127,9 @@ class TestDedupe(unittest.TestCase):
             det("stroller", 0.85, [300, 300, 360, 380]),  # same box
             det("stroller", 0.30, [500, 300, 560, 380]),  # below bar
         ]
-        cands = build_distraction_candidates(rt, om)
+        cands = build_distraction_candidates(
+            rt, om, categories=CALIBRATED_DISTRACTION_CATEGORIES
+        )
         self.assertEqual(
             [(c["category"], c["source"]) for c in cands],
             [("car", "rtdetr"), ("stroller", "omdet")],
@@ -321,6 +342,19 @@ def run_capturing(pipe, **kwargs):
 
 
 class TestPipelineDistractions(unittest.TestCase):
+    """Pipeline behaviour with the calibrated registry patched in as
+    the active config (production ships it EMPTY — see
+    TestThresholdConfig.test_shipped_set_empty_at_phase_b_close)."""
+
+    def setUp(self):
+        self._saved_categories = distractions_module.DISTRACTION_CATEGORIES
+        distractions_module.DISTRACTION_CATEGORIES = dict(
+            CALIBRATED_DISTRACTION_CATEGORIES
+        )
+
+    def tearDown(self):
+        distractions_module.DISTRACTION_CATEGORIES = self._saved_categories
+
     def test_detect_shape_and_mask_suppression(self):
         pipe = make_pipeline()
         res = pipe.detect(photo())

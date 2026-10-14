@@ -10,15 +10,27 @@ benches, …). Two detection sources:
 - OmDet-Turbo Tiny (Apache-2.0, open vocab) for the two COCO-missing
   prompts that passed the calibration gate: "trash bin", "stroller".
 
-Every category in DISTRACTION_CATEGORIES earned its place in the
-Phase B calibration (docs/architecture/phase-b-calibration.md):
+Every category in CALIBRATED_DISTRACTION_CATEGORIES passed the
+Phase B DETECTION calibration (docs/architecture/phase-b-calibration.md):
 measured precision 100% at its threshold on a 30-photo / 321-detection
 by-eye test set, in the production simulation (thresholds + dedupe +
-suppression). Categories that failed or lacked evidence are NOT in
-the dict — poles and street signs are withheld entirely (spike
-verdict), and stop sign is withheld on thin/confused evidence
-(calibration doc). Adding a category = adding one config line after
-it passes the same gate.
+suppression). Categories that failed or lacked detection evidence are
+NOT in the registry — poles and street signs are withheld entirely
+(spike verdict), and stop sign is withheld on thin/confused evidence
+(calibration doc).
+
+SHIPMENT is a second, separate gate (the owner's ship rule: detection
+alone never ships a category — a full clean removing it must also be
+judged would-post). At Phase B close-out (2026-10-15) EVERY calibrated
+category FAILED its removal-quality sample or produced none (large-
+instance MAT fill failures; trash bin was not even returned by the
+production detect on its evidence photo), and the owner capped
+further photo testing — so SHIPPED_DISTRACTION_CATEGORIES is EMPTY
+and /detect proposes no distractions. The full pipeline (detection,
+masks, protected-set clipping, ghost check, contract, app group)
+stays built and tested; enabling a category later = adding its name
+below after a passing removal sample. See the calibration doc's
+removal-results section for the per-category verdicts.
 
 Distractions are DEFAULT KEEP in the app (design X3): nothing in this
 module removes anything by itself; it only proposes items.
@@ -31,10 +43,12 @@ import numpy as np
 
 from .mask_prep import dilate_mask, fill_mask_holes
 
-# The ONE config place for distraction categories (calibration doc has
-# the per-category evidence). "motorbike" is this checkpoint's own
-# id2label spelling (not canonical COCO "motorcycle").
-DISTRACTION_CATEGORIES: Dict[str, Dict[str, Any]] = {
+# The calibrated registry: categories whose DETECTION passed the
+# Phase B calibration, with their measured thresholds (calibration
+# doc has the per-category evidence). "motorbike" is this
+# checkpoint's own id2label spelling (not canonical COCO
+# "motorcycle").
+CALIBRATED_DISTRACTION_CATEGORIES: Dict[str, Dict[str, Any]] = {
     "car":           {"source": "rtdetr", "threshold": 0.45},
     "bus":           {"source": "rtdetr", "threshold": 0.45},
     "truck":         {"source": "rtdetr", "threshold": 0.55},
@@ -46,6 +60,18 @@ DISTRACTION_CATEGORIES: Dict[str, Dict[str, Any]] = {
     "fire hydrant":  {"source": "rtdetr", "threshold": 0.55},
     "trash bin":     {"source": "omdet",  "threshold": 0.65},
     "stroller":      {"source": "omdet",  "threshold": 0.45},
+}
+
+# The SHIPPED set: calibrated categories that ALSO passed the
+# removal-quality gate. EMPTY at Phase B close-out — see the module
+# docstring. This set is the one place a category is turned on.
+SHIPPED_DISTRACTION_CATEGORIES: set = set()
+
+# The ONE active config every consumer reads: shipped ∩ calibrated.
+DISTRACTION_CATEGORIES: Dict[str, Dict[str, Any]] = {
+    cat: cfg
+    for cat, cfg in CALIBRATED_DISTRACTION_CATEGORIES.items()
+    if cat in SHIPPED_DISTRACTION_CATEGORIES
 }
 
 RT_DETR_DISTRACTION_LABELS = {
@@ -112,12 +138,18 @@ def _same_object(box_a: Sequence[float], box_b: Sequence[float]) -> bool:
 
 def filter_by_threshold(
     detections: List[Dict[str, Any]],
-    categories: Dict[str, Dict[str, Any]] = DISTRACTION_CATEGORIES,
+    categories: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """Keeps detections whose category is configured AND whose score
     clears that category's own threshold (the calibration gate's
     per-category bars — one global threshold would either flood the
-    user with false bins or hide every traffic light)."""
+    user with false bins or hide every traffic light).
+
+    `categories` resolves to the ACTIVE config at call time (not
+    import time) so tests and future tooling can patch the shipped
+    set without reloading the module."""
+    if categories is None:
+        categories = DISTRACTION_CATEGORIES
     kept = []
     for det in detections:
         cfg = categories.get(det["label"])
@@ -152,7 +184,7 @@ def dedupe_distractions(
 def build_distraction_candidates(
     rtdetr_detections: List[Dict[str, Any]],
     omdet_detections: List[Dict[str, Any]],
-    categories: Dict[str, Dict[str, Any]] = DISTRACTION_CATEGORIES,
+    categories: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """Box-stage candidate list (before SAM masks exist): per-category
     thresholds, then ONE dedupe across both sources. RT-DETR entries
@@ -165,6 +197,8 @@ def build_distraction_candidates(
     Returns [{'category', 'box', 'score', 'source'}] in dedupe order.
     Ids are assigned by the pipeline AFTER mask suppression.
     """
+    if categories is None:
+        categories = DISTRACTION_CATEGORIES
     rt = [
         {"category": d["label"], "box": d["box"], "score": d["score"],
          "source": "rtdetr"}
