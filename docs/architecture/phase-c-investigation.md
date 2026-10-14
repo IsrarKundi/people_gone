@@ -1,7 +1,7 @@
 # Phase C investigation — shadow cleanup v1 (directional growth)
 
-**Status:** investigation complete at mask level; blind A/B + gate
-verdict in §6 (filled after the A/B run). Working files:
+**Status:** COMPLETE — gate PASSED (§6), integrated and shipped
+(worker `shadow_mode="v1"` default). Working files:
 `~/workspace/peoplegone/phase-c-investigation/` (photos, GT,
 overlays, metrics, A/B outputs — same pattern as the Phase A
 investigation). Prototype: `scripts/shadow_v1.py`; measurement
@@ -66,34 +66,51 @@ components per photo — unlabellable by hand. GT file:
 
 ## 4. The v1 algorithm (as frozen after 4 iterations)
 
-1. **Floor first.** The production heuristic runs unchanged; v1 only
-   ADDS pixels.
-2. **Estimation pool** (relative-dark, wider than the floor's test):
-   S<140 ∧ V<200 ∧ V < 0.80×local V, minus all person masks.
-3. **Per-person samples:** the connected pool blob touching the
-   person's dilated mask, clipped to a disc of radius 1.3×height
-   around the feet anchor; valid only if the blob passes through the
-   contact strip just below the feet (every real cast shadow starts
-   there; scenery blobs touching a person's side/head do not), its
-   centroid sits at/below feet − 0.35×height, and its length
-   ≥ 0.08×height.
-4. **Photo direction:** length-weighted mean of sample directions,
-   gated hard — agreement ≥ 0.5, longest sample ≥ 0.25×height, and
-   (median length ≥ 0.15×height OR ≥ 3 samples); a LONE sample is
-   trusted only if it points clearly downward (dy ≥ 0.3). Any doubt
-   → no direction → the photo is prepped by the floor alone.
-5. **Directional growth:** per removed person, direction = own sample
-   blended 2:1 toward the photo direction (perspective: shadows are
-   parallel in the world, not in the image); corridor = fan of three
-   constant-width sweeps of the mask's lower-40% slice at
-   direction ± 0.14 rad, up to 2.5×height (ground shadows) or
-   0.6×height (upward samples — wall case); additions = corridor ∩
-   growth pool (S<140 ∧ V<210 ∧ V < 0.85×local V) ∩ NOT protected,
-   capped at 3.0× the person's mask area, nearest-first.
-6. **Absolute veto:** the protected set = every keeper's
-   hole-filled halo ∪ every keeper's own observed shadow blob.
-   Additions never enter it; a keeper's final mask is byte-identical
-   to production behaviour.
+Faithful description of the frozen prototype
+(`scripts/shadow_v1.py`), which the production port reproduces
+bit-for-bit (equivalence evidence in §6).
+
+1. **Floor first.** The production path runs unchanged
+   (fill holes → dilate → `expand_shadows`); v1 only ADDS pixels.
+2. **Pools** (both locally-dark, low-saturation; local V = blur with
+   a width-relative kernel, k = max(15, 1.5% of image width)):
+   estimation pool V<200 ∧ S<140 ∧ V < 0.80×local V; growth pool
+   V<210 ∧ S<140 ∧ V < 0.85×local V. Uniform shade masses and dark
+   interiors are locally uniform and drop out of both.
+3. **Per-person samples:** for each person, the estimation-pool
+   component connected to their mask inside a generous search region
+   around their box (±60% width, +35% height above, +100% below),
+   excluding all person interiors; the blob is clipped to a disc of
+   radius 1.3×height around the mask's feet anchor before its
+   centroid is taken (a merged group pool otherwise drags every
+   member's centroid sideways). A sample is valid only if: blob
+   ≥ 200px; centroid at/below feet − 0.35×height; the blob passes
+   through the contact strip just below the feet (every real cast
+   shadow starts there; scenery blobs touching a person's side/head
+   do not); length ≥ 0.08×height.
+4. **Photo direction:** area-weighted circular mean of the valid
+   samples, hard-gated — agreement ≥ 0.5, longest sample
+   ≥ 0.25×height, and (median length ≥ 0.15×height OR ≥ 3 samples);
+   a LONE sample is trusted only if it points clearly downward
+   (dy ≥ 0.3). Any doubt → no direction → the photo is prepped by
+   the floor alone.
+5. **Per-person growth direction:** the person's own sample blended
+   toward the photo direction (own weight 2 if the sample is solid,
+   len ≥ 0.25×height, else 1:1) — shadows are parallel in the world,
+   not in the image (perspective); a person without a sample uses
+   the photo direction.
+6. **Directional growth:** corridor = fan of three constant-width
+   sweeps of the DILATED mask's lower-40% slice at direction
+   ± 0.14 rad, length ≤ 2.5×height, computed in a window around the
+   person. Additions = corridor ∩ growth pool ∩ not-any-person,
+   restricted to the component connected to the person, minus the
+   protected set, area-capped at 3.0× the person's mask area
+   (nearest-first along the direction).
+7. **Absolute veto:** the protected set = every keeper's
+   hole-filled halo ∪ every keeper's own observed shadow blob (the
+   estimator sample blob when one exists, else the raw observed
+   blob). Additions never enter it; keepers never appear in the
+   prep output, as in production today.
 
 No new model, no new dependency (numpy/opencv only — both already
 in the worker image).
@@ -152,4 +169,63 @@ the gain is 0.071 → 0.871).
 
 ## 6. Blind A/B + gate verdict
 
-_TBD — filled after the stage-4 run and blind judging._
+**Method:** for each test photo, both arms cleaned with the
+production per-person crop pattern + production MAT inpainting +
+4px feather composite (ghost check deliberately not run in either
+arm — identical downstream machinery; the A/B isolates mask prep).
+A/B assignment by seeded coin flip; verdicts written to
+`ab/ab_judgements.json` BEFORE the key (`ab/ab_key.json`) was
+opened. Judged on shadow completeness + keeper safety at the
+would-post bar.
+
+| Photo | Blind verdict | Unblinded |
+|---|---|---|
+| 22_sunset_sidewalk | **A better, decisively** — B removes the walker but leaves their ENTIRE long shadow streak orphaned on the pavement; A removes person + streak; keepers and their shadows intact in both | A = **new**, B = old |
+| 10_tiled_piazza | tie — no visible difference; couple + their shadow band preserved in both | A = new |
+| 21_sunny_promenade | tie — arms identical; keepers' foot pools preserved | A = old |
+| 08_historic_arch | tie — both arms poor on the mid-ground removals (pre-existing fill failure on this photo, known since the Phase 0 CPU run); no arm better on shadows, none worse on safety | A = new |
+| 01_beach_solo | tie — keeper pristine in both; her long sand shadow FULLY intact in both (the veto case, visually confirmed) | A = old |
+| 23_street_lamp_shadow | tie — control clean; no spurious dark-region eating in the neon scene | A = old |
+| owner_mosque | tie — keeper + his ground shadow intact in both; left-cluster fill smears in both (known large-cluster fill weakness) | A = old |
+
+**Gate (§5) — PASS:**
+1. *Zero protected-set damage:* the final-composite pixel-diff
+   acceptance test passes with the new mask prep in the loop
+   (`PG_RUN_PIXEL_DIFF=1`, both classes — belongings mosque case +
+   distraction bus case — 2 tests OK, 178.6s, run against the
+   integrated production code). Mask-level: additions into keeper
+   bodies / keeper shadows = 0 px on all 7 photos; keeper-shadow
+   damage 0 → 0 everywhere.
+2. *Blind A/B:* new wins or ties on shadow completeness on every
+   photo (1 decisive win, 6 ties) and NO photo is worse on keeper
+   safety.
+
+**Integration (shipped):**
+- `worker/shadow_growth.py` — faithful production port of the
+  frozen prototype; `worker/mask_prep.py` —
+  `prepare_individual_removal_masks(..., shadow_mode="v1")`
+  (default) with `"legacy"` = the exact pre-Phase-C path, chosen
+  explicitly via `PipelineConfig.shadow_mode`; unknown modes raise.
+  No silent fallback anywhere.
+- **Equivalence proof:** production port vs investigated prototype
+  masks = **0 px difference** on 22 / 10 / 21 / mosque; legacy mode
+  vs the stage-3 floor masks = **0 px difference**. The gate
+  evidence above therefore applies to exactly the shipped code.
+- **Tests:** new `tests/test_shadow_v1.py` (7 synthetic-scene
+  tests: estimator direction, growth beyond floor, keeper veto,
+  quiet-scene v1 ≡ legacy, legacy ≡ hand-rolled floor, area cap,
+  unknown-mode raise). Full worker suite: **42 tests OK** (2
+  env-gated skips) from `modal-deploy/server/`.
+- No contract change, no app change (X12–X14: shadows are not
+  items; copy frozen), no Phase B shipped-set change, no new
+  dependency.
+
+**Known limits (carried honestly):** v1 fires only where cast
+evidence is strong — faint shadows on bright ground (piazza),
+midday pools (promenade), and B&W texture chaos (arch) stay at the
+floor's coverage until a future phase brings better evidence
+extraction (Phase E territory). Wall shadows remain UNMEASURED
+(no sourceable test photo; growth is direction-based and
+surface-agnostic in image space, so they would be treated like
+ground shadows along the same direction — a claim this
+investigation does not make).

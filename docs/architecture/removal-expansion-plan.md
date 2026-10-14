@@ -70,6 +70,7 @@
 **Worker:** `mask_prep.py` — estimate dominant light direction per photo from all persons' existing shadow expansions; grow each removed person's mask along that direction within a bounded reachable region; keeper veto (growth stops at protected masks); current below-feet heuristic remains as the floor, not replaced blindly.
 **App:** none (X12 — shadows are never items; copy frozen per X13).
 **Gate:** blind A/B against the current heuristic on a long-shadow test set (evening side-light, shadows on walls/furniture); ship only if residual-shadow rate drops **and** keeper-shadow damage stays zero.
+**STATUS — DONE, GATE PASSED, SHIPPED (2026-10-15).** Investigation: `docs/architecture/phase-c-investigation.md`. Measured: flagship long-shadow mask recall 0.071 → 0.871 (pooled over GT photos 0.147 → 0.224 — v1 deliberately stays silent where cast evidence is weak: faint shadows on bright tile, midday pools, B&W); keeper incursion 0 px on all 7 test photos; blind A/B 1 decisive win + 6 ties, no photo worse on keeper safety; §5 pixel-diff acceptance passes with the new prep. Integrated as `worker/shadow_growth.py` + `mask_prep` `shadow_mode="v1"` (default; `"legacy"` = exact old path), port proven bit-identical to the investigated prototype (0 px diff on 4 photos). Wall shadows UNMEASURED (no sourceable test photo) — no claim made. No app/contract change.
 
 ### Phase D — Reflections v1 (detect + warn + guided brush)
 **Worker:**
