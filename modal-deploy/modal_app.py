@@ -26,7 +26,10 @@ image = (
         "numpy<2",
         "pillow==10.4.0",
         "opencv-python-headless",
-        "transformers==4.44.2",
+        # 4.46.3 (Phase B): OmDet-Turbo needs transformers >= 4.45; the
+        # bump was spike-verified (docs/architecture/phase-b-spike.md) and
+        # is regression-gated on the mosque /detect evidence.
+        "transformers==4.46.3",
         "huggingface_hub",
         "hydra-core",
         "iopath",
@@ -67,6 +70,7 @@ image = (
         "from huggingface_hub import snapshot_download, hf_hub_download; "
         "snapshot_download('PekingU/rtdetr_r50vd'); "
         "snapshot_download('facebook/sam2.1-hiera-tiny'); "
+        "snapshot_download('omlab/omdet-turbo-swin-tiny-hf'); "
         "hf_hub_download('Icar/mat_places512_full', 'Places_512_FullData.pkl', "
         "local_dir='/models/mat')\"",
         # LaMa weights (simple-lama fetches its TorchScript file on first use)
