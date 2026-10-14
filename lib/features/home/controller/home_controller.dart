@@ -119,5 +119,12 @@ class HomeController extends GetxController {
     await reloadData();
   }
 
+  /// Tapping a Home history tile opens THAT photo's detail (same
+  /// behaviour as the History screen's grid) — not the list.
+  Future<void> openHistoryDetail(HistoryEntry entry) async {
+    await Get.toNamed<void>(Routes.historyDetail, arguments: entry);
+    await reloadData();
+  }
+
   void openSettings() => Get.toNamed<void>(Routes.settings);
 }

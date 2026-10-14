@@ -94,10 +94,50 @@ class LocalStoreImpl implements LocalStore {
     );
   }
 
+  /// History entries store ABSOLUTE paths, but the OS app-container
+  /// path rotates across reinstalls (seen on iOS Simulator 2026-10-14:
+  /// every stored thumbnail went stale at once). Resolve a stored path
+  /// against the CURRENT documents root: relative paths join the root;
+  /// a missing absolute path is re-rooted at its `/peoplegone/` suffix
+  /// when the file actually lives there now. Unresolvable paths pass
+  /// through unchanged (the tile's error state stays honest).
+  Future<String> _resolveStoredPath(String stored) async {
+    if (!stored.startsWith('/')) {
+      return '${(await _root()).path}/$stored';
+    }
+    if (await File(stored).exists()) return stored;
+    const marker = '/peoplegone/';
+    final idx = stored.indexOf(marker);
+    if (idx == -1) return stored;
+    final docs = await _documentsDir();
+    final candidate = '${docs.path}${stored.substring(idx)}';
+    if (await File(candidate).exists()) return candidate;
+    return stored;
+  }
+
+  Future<HistoryEntry> _healed(HistoryEntry entry) async {
+    final local = await _resolveStoredPath(entry.localPath);
+    final original = entry.originalPath == null
+        ? null
+        : await _resolveStoredPath(entry.originalPath!);
+    if (local == entry.localPath && original == entry.originalPath) {
+      return entry;
+    }
+    return HistoryEntry(
+      id: entry.id,
+      localPath: local,
+      savedAt: entry.savedAt,
+      originalPath: original,
+    );
+  }
+
   @override
   Future<Result<List<HistoryEntry>>> history() async {
     try {
-      final entries = await _readIndex();
+      final raw = await _readIndex();
+      final entries = <HistoryEntry>[
+        for (final entry in raw) await _healed(entry),
+      ];
       entries.sort((a, b) => b.savedAt.compareTo(a.savedAt));
       return Success<List<HistoryEntry>>(entries);
     } catch (e) {
@@ -123,10 +163,11 @@ class LocalStoreImpl implements LocalStore {
     try {
       final entries = await _readIndex();
       for (final entry in entries.where((e) => e.id == id)) {
-        final file = File(entry.localPath);
+        final healed = await _healed(entry);
+        final file = File(healed.localPath);
         if (await file.exists()) await file.delete();
-        if (entry.originalPath != null) {
-          final orig = File(entry.originalPath!);
+        if (healed.originalPath != null) {
+          final orig = File(healed.originalPath!);
           if (await orig.exists()) await orig.delete();
         }
       }

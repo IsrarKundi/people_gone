@@ -82,7 +82,7 @@ class HomeView extends GetView<HomeController> {
                 HistoryGrid(
                   entries: controller.history.take(3).toList(),
                   shrinkWrap: true,
-                  onTap: (_) => controller.openHistory(),
+                  onTap: controller.openHistoryDetail,
                 ),
                 SizedBox(height: s.xxl),
                 const InteractiveDemoCard(),

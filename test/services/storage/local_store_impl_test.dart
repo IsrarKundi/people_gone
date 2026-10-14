@@ -73,6 +73,28 @@ void main() {
       expect(unwrap(await store.history()), isEmpty);
       expect(await File(historyPath).exists(), isFalse);
     });
+
+    test('history heals paths from a rotated app-container root', () async {
+      // The photo file lives under the CURRENT documents root…
+      final dir = Directory('${tempDir.path}/peoplegone/history');
+      await dir.create(recursive: true);
+      final file = File('${dir.path}/h9.jpg');
+      await file.writeAsBytes(<int>[9, 9, 9]);
+      // …but the index still points at the OLD container's absolute path
+      // (what an iOS reinstall does to stored paths).
+      unwrap(
+        await store.addHistory(
+          HistoryEntry(
+            id: 'h9',
+            localPath: '/old-container/Documents/peoplegone/history/h9.jpg',
+            savedAt: DateTime.utc(2026, 10, 14),
+          ),
+        ),
+      );
+      final entries = unwrap(await store.history());
+      expect(entries.single.localPath, file.path);
+      expect(await File(entries.single.localPath).exists(), isTrue);
+    });
   });
 
   group('session results', () {
