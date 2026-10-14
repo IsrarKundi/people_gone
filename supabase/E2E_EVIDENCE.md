@@ -63,17 +63,25 @@ consume/replay/refund → SQL ledger check → second consume → cross-user
 isolation check) is written and running with per-call retries and
 resumable state. It has not yet completed; see the network note.
 
-### Network note (this VM's egress, not the project)
+### Network note (this VM's egress proxy, not the project)
 
-From this VM, `https://ietwddgjtcrabqjdxsfp.supabase.co` sub-paths
-(`/auth/v1/*`, `/rest/v1/*`, `/functions/v1/*`, `/storage/v1/*`)
-intermittently time out completely (curl `000`), in windows lasting
-tens of minutes, interspersed with brief windows where every path
-answers in <1.5s (observed: project root `404`, `/rest/v1/` `401`,
-`/functions/v1/` `404`, all correct). During the same windows,
-`api.supabase.com` (Management API — all migrations, auth config,
-function deploys, secrets) and the Modal worker stay reachable, and the
-project reports `ACTIVE_HEALTHY`. Direct (proxy-bypassing) connections
-are refused outright. The E2E runner keeps retrying; this file will be
-updated with the measured numbers (persons detected, timings, result
-bytes, ledger state) the moment a full pass completes.
+Diagnosis (measured 2026-10-14): this VM's only egress is a proxy, and
+it stalls requests that carry an `apikey` header or a long
+`Authorization: Bearer` header — the stall reproduces on unrelated
+hosts (httpbin) with those headers, while the same requests without
+those headers answer instantly, and short-token requests (44-char
+Management API PAT) work reliably. Supabase data-plane calls all require
+the `apikey` header, so from this VM they time out (curl `000`),
+except for a few brief windows. Kong-local responses that need no key
+(project root `404`, `/functions/v1/` `404`, no-header `/auth/v1/health`
+`401`) are always fast, direct proxy-bypassing connections are refused
+outright, `api.supabase.com` (Management API — all migrations, auth
+config, function deploys, secrets) and the Modal worker stay reachable,
+and the project reports `ACTIVE_HEALTHY` throughout.
+
+The resumable E2E runner (`~/pg2work/run.sh` → `e2e.py`, state in
+`~/pg2work/state.json`, log in `~/pg2work/e2e.log`) keeps retrying from
+this VM; alternatively the identical script run from any normal network
+completes the pass. This file will be updated with the measured
+numbers (persons detected, timings, result bytes, ledger state) the
+moment a full pass completes.
