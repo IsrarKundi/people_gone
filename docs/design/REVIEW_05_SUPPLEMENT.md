@@ -1,100 +1,67 @@
-# Review 05 — Supplement: The Owner's Three Lenses
+# Review 05 — Supplement: The Design Lead's Audit
 
 **Date:** 2026-10-14
-**Reviewer:** UI/UX design lead
-**Material:** The same two owner screenshots as Review 05 (new Processing mid-job; new Home with a background job running, light theme, owner's device). Judged from those two stills only.
-**Brief (owner's, verbatim in intent):** do not judge functionality. Judge (1) whether the screens actually *look* good — bluntly, specifically; (2) emptiness — the owner named this himself: *"not enough things on the screen"*; (3) necessity — *"unnecessary things being shown"*: every visible element on trial, none pre-approved.
-**Relation to Review 05:** this supplement is the owner's clarified brief answered in the form he asked for. Its verdicts are consistent with Review 05 as reframed (commit `05c4d0a`): **both screens rejected on composition**. Review 05's factual findings (stage label, banner wording) stand and are not repeated here.
+**Author:** UI/UX design lead, acting under DESIGN_DIRECTION §10 at the owner's explicit instruction (2026-10-14): judge these screens with my own professional judgement — my criteria, my structure, my call. This supplement supersedes the lens-structured version issued earlier the same day. Where my rulings converge with it, that is because I stand by them; where this audit goes further (a system ruling on card language, D12), the new ruling governs.
+**Material:** The owner's two screenshots of the new build (Processing mid-job; Home with a background job running, light theme). **Design review, not launch approval.**
+
+## My criteria
+
+I judge these screens against the direction this project already runs on, in this order:
+
+1. **The north star** — intuitive, easy to understand, modern minimal.
+2. **The photo is the app** — photographic surfaces carry the design; chrome exists to serve the photo and the job, and must justify itself.
+3. **A screen is a finished arrangement** — balance, rhythm, and a resting point for the eye. A screen that stops mid-air is not minimal; it is incomplete. Minimal is *nothing unnecessary*, not *as little as possible*.
+4. **Nothing imitates information** — the worst offence in UI is a shape that mimics a signal it doesn't carry: a fake status, a fake progress, a fake selection. Absence is honest; imitation is not.
+5. **Calm is a visual property, not just a copy property** — a screen that meters, pulses and stacks at the user is not calm, whatever its words say.
+6. **One language per screen** — one alignment story, one corner story, one border story. Variety inside a single screen is noise; variety between screens is fine.
 
 ---
 
-## Lens 1 — Looks audit: does it look professionally designed?
+## What is GOOD — and worth protecting
 
-### Processing
+Credit first, because these are the decisions the fixes must not break.
 
-**Typography.** The stage title is the one well-judged text on the screen: title-size, semibold, quiet. Everything under it collapses: three facts (elapsed, duration, leave-the-app) are set as a single two-line grey paragraph, so the card's text hierarchy is *one bold line, then mush*. Grey text at body size carrying three unrelated facts is how utility apps write status; designed apps give each fact one place and one weight.
+- **Killing the darkroom was the redesign's best decision.** The framed photo at natural brightness on the theme canvas treats the user's photograph with respect — the previous screen treated it as wallpaper behind a terminal. This is "the photo is the app" finally honoured on the waiting screen.
+- **The background job banner is a genuinely good invention.** A job that follows the user home, states itself plainly, and opens back up on tap. It converts the product's worst fact (a two-minute wait) into evidence of competence. Protect it.
+- **The demo card remains the best teaching device in the app.** A real before/after pair with a draggable divider teaches the entire product in one gesture, with no tutorial, no onboarding, no hype. Its caption tells the truth about what it is.
+- **The beam, as an idea, is right.** A two-minute static screen is a dead screen; a slow indeterminate sweep is a pulse, and a pulse is what a waiting screen needs. It does not pretend to measure anything. (Its *weight* is another matter — see below.)
+- **Discipline held everywhere else:** the wordmark appears once; no sparkles, gradients or hype words anywhere; the quota states its fact including the reset date without a meter shouting about limits; Cancel is an honest word, not a red button inventing danger. The calm, factual voice survived the redesign intact.
 
-**Spacing rhythm.** There isn't one. Photo → status card is an *overlap* (negative gap), card → pill is a small gap, pill → Cancel a medium gap, Cancel → screen bottom is an infinite gap. Four different spacing ideas in one column, and the rhythm dies completely at Cancel.
+## What is WRONG
 
-**Alignment.** The one thing that holds: a single centre axis for actions, left-aligned text inside the card. Nothing to fix here — which is why the failures stand out: they are proportion and treatment failures, not alignment failures.
+Ordered by how much damage each does.
 
-**Card treatment.** Three corner languages in one junction (photo card ≈24dp radius, status card ≈20dp, pill fully round), and the status card and the pill *both* overlap the photo card, whose bottom corners peek out as photo slivers beside the pill. Stacked overlaps with a third element peeking through is the screen's most amateur moment — it reads as a rendering accident, not a device.
+**W1 — Both screens are unfinished arrangements.** On Processing, everything ends at Cancel, ~70% down, and the remaining quarter-plus is unstructured porcelain. On Home, the content ends at the demo card, ~55% down, and the bottom ~45% is bare. This fails criterion 3 outright: the eye is given a path and then dropped. It is also, not coincidentally, the failure this project keeps re-committing — the first-run void, the with-history void, the darkroom's dead surround were all this same mistake in different clothes, and it is now a standing rule (D10) rather than a per-screen observation: **a primary screen that ends in unstructured empty space is not composed, and I will reject it on that ground alone.**
 
-**Colour balance.** The screen is two screens stitched at the status card: the top ~60% is a rich, dark, warm night photograph; the bottom ~40% is cool porcelain with almost no accent colour in it at all. The only cobalt below the photo is *none* — the beam is inside the photo, Cancel is grey, the action pill is white. A designed screen distributes its accent; this one spends it all at the top.
+**W2 — Home's emphasis is inverted.** The largest text after the wordmark is a prose paragraph; the hero it introduces carries the smallest text on the screen. The demo *is* the persuasion — the paragraph is its caption. As built, the caption outranks the picture, and the picture is also physically too small: the adopted design specified a ~60%-height hero and the build delivers ~30%, parked last in the stack. A screen whose strongest asset is its smallest element has its hierarchy backwards.
 
-**Verdict (looks):** handsome photograph, unfinished screen. The photo card alone would pass anywhere; everything below it is where the amateur tells concentrate (white pill on near-white, peeking slivers, stopwatch, empty hairline — detailed in Lens 3).
+**W3 — Three shapes imitate information they don't carry.** (a) The quota pill's blue dot performs "status" — live, unread, active — and there is no status; it is a decoration wearing a signal's clothes. (b) The empty progress track in the status card performs "progress" at 0% and reads as a stray divider; a track that is not filling or pulsing is a lie of form. (c) The banner's blue border performs "selected/focused" — the language of input fields — on a notice. Each is small; together they are the difference between a designed screen and an assembled one, because a user reads shapes before words. Criterion 4 is mine and I am applying it strictly: **all three go.**
 
-### Home
+**W4 — Processing's junction is over-layered.** The status card overlaps the photo; the action pill also overlaps the photo; the photo's bottom corners peek out beside the pill. Two overlaps is a pile-up, and the peeking corners make it look like a rendering error. One overlap per junction is a device; two is an accident.
 
-**Typography.** The hierarchy is inverted. Ranked by size: wordmark, then the *teaching paragraph* (~20sp, two lines, near-black), then the banner title — and the smallest text on the screen belongs to the hero: the demo card's labels and caption. The screen's biggest words describe the product; its actual content (your photo, cleaned) whispers. A designed first screen lets the hero carry the emphasis and keeps prose at body size.
+**W5 — The stopwatch contradicts the screen's own voice.** The card's words say "calm, ~2 minutes, leave if you like"; its elapsed timer says "0:24 and counting". A ticking meter is the visual opposite of the reassurance printed beside it. The duration line already carries the time information. The timer goes — not because it is untrue (it is the most measured thing on the screen) but because truth is a threshold, not a justification: everything shown must also *earn* its place.
 
-**Spacing rhythm.** A compressed top cluster — banner, pill, pill, paragraph, card, five containers with near-uniform small gaps — followed by a hard stop and ~45% of nothing. No graduated rhythm leads the eye down; it is marched through a queue of boxes and then dropped.
+**W6 — The primary action on Processing is its faintest element.** A white pill on a near-white canvas, defined only by shadow — while the screen's most saturated object is a decorative beam carrying no information. Accent and solidity are spent in exactly the wrong places: loud where nothing is meant, faint where the user's one action sits.
 
-**Alignment.** Two stories: a left/full-width column (wordmark, banner, Pick, teaching line, demo) and one small pill centred in the middle of it (the quota) that belongs to neither. A single centred element among left-aligned siblings always reads as a stray — here it reads as a toast notification that never left.
+## What could be IMPROVED — my rulings
 
-**Card treatment.** Four containers, four treatments, in the top half alone: banner with a *blue* border (reads as a focus ring on an input — the only coloured border on the screen), a solid-filled pill button, an outlined pill, a hairline-bordered photo card. Container soup. Individually defensible; together they are the visual noise the owner is reacting to.
+These carry my authority as design lead (§10). Factual/copy items F1 (stage label) and F2 (banner wording) from Review 05 stand unchanged and are not repeated here.
 
-**Colour balance.** Better than Processing: cobalt is distributed (button, banner spinner/border, caption icon) and the demo photo's warmth balances the middle. The failure is not colour but mass — all of it is in the top half.
+- **R1 — Anchor Processing's status cluster to the bottom.** Status card, background action and Cancel become a bottom-anchored group (the tray the adopted option specified); the photo takes the space above; spare room falls between them as gallery air. Fixes W1 and W4's reading of Cancel as an afterthought.
+- **R2 — One overlap only.** The photo card ends where the status cluster begins; nothing peeks. Fixes W4.
+- **R3 — Restore the hero's scale on Home.** The demo (or, with history, the latest clean) is the screen's dominant mass — toward the adopted ~60%, never a ~30% card trailing a queue of containers. Fixes W1 and W2 together.
+- **R4 — Demote the teaching line to body size.** It introduces the hero; it does not headline the screen. Fixes W2.
+- **R5 — Strip the imitation shapes.** No status dot on the quota (and the quota itself becomes a plain text line in the column — its pill container borrows emphasis the fact hasn't earned); no progress track unless it is filling or pulsing; the banner takes the same neutral border as every other card — its spinner and words already say "active". Fixes W3 and W6's accent misallocation in part.
+- **R6 — Give "Work in background" a defined treatment.** A border or a fill — the action must be the most solid thing in its zone. Fixes W6.
+- **R7 — Split the status card's text by owner.** Duration stays with the stage line. "You can safely leave the app." leaves the card and captions the button it justifies. The card then reads: one stage, one expectation — nothing else.
+- **R8 — Reduce the beam's weight.** Thinner or softer; it is a pulse, not a headline. Its sanction remains indeterminate-only.
+- **R9 — Cut the caption to provenance.** "Real app output." The divider's handle already teaches the drag, and the blue hand icon is the only clip-art in either screenshot. Instruction that never leaves becomes noise; provenance never stops earning its place.
+- **R10 — Shorten the banner subtitle to the destination.** The duration half duplicates the screen the user just left and isn't a remaining-time figure in any case.
 
-**Verdict (looks):** coherent palette, wrong proportions. Nothing on this screen is ugly; it is *underweight* — a header cluster and one mid-sized card where the adopted design called for a hero.
+## One system ruling beyond these two screens
 
----
+**D12 — One card language, app-wide.** A single card radius and a single border treatment (neutral hairline) for every card surface in the app; colour is spent on the photo, the primary action, and genuine state — never on container outlines. Home currently shows four border treatments in its top half; that is how template apps look, and it ends here.
 
-## Lens 2 — Emptiness: composed, or unfinished?
+## Unjudged, honestly
 
-**Processing — UNFINISHED.** The bottom ~25–30% below Cancel is unstructured porcelain. The eye's path is photo → card → pill → Cancel → *nothing*, and the nothing is the largest single region of the lower screen. **What rebalances it (within honesty + no-clutter): nothing new.** (a) Anchor the status card + actions to the bottom as the tray the adopted Option 1 actually specified — the same elements, bottom-anchored, with spare space falling *between* photo and tray where it reads as gallery air. (b) Let the photo card flex into the height that frees up — a portrait photo like this mosque shot can legitimately be larger. Explicitly rejected as fillers: tips, feature hints, upsell, decorative branding — emptiness is fixed by anchoring and scale, never by adding content.
-
-**Home — UNFINISHED in this state.** The bottom ~45% below the demo card is bare. The adopted Option A specified a hero canvas at ~60% of screen height; the built demo card is ~30% and sits *last* in the stack. The research doc's own complaint about the previous Home was a "70% white void" — the redesign shrank the void; it did not compose the screen. **What rebalances it (within the rules):** (a) restore the hero toward its adopted scale — the demo card is the screen's anchor and should carry the mass; (b) the space that creates lets the top cluster loosen instead of queueing; (c) in the with-history state the hero becomes the user's latest clean (already specced) — the same rebalance, with the user's own photo as the mass. Again: no filler elements are needed or permitted.
-
-**Standing rule recorded (D10):** a primary screen whose content ends in unstructured empty space in its bottom quarter is a composition reject, whatever its elements' individual quality.
-
----
-
-## Lens 3 — Necessity audit: every element on trial
-
-Rulings use the owner's scale — **KEEP / SHRINK / DEMOTE / REMOVE** — with one line of reasoning each. "Demote" = keep the information, reduce its presentation. Nothing below was pre-approved; two elements I have previously defended (the elapsed timer, sanctioned as honest in Review 02; the demo caption, praised in Review 04) are ruled against here on visual grounds — honesty was never the question; necessity is.
-
-### Processing — every visible element
-
-| # | Element | Ruling | Reasoning |
-|---|---|---|---|
-| 1 | Photo card (framed photo) | **KEEP** | The hero and the screen's whole point; correctly shown at natural brightness. |
-| 2 | Scan beam | **DEMOTE** | In a still it reads as a neon top border, not activity; it carries zero information at the loudest saturation on the screen — reduce its visual weight; it survives on its motion alone. |
-| 3 | Status card (container) | **KEEP** | The right device for stage + expectation; its problems are placement (Lens 2) and contents (below), not existence. |
-| 4 | Progress hairline (empty track) | **REMOVE** | An empty grey track communicates nothing and impersonates a divider; it earns a place only while actually filling or pulsing. |
-| 5 | Stage title ("Uploading your photo... 0%") | **KEEP** | The one line the screen cannot do without. (Its truthfulness is Review 05 §4-F1, a separate matter.) |
-| 6 | Elapsed line ("Elapsed 0:24 · …") | **REMOVE** | A stopwatch on a calm screen: it makes the wait feel metered, and the duration line already tells the time story. Honest, and unnecessary — both can be true. |
-| 7 | Expectation ("…processing takes ~2 minutes.") | **KEEP** | The single most useful sentence on the screen; it is what makes a 2-minute wait acceptable. |
-| 8 | "You can safely leave the app." | **DEMOTE** | True and important, but it justifies the *button*, not the stage — move it out of the card's text block to caption the "Work in background" action. |
-| 9 | "Work in background" pill | **KEEP** | The screen's primary action and the point of the whole redesign; fix its ghost treatment (white on near-white) — a treatment defect, not a necessity question. |
-| 10 | Cancel (bare text) | **KEEP** | A real exit, correctly unadorned on a plain canvas; it looks stranded only because of the void beneath it (Lens 2). |
-
-### Home — every visible element
-
-| # | Element | Ruling | Reasoning |
-|---|---|---|---|
-| 1 | Wordmark ("PeopleGone") | **KEEP** | The brand, once, correctly weighted. |
-| 2 | Settings gear | **KEEP** | The one secondary destination; standard placement, no competition. |
-| 3 | Job banner (card) | **KEEP** | It is the resumable-job mechanism, not decoration; without it "leave the app" is a promise with no handle. |
-| 4 | Banner spinner | **KEEP** | The banner's only activity signal; small, honest motion. |
-| 5 | Banner title ("Cleaning photo in background...") | **KEEP** | Names the state in plain words. |
-| 6 | Banner subtitle ("Takes ~2 minutes · Tap to return to preview") | **SHRINK** | The duration half duplicates what Processing just said and isn't a remaining-time figure anyway; keep only the destination half (with Review 05 F2's wording fix). |
-| 7 | Banner chevron | **KEEP** | The tap affordance; without it the card reads as a notice, not a door. |
-| 8 | "Pick a photo" pill + icon | **KEEP** | The product's one action, correctly the most solid element on the screen. |
-| 9 | Quota pill — the *container* | **DEMOTE** | A centred floating pill belongs to no column; the fact should sit as a plain line of secondary text in the column's alignment. |
-| 10 | Quota pill — the blue dot | **REMOVE** | It mimics a status indicator (live / unread / active) and there is no status; it is the one dishonest *shape* on the screen. |
-| 11 | Quota text ("8 of 10 free saves left · Resets 1 Nov") | **KEEP** | Necessary, factual, and now includes the reset date; only its packaging (9, 10) is wrong. |
-| 12 | Teaching line | **DEMOTE** | The sentence earns its place on first run; its headline size does not — at ~20sp it out-shouts the hero that demonstrates the same sentence. Body size makes it the demo's introduction instead of its rival. |
-| 13 | Demo card (container) | **KEEP** | The screen's anchor — and per Lens 2 it should be substantially *larger*, toward the adopted ~60% hero scale. Keep, and grow. |
-| 14 | "Original" / "Cleaned" badges | **KEEP** | On trial and acquitted: without them the split view is ambiguous about which side is which; they are small, translucent, and factual. |
-| 15 | Divider + handle | **KEEP** | The best-built element on either screen; the arrows are also the instruction (see 17). |
-| 16 | Caption icon (blue hand) | **REMOVE** | Clip-art. It is the only element on either screen that would look at home in a template, and it teaches nothing the handle doesn't. |
-| 17 | Caption text ("Drag divider to preview clean · Real app output") | **SHRINK** | Keep "Real app output" — the trust fact. Drop the drag instruction: the handle's arrows already teach it, and a permanent instruction for a one-time discovery is permanent noise. |
-
-**Audit summary:** 28 elements ruled on — 16 KEEP, 3 SHRINK, 5 DEMOTE, 4 REMOVE. The removals are small (a hairline, a stopwatch, a dot, an icon) and that is precisely the point the owner is making: the screens are not cluttered with *features*, they are cluttered with *presentation* — and simultaneously under-filled in the large. Shrink the presentation, grow the hero, anchor the bottom, and both screens become what their concepts already are.
-
----
-
-## Direction amendments from this supplement (DESIGN_DIRECTION §11)
-
-- **D11 — Element rulings (standing):** (a) S6's status card shows stage + expectation only — no elapsed timer, no static progress track (a track appears only while filling with real % or pulsing indeterminate); (b) Home's quota is a plain secondary-text line in the column — no pill container, no status dot; (c) the demo caption is provenance only ("Real app output") — no instruction text, no icon; (d) the banner subtitle is the destination only. These supersede earlier approvals where they conflict (Review 02's elapsed sanction was an honesty ruling, not a necessity ruling; the owner's necessity audit governs presentation).
+Motion (the beam's speed and easing, banner transitions) cannot be judged from stills, and neither can these builds in dark mode or at 1.30 text scale. Those join the full harness pass already owed when the implementation lands on main, alongside the with-history hero and the banner's done/failed states. My composition verdicts above do not wait for that pass: **as composed in the owner's screenshots, both screens are rejected — concepts approved, elements largely approved, arrangements not finished.** R1–R10 are the finish.
