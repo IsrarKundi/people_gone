@@ -100,13 +100,37 @@ def prepare_individual_removal_masks(
     persons: List[Dict[str, Any]],
     instance_masks: List[np.ndarray],
     remove_ids: set,
-    dilation_factor: float = 0.02
+    dilation_factor: float = 0.02,
+    shadow_mode: str = "v1"
 ) -> List[Dict[str, Any]]:
     """
     Prepares dilated and shadow-expanded masks per removed person.
     Returns list of dicts:
     [{'person_id': int, 'box': list, 'mask': np.ndarray, 'height': int}]
+
+    shadow_mode:
+      "v1" (default, Phase C) — the floor heuristic PLUS directional
+          shadow growth from worker.shadow_growth, applied when a
+          confident per-photo light direction exists (keeper-vetoed).
+          Investigation + gate evidence:
+          docs/architecture/phase-c-investigation.md.
+      "legacy" — exactly the pre-Phase-C floor behaviour below.
+    The mode is chosen explicitly by the caller
+    (PipelineConfig.shadow_mode). There is no silent fallback: in
+    "v1" mode, growth finding no confident direction adds nothing,
+    by design, and the floor result stands.
     """
+    if shadow_mode == "v1":
+        # Lazy import: shadow_growth imports helpers from this
+        # module, so a top-level import here would be circular.
+        from .shadow_growth import prepare_masks_v1
+
+        return prepare_masks_v1(
+            image_rgb, persons, instance_masks, remove_ids,
+            dilation_factor=dilation_factor,
+        )
+    if shadow_mode != "legacy":
+        raise ValueError(f"unknown shadow_mode: {shadow_mode!r}")
     results = []
     for p, inst_mask in zip(persons, instance_masks):
         if p["id"] in remove_ids:

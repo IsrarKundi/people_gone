@@ -60,6 +60,10 @@ class PipelineConfig:
     # running on transformers < 4.45 (OmDet classes absent) — the
     # production image pins 4.46.3 and always enables it.
     omdet_enabled: bool = True
+    # Phase C: shadow handling in mask prep. "v1" = floor heuristic +
+    # directional shadow growth (worker/shadow_growth.py); "legacy" =
+    # floor only. Explicit code path, never a silent fallback.
+    shadow_mode: str = "v1"
 
 class PeopleGonePipeline:
     def __init__(self, config: Optional[PipelineConfig] = None):
@@ -249,7 +253,8 @@ class PeopleGonePipeline:
 
             prepared = prepare_individual_removal_masks(
                 orig_rgb, persons, effective_masks, remove_ids,
-                dilation_factor=self.config.initial_dilation_factor
+                dilation_factor=self.config.initial_dilation_factor,
+                shadow_mode=self.config.shadow_mode
             )
             for item in prepared:
                 units.append({
