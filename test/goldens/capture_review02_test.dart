@@ -155,6 +155,8 @@ class CaptureApi implements ProcessingApi {
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     void Function(double fraction)? onUploadProgress,
   }) {
     onUploadProgress?.call(1.0);

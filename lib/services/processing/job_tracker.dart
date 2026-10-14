@@ -13,6 +13,8 @@ class ActiveJob {
   const ActiveJob({
     required this.photoPath,
     this.keepIds,
+    this.removeItemIds,
+    this.detachedBelongingIds,
     required this.status,
     this.outcome,
     this.errorMessage,
@@ -21,6 +23,11 @@ class ActiveJob {
 
   final String photoPath;
   final List<int>? keepIds;
+
+  /// Contract v3 belongings decisions, carried so a banner re-entry
+  /// into Processing replays the exact confirm the user made.
+  final List<int>? removeItemIds;
+  final List<int>? detachedBelongingIds;
   final ActiveJobStatus status;
   final ProcessingOutcome? outcome;
   final String? errorMessage;
@@ -34,6 +41,8 @@ class ActiveJob {
     return ActiveJob(
       photoPath: photoPath,
       keepIds: keepIds,
+      removeItemIds: removeItemIds,
+      detachedBelongingIds: detachedBelongingIds,
       status: status ?? this.status,
       outcome: outcome ?? this.outcome,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -59,12 +68,19 @@ class JobTracker {
     }
   }
 
-  void trackStarted({required String photoPath, List<int>? keepIds}) {
+  void trackStarted({
+    required String photoPath,
+    List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
+  }) {
     diag('job_tracker', 'trackStarted: ${photoPath.split('/').last}');
     _setJob(
       ActiveJob(
         photoPath: photoPath,
         keepIds: keepIds,
+        removeItemIds: removeItemIds,
+        detachedBelongingIds: detachedBelongingIds,
         status: ActiveJobStatus.processing,
         startedAt: DateTime.now(),
       ),

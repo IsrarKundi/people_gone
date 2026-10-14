@@ -39,6 +39,8 @@ class HomeJobBanner extends StatelessWidget {
             arguments: ProcessingArgs(
               photoPath: job.photoPath,
               keepIds: job.keepIds,
+              removeItemIds: job.removeItemIds,
+              detachedBelongingIds: job.detachedBelongingIds,
             ),
           );
         };

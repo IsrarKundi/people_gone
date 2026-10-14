@@ -38,6 +38,8 @@ class ReviewApi implements ProcessingApi {
   int detectCalls = 0;
   int processCalls = 0;
   List<int>? lastKeepIds;
+  List<int>? lastRemoveItemIds;
+  List<int>? lastDetachedBelongingIds;
 
   @override
   Future<Result<DetectionProposal>> detectPersons({
@@ -53,10 +55,14 @@ class ReviewApi implements ProcessingApi {
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     void Function(double fraction)? onUploadProgress,
   }) async {
     processCalls++;
     lastKeepIds = keepIds;
+    lastRemoveItemIds = removeItemIds;
+    lastDetachedBelongingIds = detachedBelongingIds;
     return processNext;
   }
 

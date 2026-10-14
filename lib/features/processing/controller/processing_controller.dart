@@ -58,15 +58,20 @@ class ProcessingController extends GetxController {
     JobTracker.instance.trackStarted(
       photoPath: args.photoPath,
       keepIds: args.keepIds,
+      removeItemIds: args.removeItemIds,
+      detachedBelongingIds: args.detachedBelongingIds,
     );
 
     diag(
       'processing',
-      'start photo=${args.photoPath.split('/').last} keepIds=${args.keepIds}',
+      'start photo=${args.photoPath.split('/').last} keepIds=${args.keepIds} '
+      'items=${args.removeItemIds} detached=${args.detachedBelongingIds}',
     );
     final result = await processingApi.processPhoto(
       localPath: args.photoPath,
       keepIds: args.keepIds,
+      removeItemIds: args.removeItemIds,
+      detachedBelongingIds: args.detachedBelongingIds,
       onUploadProgress: (fraction) {
         uploadFraction.value = fraction;
         if (fraction > 0) uploadMoved.value = true;
@@ -113,6 +118,7 @@ class ProcessingController extends GetxController {
           totalSeconds: photo.totalSeconds,
           engineUsed: photo.engineUsed,
           persons: photo.persons,
+          itemsRemoved: photo.itemsRemoved,
         );
         JobTracker.instance.trackDone(outcome);
         if (_left) return;

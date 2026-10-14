@@ -35,6 +35,27 @@ List<DetectedPerson> gatewayParsePersons(dynamic rawList) {
   }).toList();
 }
 
+/// Contract v3 belongings entries. An entry whose tier is anything
+/// other than the exact string 'attached' parses as ambiguous — the
+/// safe direction (the user decides), never a silent attachment.
+List<DetectedBelonging> gatewayParseBelongings(dynamic rawList) {
+  if (rawList is! List) return const <DetectedBelonging>[];
+  return rawList.map((dynamic item) {
+    final m = item as Map<String, dynamic>;
+    final rawBox = m['box'] as List<dynamic>? ?? <dynamic>[];
+    return DetectedBelonging(
+      id: (m['id'] as num?)?.toInt() ?? 0,
+      detectedClass: m['detected_class'] as String? ?? '',
+      box: rawBox.map((dynamic b) => (b as num).toInt()).toList(),
+      score: (m['score'] as num?)?.toDouble() ?? 1.0,
+      tier: m['tier'] == 'attached'
+          ? BelongingTier.attached
+          : BelongingTier.ambiguous,
+      personId: (m['person_id'] as num?)?.toInt(),
+    );
+  }).toList();
+}
+
 /// Same field mapping as ProcessingApiImpl._parseDetectionResponse.
 DetectionProposal gatewayProposalFromMap(
   Map<String, dynamic> map,
@@ -57,6 +78,7 @@ DetectionProposal gatewayProposalFromMap(
     removedIds: ids('removed_ids'),
     persons: persons,
     inputDimensions: dims,
+    belongings: gatewayParseBelongings(map['belongings']),
   );
 }
 

@@ -181,6 +181,8 @@ class GatewayProcessingApi implements ProcessingApi {
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     void Function(double fraction)? onUploadProgress,
   }) async {
     if (_config.supabaseUrl.isEmpty) {
@@ -219,9 +221,17 @@ class GatewayProcessingApi implements ProcessingApi {
         jobId = record.jobId;
         diag(
           'gateway',
-          'confirm -> job ${DiagnosticsLog.shortId(jobId)} keep=$keepIds',
+          'confirm -> job ${DiagnosticsLog.shortId(jobId)} keep=$keepIds '
+          'items=$removeItemIds detached=$detachedBelongingIds',
         );
-        await _confirm(jobId, keepIds, headers, token);
+        await _confirm(
+          jobId,
+          keepIds,
+          removeItemIds,
+          detachedBelongingIds,
+          headers,
+          token,
+        );
         diag('gateway', 'confirm ok: job ${DiagnosticsLog.shortId(jobId)}');
         await _saveJob(jobId, fingerprint, localPath, 'processing');
       } else {
@@ -229,6 +239,8 @@ class GatewayProcessingApi implements ProcessingApi {
           localPath,
           fingerprint,
           keepIds,
+          removeItemIds,
+          detachedBelongingIds,
           headers,
           token,
           onUploadProgress,
@@ -267,6 +279,8 @@ class GatewayProcessingApi implements ProcessingApi {
     String localPath,
     String fingerprint,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     Map<String, String> headers,
     CancelToken token,
     void Function(double fraction)? onUploadProgress,
@@ -287,7 +301,14 @@ class GatewayProcessingApi implements ProcessingApi {
         token,
       );
     }
-    await _confirm(jobId, keepIds, headers, token);
+    await _confirm(
+      jobId,
+      keepIds,
+      removeItemIds,
+      detachedBelongingIds,
+      headers,
+      token,
+    );
     await _saveJob(jobId, fingerprint, localPath, 'processing');
     return jobId;
   }
@@ -295,6 +316,8 @@ class GatewayProcessingApi implements ProcessingApi {
   Future<void> _confirm(
     String jobId,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     Map<String, String> headers,
     CancelToken token,
   ) => _postMap(
@@ -302,6 +325,8 @@ class GatewayProcessingApi implements ProcessingApi {
     <String, dynamic>{
       'job_id': jobId,
       'keep_ids': ?keepIds,
+      'remove_item_ids': ?removeItemIds,
+      'detached_belonging_ids': ?detachedBelongingIds,
       'engine': 'mat',
     },
     headers,

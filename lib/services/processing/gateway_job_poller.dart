@@ -173,6 +173,7 @@ class GatewayJobPoller {
       totalSeconds: (m['total_seconds'] as num?)?.toDouble() ?? 0,
       engineUsed: m['engine_used'] as String? ?? '',
       persons: _parsePersons(m['persons']),
+      itemsRemoved: (m['items_removed'] as num?)?.toInt() ?? 0,
     );
   }
 

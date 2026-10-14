@@ -113,6 +113,8 @@ class ProcessingApiImpl implements ProcessingApi {
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     void Function(double fraction)? onUploadProgress,
   }) async {
     if (_config.apiBaseUrl.isEmpty) {
@@ -147,6 +149,10 @@ class ProcessingApiImpl implements ProcessingApi {
           ),
           'engine': 'mat',
           if (keepIds != null && keepIds.isNotEmpty) 'keep': keepIds.join(','),
+          if (removeItemIds != null && removeItemIds.isNotEmpty)
+            'remove_items': removeItemIds.join(','),
+          if (detachedBelongingIds != null && detachedBelongingIds.isNotEmpty)
+            'detached_items': detachedBelongingIds.join(','),
         });
         final response = await _dio.post<dynamic>(
           '/process',
@@ -335,6 +341,25 @@ class ProcessingApiImpl implements ProcessingApi {
     }).toList();
   }
 
+  /// Same mapping as gateway_parsing.gatewayParseBelongings (v3).
+  List<DetectedBelonging> _parseBelongings(dynamic rawList) {
+    if (rawList is! List) return const <DetectedBelonging>[];
+    return rawList.map((dynamic item) {
+      final m = item as Map<String, dynamic>;
+      final rawBox = m['box'] as List<dynamic>? ?? <dynamic>[];
+      return DetectedBelonging(
+        id: (m['id'] as num?)?.toInt() ?? 0,
+        detectedClass: m['detected_class'] as String? ?? '',
+        box: rawBox.map((dynamic b) => (b as num).toInt()).toList(),
+        score: (m['score'] as num?)?.toDouble() ?? 1.0,
+        tier: m['tier'] == 'attached'
+            ? BelongingTier.attached
+            : BelongingTier.ambiguous,
+        personId: (m['person_id'] as num?)?.toInt(),
+      );
+    }).toList();
+  }
+
   Result<DetectionProposal> _parseDetectionResponse(
     dynamic data,
     String localPath,
@@ -367,6 +392,7 @@ class ProcessingApiImpl implements ProcessingApi {
           removedIds: ids('removed_ids'),
           persons: _parsePersons(map['persons']),
           inputDimensions: dims,
+          belongings: _parseBelongings(map['belongings']),
         ),
       );
     } catch (e) {
@@ -410,6 +436,7 @@ class ProcessingApiImpl implements ProcessingApi {
           totalSeconds: (meta['total_seconds'] as num?)?.toDouble() ?? 0,
           engineUsed: meta['engine_used'] as String? ?? '',
           persons: _parsePersons(meta['persons']),
+          itemsRemoved: (meta['items_removed'] as num?)?.toInt() ?? 0,
         ),
       );
     } catch (e) {

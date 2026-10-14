@@ -32,15 +32,21 @@ class FakeProcessingApi implements ProcessingApi {
   void Function(double)? progressSeen;
   int calls = 0;
   List<int>? lastKeepIds;
+  List<int>? lastRemoveItemIds;
+  List<int>? lastDetachedBelongingIds;
 
   @override
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     void Function(double fraction)? onUploadProgress,
   }) async {
     calls++;
     lastKeepIds = keepIds;
+    lastRemoveItemIds = removeItemIds;
+    lastDetachedBelongingIds = detachedBelongingIds;
     if (onUploadProgress != null) {
       progressSeen = onUploadProgress;
       onUploadProgress(0.5);

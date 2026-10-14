@@ -25,10 +25,17 @@ abstract interface class ProcessingApi {
   /// Uploads the photo at [localPath] at full resolution and runs the
   /// full clean. [keepIds] overrides the automatic keeper choice
   /// (person ids to protect); null = automatic.
+  /// [removeItemIds] / [detachedBelongingIds] are the Contract v3
+  /// belongings decisions from S4 (ambiguous items the user included;
+  /// attached items the user detached to protect them). Null/empty =
+  /// defaults: attached belongings follow their person, ambiguous
+  /// belongings are kept.
   /// [onUploadProgress] receives the real upload fraction (0.0–1.0).
   Future<Result<ProcessedPhoto>> processPhoto({
     required String localPath,
     List<int>? keepIds,
+    List<int>? removeItemIds,
+    List<int>? detachedBelongingIds,
     void Function(double fraction)? onUploadProgress,
   });
 
@@ -92,6 +99,44 @@ class DetectedPerson {
   );
 }
 
+/// How a detected belonging relates to the people in the photo
+/// (Contract v3, Phase A): [attached] items belong to exactly one
+/// person ([DetectedBelonging.personId]) and follow that person's
+/// keep/remove state; [ambiguous] items could not be assigned with
+/// certainty and are the user's decision on S4 (default: keep).
+enum BelongingTier { attached, ambiguous }
+
+/// A detected belongings-class object (backpack, handbag, suitcase,
+/// umbrella — Contract v3). [detectedClass] is the detector's raw
+/// class label: a display HINT, not a label of record (the classes
+/// are confused with each other in measurement), so no logic may
+/// depend on its exact value.
+class DetectedBelonging {
+  const DetectedBelonging({
+    required this.id,
+    required this.detectedClass,
+    required this.box,
+    required this.score,
+    required this.tier,
+    this.personId,
+  });
+
+  /// Item index in the detection list (the confirm payload's id space).
+  final int id;
+
+  /// The detector's class label (hint only — see class doc).
+  final String detectedClass;
+
+  /// Bounding box in pixel coordinates [x1, y1, x2, y2].
+  final List<int> box;
+
+  final double score;
+  final BelongingTier tier;
+
+  /// Owning person's id when [tier] is attached; null when ambiguous.
+  final int? personId;
+}
+
 /// Initial proposal returned by Stage A (/detect).
 class DetectionProposal {
   const DetectionProposal({
@@ -101,6 +146,7 @@ class DetectionProposal {
     required this.removedIds,
     required this.persons,
     required this.inputDimensions,
+    this.belongings = const <DetectedBelonging>[],
   });
 
   final String photoPath;
@@ -109,6 +155,9 @@ class DetectionProposal {
   final List<int> removedIds;
   final List<DetectedPerson> persons;
   final List<int> inputDimensions;
+
+  /// Belongings detected in the photo (Contract v3; empty under v2).
+  final List<DetectedBelonging> belongings;
 }
 
 /// A finished clean (S7). The result is returned as bytes and written to
@@ -124,6 +173,7 @@ class ProcessedPhoto {
     required this.totalSeconds,
     required this.engineUsed,
     this.persons = const <DetectedPerson>[],
+    this.itemsRemoved = 0,
   });
 
   /// Full-resolution result JPEG bytes; dimensions equal the input's.
@@ -144,6 +194,11 @@ class ProcessedPhoto {
 
   /// Detected person instances with bounding boxes, if returned by server.
   final List<DetectedPerson> persons;
+
+  /// Ambiguous belongings the user included and the worker removed
+  /// (Contract v3 `items_removed`). Attached belongings are part of
+  /// their person and are never counted here (design X16).
+  final int itemsRemoved;
 }
 
 /// Outcome of a brush touch-up (S5 / FR-09): the updated photo bytes,
