@@ -190,13 +190,17 @@ class _FeaturedCleanCardState extends State<FeaturedCleanCard> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
-                    Text(
-                      dateLabel,
-                      style: context.textStyles.bodySm.copyWith(
-                        color: p.textPrimary,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Text(
+                        dateLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textStyles.bodySm.copyWith(
+                          color: p.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Row(
                       children: <Widget>[
                         Text(

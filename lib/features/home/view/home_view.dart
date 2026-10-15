@@ -31,6 +31,7 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     final s = context.sizes;
     return AppScaffold(
       titleKey: AppStrings.appName,
@@ -58,108 +59,89 @@ class HomeView extends GetView<HomeController> {
         final hasHistory = controller.hasHistory;
         final hasTray = hasHistory && controller.history.length > 1;
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            // Budgeted hero height: everything that is not the hero.
-            var reserved =
-                s.screenPadding *
-                    2 // page padding
-                    +
-                56 // pick pill
-                +
-                s
-                    .sm // gap
-                    +
-                20 // saves line
-                +
-                s.lg; // gap above the hero zone
-            if (activeJob != null) reserved += 92; // banner + its margin
-            if (!hasHistory) {
-              reserved += 24 + s.md; // teaching line + gap
-            } else {
-              reserved += 36 + s.sm; // section header + gap
-              if (hasTray) reserved += s.lg + 168; // gap + tray row
-            }
-            final heroHeight = (constraints.maxHeight - reserved)
-                .clamp(240.0, constraints.maxHeight)
-                .toDouble();
-
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(s.screenPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // In-flight or completed background job banner
-                  if (activeJob != null) HomeJobBanner(job: activeJob),
-
-                  // Floating 56dp Pill Primary Button
-                  PrimaryButton(
-                    labelKey: AppStrings.homePickPhoto,
-                    icon: Icons.add_photo_alternate_rounded,
-                    height: 56,
-                    borderRadius: 28,
-                    isLoading: controller.isPicking,
-                    onPressed: controller.onPickPhoto,
-                  ),
-
-                  SizedBox(height: s.sm),
-
-                  // The saves fact as a plain line in the column
-                  SavesIndicator(
-                    savesLeft: controller.savesLeft.value,
-                    of: HomeController.freeSavesPerMonth,
-                    resetDate: controller.resetDate.value,
-                  ),
-
-                  SizedBox(height: s.lg),
-
-                  // Hero zone — sized to finish the screen.
-                  if (!hasHistory) ...<Widget>[
-                    Text(
-                      AppStrings.homeEmptyLine.tr,
-                      style: context.textStyles.bodyMd,
-                    ),
-                    SizedBox(height: s.md),
-                    SizedBox(
-                      height: heroHeight,
-                      child: const InteractiveDemoCard(),
-                    ),
-                  ] else ...<Widget>[
-                    _HomeHistoryBlockFade(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          SectionHeader(
-                            titleKey: AppStrings.homeHistory,
-                            actionLabelKey: AppStrings.homeSeeAll,
-                            onAction: controller.openHistory,
-                          ),
-                          SizedBox(height: s.sm),
-                          SizedBox(
-                            height: heroHeight,
-                            child: FeaturedCleanCard(
-                              entry: controller.history.first,
-                              onTap: () => controller.openHistoryDetail(
-                                controller.history.first,
-                              ),
-                            ),
-                          ),
-                          if (hasTray) ...<Widget>[
-                            SizedBox(height: s.lg),
-                            EarlierCleansTray(
-                              entries: controller.history.skip(1).take(10).toList(),
-                              onTap: controller.openHistoryDetail,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(s.screenPadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // 1. The demo as a HORIZONTAL card — wide and short band across screen
+              const SizedBox(
+                height: 180,
+                child: InteractiveDemoCard(),
               ),
-            );
-          },
+
+              SizedBox(height: s.lg),
+
+              // 2. The "Pick a photo" button directly below the demo
+              PrimaryButton(
+                labelKey: AppStrings.homePickPhoto,
+                icon: Icons.add_photo_alternate_rounded,
+                height: 56,
+                borderRadius: 28,
+                isLoading: controller.isPicking,
+                onPressed: controller.onPickPhoto,
+              ),
+
+              // Existing text underneath the button kept as-is
+              if (!hasHistory) ...<Widget>[
+                SizedBox(height: s.xs),
+                Text(
+                  AppStrings.homeEmptyLine.tr,
+                  style: context.textStyles.bodySm.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+              ],
+
+              SizedBox(height: s.sm),
+
+              // 3. Remaining Home items: saves line, job banner, history
+              SavesIndicator(
+                savesLeft: controller.savesLeft.value,
+                of: HomeController.freeSavesPerMonth,
+                resetDate: controller.resetDate.value,
+              ),
+
+              if (activeJob != null) ...<Widget>[
+                SizedBox(height: s.md),
+                HomeJobBanner(job: activeJob),
+              ],
+
+              if (hasHistory) ...<Widget>[
+                SizedBox(height: s.lg),
+                _HomeHistoryBlockFade(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      SectionHeader(
+                        titleKey: AppStrings.homeHistory,
+                        actionLabelKey: AppStrings.homeSeeAll,
+                        onAction: controller.openHistory,
+                      ),
+                      SizedBox(height: s.sm),
+                      SizedBox(
+                        height: 240,
+                        child: FeaturedCleanCard(
+                          entry: controller.history.first,
+                          onTap: () => controller.openHistoryDetail(
+                            controller.history.first,
+                          ),
+                        ),
+                      ),
+                      if (hasTray) ...<Widget>[
+                        SizedBox(height: s.md),
+                        EarlierCleansTray(
+                          entries: controller.history.skip(1).take(10).toList(),
+                          onTap: controller.openHistoryDetail,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         );
       }),
     );

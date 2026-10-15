@@ -46,11 +46,12 @@ The previous design system dogmatically confused "calm and honest" with "sterile
 
 ## 3. Screen-by-Screen Implementation Log
 
-### S1 Home Screen (Fixed)
-- **Problem Fixed:** Dead empty space on first run; zero visual proof of app capability; quota meter leading the screen as an accounting barrier.
-- **Solution:**
-  - Added `InteractiveDemoCard`: Embedded genuine pipeline output (`assets/images/demo_original.jpg` and `assets/images/demo_result.jpg` from `08_historic_arch.jpg` processed through the live serverless worker). Users can drag or tap to see real background people removal before picking their first photo.
-  - Hierarchy inversion: Primary "Pick a photo" action is immediately accessible at the top of the body above the fold, accompanied by the calm `SavesIndicator` quota meter.
+### S1 Home Screen (Fixed & Owner Layout Decision)
+- **Problem Fixed:** Dead empty space on first run; zero visual proof of app capability; quota meter leading the screen as an accounting barrier; tall hero demo dominating ~60% of the screen height.
+- **Solution & Layout Structure (Owner Decisions):**
+  - **1. Horizontal Demo Card:** Reshaped `InteractiveDemoCard` into a modest horizontal band across the top of the screen (180dp height) rather than a tall 60% viewport hero. Retains the genuine café before/after pair, interactive drag/tap slider, one-time teaching sweep, and honest "Real app output" caption.
+  - **2. "Pick a photo" Primary Action:** Sits directly below the horizontal demo card with its accompanying explanatory text ("Remove background people from a photo. Your subject stays untouched.") underneath the button.
+  - **3. Remaining Items in Flow:** Follows directly below the action cluster: calm `SavesIndicator` quota line, active `HomeJobBanner` (when a background job is running/finished), and the history section (`FeaturedCleanCard` in natural aspect + `EarlierCleansTray` horizontal reel) when cleaned photos exist.
   - History cards: Elevated tile borders with subtle aspect framing.
 
 ### S2 Consent Sheet (Fixed)
