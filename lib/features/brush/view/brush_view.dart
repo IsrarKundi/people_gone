@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
@@ -131,16 +132,25 @@ class BrushView extends GetView<BrushController> {
                   // Footprint preview: the dot IS the brush diameter
                   // at display scale, in a fixed slot so the row
                   // never jitters as the size changes (B3).
+                  // Uses transform scale to animate smoothly (Item 16).
                   SizedBox(
                     width: 64,
                     height: 64,
                     child: Center(
-                      child: Container(
-                        width: controller.brushSizeDisplay.value,
-                        height: controller.brushSizeDisplay.value,
-                        decoration: BoxDecoration(
-                          color: p.overlayRemoved.withValues(alpha: 0.45),
-                          shape: BoxShape.circle,
+                      child: AnimatedScale(
+                        key: const ValueKey('brush_size_dot_scale'),
+                        scale: controller.brushSizeDisplay.value / 64.0,
+                        duration: MediaQuery.maybeOf(context)?.disableAnimations ?? false
+                            ? Duration.zero
+                            : AppMotion.fast,
+                        curve: Curves.easeOutCubic,
+                        child: Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: p.overlayRemoved.withValues(alpha: 0.45),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                     ),

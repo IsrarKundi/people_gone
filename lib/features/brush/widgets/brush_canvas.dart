@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/photo_surface.dart';
@@ -56,8 +57,68 @@ class BrushCanvas extends StatefulWidget {
   State<BrushCanvas> createState() => _BrushCanvasState();
 }
 
-class _BrushCanvasState extends State<BrushCanvas> {
+class _BrushCanvasState extends State<BrushCanvas>
+    with TickerProviderStateMixin {
   Offset? _downImagePoint;
+  AnimationController? _strokeFadeController;
+  List<List<Offset>> _fadingStrokes = <List<Offset>>[];
+  AnimationController? _guideController;
+
+  @override
+  void initState() {
+    super.initState();
+    _strokeFadeController = AnimationController(
+      vsync: this,
+      duration: AppMotion.strokeFade,
+    )..addListener(() {
+        if (mounted) setState(() {});
+      })
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          if (mounted) setState(() => _fadingStrokes.clear());
+        }
+      });
+
+    if (widget.suggestedRegion != null) {
+      _guideController = AnimationController(
+        vsync: this,
+        duration: AppMotion.guideFade,
+      )..addListener(() {
+          if (mounted) setState(() {});
+        });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final disable =
+            MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+        if (disable) {
+          _guideController?.value = 1.0;
+        } else {
+          _guideController?.forward();
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(BrushCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.strokes.length > widget.strokes.length) {
+      final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+      if (!disable) {
+        _fadingStrokes = oldWidget.strokes.sublist(widget.strokes.length);
+        _strokeFadeController?.forward(from: 0.0);
+      } else {
+        _fadingStrokes.clear();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _strokeFadeController?.dispose();
+    _guideController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,8 +169,11 @@ class _BrushCanvasState extends State<BrushCanvas> {
                   rect: band,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onPanDown: (details) =>
-                        _downImagePoint = toImage(details.localPosition),
+                    onPanDown: (details) {
+                      _fadingStrokes.clear();
+                      _strokeFadeController?.stop();
+                      _downImagePoint = toImage(details.localPosition);
+                    },
                     onPanStart: (details) => widget.onStrokeStart(
                       _downImagePoint ?? toImage(details.localPosition),
                     ),
@@ -129,8 +193,14 @@ class _BrushCanvasState extends State<BrushCanvas> {
                         strokeDiameterImagePx: widget.strokeDiameterImagePx,
                         scale: scale,
                         color: p.overlayRemoved,
+                        fadingStrokes: _fadingStrokes,
+                        fadingOpacity: _strokeFadeController != null
+                            ? (1.0 - _strokeFadeController!.value)
+                                .clamp(0.0, 1.0)
+                            : 0.0,
                         suggestedRegion: widget.suggestedRegion,
                         guideColor: p.primary,
+                        guideOpacity: _guideController?.value ?? 1.0,
                       ),
                       child: SizedBox(width: band.width, height: band.height),
                     ),
