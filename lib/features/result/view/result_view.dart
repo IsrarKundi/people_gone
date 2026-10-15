@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
@@ -27,7 +29,7 @@ class ResultView extends GetView<ResultController> {
     return AppScaffold(
       body: Column(
         children: <Widget>[
-          Expanded(child: _photoArea(context)),
+          Expanded(child: _ResultPhotoArea(controller: controller)),
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(s.screenPadding),
@@ -68,115 +70,6 @@ class ResultView extends GetView<ResultController> {
     );
   }
 
-  Widget _photoArea(BuildContext context) {
-    final p = context.palette;
-    final s = context.sizes;
-    final outcome = controller.outcome;
-    if (controller.nobodyRemoved) {
-      return Image.file(
-        File(outcome.originalPath),
-        fit: BoxFit.contain,
-        cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-        errorBuilder: (_, _, _) => const SizedBox.shrink(),
-      );
-    }
-    return Obx(() {
-      final comparing = controller.compareMode.value;
-      final holding = controller.showOriginal.value;
-      final shownPath = holding && !comparing
-          ? outcome.originalPath
-          : controller.resultPath.value;
-      return PhotoSurface(
-        imageProvider: ResizeImage(
-          FileImage(File(shownPath)),
-          width: MediaQuery.sizeOf(context).width.toInt(),
-        ),
-        builder: (context, band) => Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            if (comparing)
-              CompareSlider(
-                originalPath: outcome.originalPath,
-                resultPath: controller.resultPath.value,
-              )
-            else
-              GestureDetector(
-                onLongPressStart: (_) => controller.showOriginal.value = true,
-                onLongPressEnd: (_) => controller.showOriginal.value = false,
-                onLongPressCancel: () => controller.showOriginal.value = false,
-                child: Image.file(
-                  File(shownPath),
-                  fit: BoxFit.contain,
-                  cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                ),
-              ),
-            // Chrome pins to the PHOTO band's top corners, on the
-            // Polished studio chrome anchored gracefully at the top of the photo band
-            Positioned(
-              left: band.left + s.sm,
-              top: band.top + s.sm,
-              width: (band.width - s.sm * 2).clamp(0.0, double.infinity),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  _chromeButton(
-                    context,
-                    icon: Icons.close,
-                    onPressed: controller.goHome,
-                  ),
-                  if (holding && !comparing)
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: s.md,
-                        vertical: s.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: p.photoChromeBg,
-                        borderRadius: BorderRadius.circular(s.radiusPill),
-                      ),
-                      child: Text(
-                        AppStrings.resultOriginal.tr,
-                        style: context.textStyles.labelMd.copyWith(
-                          color: p.photoChromeFg,
-                        ),
-                      ),
-                    )
-                  else
-                    _chromeButton(
-                      context,
-                      icon: Icons.compare,
-                      onPressed: controller.toggleCompare,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _chromeButton(
-    BuildContext context, {
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    final p = context.palette;
-    final s = context.sizes;
-    return Container(
-      width: s.giant,
-      height: s.giant,
-      decoration: BoxDecoration(color: p.photoChromeBg, shape: BoxShape.circle),
-      child: IconButton(
-        icon: Icon(icon, color: p.photoChromeFg, size: s.iconMd),
-        padding: EdgeInsets.zero,
-        constraints: BoxConstraints.tightFor(width: s.giant, height: s.giant),
-        onPressed: onPressed,
-      ),
-    );
-  }
-
   Widget _actionZone(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
@@ -194,9 +87,6 @@ class ResultView extends GetView<ResultController> {
             SizedBox(width: s.xs),
             Expanded(
               child: Text(
-                // The summary extends only when the job actually
-                // included group items (design X16); belongings that
-                // travelled with a person are never itemised.
                 controller.summaryLine,
                 style: context.textStyles.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
@@ -224,8 +114,6 @@ class ResultView extends GetView<ResultController> {
           ),
         ],
         // Phase D (X13): a probable reflection of a removed person
-        // is stated plainly, with the brush as its one action. It
-        // never appears when nobody was removed.
         if (controller.reflectionWarning) ...<Widget>[
           SizedBox(height: s.sm),
           Row(
@@ -249,19 +137,9 @@ class ResultView extends GetView<ResultController> {
           ),
         ],
         SizedBox(height: s.md),
-        // Dominant action row: Save takes 75%, Share 25%. When both
-        // labels cannot fit their slots at the current text scale the
-        // row stacks (Save full-width, Share full-width beneath) —
-        // Review 04 F7: button words never break (§8 item 19).
         LayoutBuilder(
           builder: (rowContext, constraints) {
-            final saveButton = PrimaryButton(
-              labelKey: savedNow
-                  ? AppStrings.resultSaved
-                  : AppStrings.resultSave,
-              isLoading: controller.isSaving.value,
-              onPressed: savedNow ? null : controller.save,
-            );
+            final saveButton = _SaveReceiptButton(controller: controller);
             final shareButton = SecondaryButton(
               labelKey: AppStrings.resultShare,
               onPressed: controller.share,
@@ -280,8 +158,6 @@ class ResultView extends GetView<ResultController> {
               return painter.width;
             }
 
-            // Horizontal content padding inside the Material buttons
-            // (both sides): filled/elevated 24dp, outlined 16dp.
             const savePadding = 48.0;
             const sharePadding = 32.0;
             final saveSlot = (constraints.maxWidth - s.sm) * 3 / 4;
@@ -340,9 +216,259 @@ class ResultView extends GetView<ResultController> {
           ),
         ],
         SizedBox(height: s.xs),
-        // Fact 4 & 5: Verbatim §11.2B deletion & report disclosure
         DisclosureLine(onReport: controller.report),
       ],
     );
+  }
+}
+
+class _ResultPhotoArea extends StatefulWidget {
+  const _ResultPhotoArea({required this.controller});
+  final ResultController controller;
+
+  @override
+  State<_ResultPhotoArea> createState() => _ResultPhotoAreaState();
+}
+
+class _ResultPhotoAreaState extends State<_ResultPhotoArea>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _dissolveController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.controller.nobodyRemoved) {
+      _dissolveController = AnimationController(
+        vsync: this,
+        duration: AppMotion.resultDissolve,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final disable =
+            MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+        if (disable) {
+          _dissolveController?.value = 1.0;
+        } else {
+          _dissolveController?.forward();
+        }
+      });
+    }
+  }
+
+  void _cutDissolve() {
+    if (_dissolveController != null && !_dissolveController!.isCompleted) {
+      _dissolveController!.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _dissolveController?.dispose();
+    super.dispose();
+  }
+
+  Widget _chromeButton(
+    BuildContext context, {
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    final p = context.palette;
+    final s = context.sizes;
+    return Container(
+      width: s.giant,
+      height: s.giant,
+      decoration: BoxDecoration(color: p.photoChromeBg, shape: BoxShape.circle),
+      child: IconButton(
+        icon: Icon(icon, color: p.photoChromeFg, size: s.iconMd),
+        padding: EdgeInsets.zero,
+        constraints: BoxConstraints.tightFor(width: s.giant, height: s.giant),
+        onPressed: () {
+          _cutDissolve();
+          onPressed();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final s = context.sizes;
+    final outcome = widget.controller.outcome;
+    if (widget.controller.nobodyRemoved) {
+      return Image.file(
+        File(outcome.originalPath),
+        fit: BoxFit.contain,
+        cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+      );
+    }
+    return Obx(() {
+      final comparing = widget.controller.compareMode.value;
+      final holding = widget.controller.showOriginal.value;
+      final shownPath = holding && !comparing
+          ? outcome.originalPath
+          : widget.controller.resultPath.value;
+      return PhotoSurface(
+        imageProvider: ResizeImage(
+          FileImage(File(shownPath)),
+          width: MediaQuery.sizeOf(context).width.toInt(),
+        ),
+        builder: (context, band) => Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            if (comparing)
+              CompareSlider(
+                originalPath: outcome.originalPath,
+                resultPath: widget.controller.resultPath.value,
+              )
+            else
+              GestureDetector(
+                onLongPressStart: (_) {
+                  _cutDissolve();
+                  widget.controller.showOriginal.value = true;
+                },
+                onLongPressEnd: (_) =>
+                    widget.controller.showOriginal.value = false,
+                onLongPressCancel: () =>
+                    widget.controller.showOriginal.value = false,
+                onTapDown: (_) => _cutDissolve(),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    Image.file(
+                      File(widget.controller.resultPath.value),
+                      fit: BoxFit.contain,
+                      cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                    if (_dissolveController != null &&
+                        !_dissolveController!.isCompleted)
+                      AnimatedBuilder(
+                        animation: _dissolveController!,
+                        builder: (context, _) {
+                          final v = _dissolveController!.value;
+                          if (v >= 1.0) return const SizedBox.shrink();
+                          return Opacity(
+                            opacity: (1.0 - v).clamp(0.0, 1.0),
+                            child: Image.file(
+                              File(outcome.originalPath),
+                              fit: BoxFit.contain,
+                              cacheWidth:
+                                  MediaQuery.sizeOf(context).width.toInt(),
+                              errorBuilder: (_, _, _) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          );
+                        },
+                      )
+                    else if (holding)
+                      Image.file(
+                        File(outcome.originalPath),
+                        fit: BoxFit.contain,
+                        cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                  ],
+                ),
+              ),
+            // Chrome pins to the PHOTO band's top corners
+            Positioned(
+              left: band.left + s.sm,
+              top: band.top + s.sm,
+              width: (band.width - s.sm * 2).clamp(0.0, double.infinity),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  _chromeButton(
+                    context,
+                    icon: Icons.close,
+                    onPressed: widget.controller.goHome,
+                  ),
+                  if (holding && !comparing)
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: s.md,
+                        vertical: s.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: p.photoChromeBg,
+                        borderRadius: BorderRadius.circular(s.radiusPill),
+                      ),
+                      child: Text(
+                        AppStrings.resultOriginal.tr,
+                        style: context.textStyles.labelMd.copyWith(
+                          color: p.photoChromeFg,
+                        ),
+                      ),
+                    )
+                  else
+                    _chromeButton(
+                      context,
+                      icon: Icons.compare,
+                      onPressed: widget.controller.toggleCompare,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _SaveReceiptButton extends StatefulWidget {
+  const _SaveReceiptButton({required this.controller});
+  final ResultController controller;
+
+  @override
+  State<_SaveReceiptButton> createState() => _SaveReceiptButtonState();
+}
+
+class _SaveReceiptButtonState extends State<_SaveReceiptButton> {
+  bool _holdingReceipt = false;
+  Timer? _timer;
+  Worker? _worker;
+
+  @override
+  void initState() {
+    super.initState();
+    _worker = ever<bool>(widget.controller.saved, (saved) {
+      if (!mounted) return;
+      if (saved) {
+        final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+        if (disable) {
+          setState(() => _holdingReceipt = false);
+        } else {
+          setState(() => _holdingReceipt = true);
+          _timer?.cancel();
+          _timer = Timer(AppMotion.saveHold, () {
+            if (mounted) setState(() => _holdingReceipt = false);
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _worker?.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final savedNow = widget.controller.saved.value;
+      return PrimaryButton(
+        labelKey: savedNow ? AppStrings.resultSaved : AppStrings.resultSave,
+        icon: savedNow ? Icons.check_rounded : null,
+        isSuccess: savedNow && _holdingReceipt,
+        isLoading: widget.controller.isSaving.value,
+        onPressed: savedNow ? null : widget.controller.save,
+      );
+    });
   }
 }

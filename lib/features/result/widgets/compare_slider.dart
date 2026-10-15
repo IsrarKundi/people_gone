@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/photo_surface.dart';
@@ -25,12 +26,70 @@ class CompareSlider extends StatefulWidget {
   final String originalPath;
   final String resultPath;
 
+  /// Session flag: teaching nudge runs at most once per session.
+  static bool hasRunCompareNudge = false;
+
   @override
   State<CompareSlider> createState() => _CompareSliderState();
 }
 
-class _CompareSliderState extends State<CompareSlider> {
+class _CompareSliderState extends State<CompareSlider>
+    with SingleTickerProviderStateMixin {
   double _fraction = 0.5;
+  AnimationController? _nudgeController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!CompareSlider.hasRunCompareNudge) {
+      CompareSlider.hasRunCompareNudge = true;
+      _nudgeController = AnimationController(
+        vsync: this,
+        duration: AppMotion.compareNudge,
+      );
+      final animation = TweenSequence<double>(<TweenSequenceItem<double>>[
+        TweenSequenceItem<double>(
+          tween: Tween<double>(begin: 0.5, end: 0.58)
+              .chain(CurveTween(curve: Curves.easeInOutCubic)),
+          weight: 50,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(begin: 0.58, end: 0.5)
+              .chain(CurveTween(curve: Curves.easeInOutCubic)),
+          weight: 50,
+        ),
+      ]).animate(_nudgeController!);
+
+      _nudgeController!.addListener(() {
+        if (mounted) {
+          setState(() => _fraction = animation.value);
+        }
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final disable =
+            MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+        if (disable) {
+          _cancelNudge();
+        } else {
+          _nudgeController?.forward();
+        }
+      });
+    }
+  }
+
+  void _cancelNudge() {
+    if (_nudgeController?.isAnimating ?? false) {
+      _nudgeController?.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _nudgeController?.dispose();
+    super.dispose();
+  }
 
   void _setFromX(double x, double width) {
     if (width <= 0) return;
@@ -86,6 +145,7 @@ class _CompareSliderState extends State<CompareSlider> {
           final pillsTop = band.top + s.sm + s.giant + s.sm;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (_) => _cancelNudge(),
             onHorizontalDragUpdate: (d) => _setFromX(d.localPosition.dx, width),
             onTapDown: (d) => _setFromX(d.localPosition.dx, width),
             child: Stack(
