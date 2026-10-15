@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+
+
 
 import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/routes/app_routes.dart';
@@ -179,7 +181,9 @@ class ProposalController extends GetxController {
 
     final person = persons[index];
     persons[index] = person.copyWith(isKeeper: !person.isKeeper);
+    unawaited(HapticFeedback.lightImpact());
   }
+
 
   /// Detach / re-attach an attached belonging (X9). A detached
   /// belonging is protected; re-attaching restores following its
@@ -191,6 +195,7 @@ class ProposalController extends GetxController {
       detachedBelongingIds.add(itemId);
     }
     detachedBelongingIds.refresh();
+    unawaited(HapticFeedback.lightImpact());
   }
 
   /// Include / exclude an ambiguous belonging (X3/X10: default Keep).
@@ -201,6 +206,7 @@ class ProposalController extends GetxController {
       includedItemIds.add(itemId);
     }
     includedItemIds.refresh();
+    unawaited(HapticFeedback.lightImpact());
   }
 
   /// Canvas tap on a belonging (tap priority is resolved by the
@@ -225,6 +231,7 @@ class ProposalController extends GetxController {
       includedDistractionIds.add(id);
     }
     includedDistractionIds.refresh();
+    unawaited(HapticFeedback.lightImpact());
   }
 
   /// Group header "Remove all" (X4): sets EVERY chip in the
@@ -256,6 +263,7 @@ class ProposalController extends GetxController {
   /// belongings decisions (included ambiguous items, detached
   /// attached items).
   void confirmProposal() {
+    unawaited(HapticFeedback.lightImpact());
     final keepIds = persons.where((p) => p.isKeeper).map((p) => p.id).toList();
     // Belongings and distractions share the worker's remove_item_ids
     // field (their id ranges never collide — worker contract v3).
@@ -287,10 +295,12 @@ class ProposalController extends GetxController {
   /// No processPhoto call and no save credit — Result's nobodyRemoved
   /// handling renders it from there (§7.3).
   void completeKeepAll() {
+    unawaited(HapticFeedback.lightImpact());
     Get.offNamed<void>(
       Routes.result,
       arguments: ProcessingOutcome(
         originalPath: photoPath,
+
         resultPath: photoPath,
         personsDetected: persons.length,
         keeperIds: persons.map((p) => p.id).toList(),

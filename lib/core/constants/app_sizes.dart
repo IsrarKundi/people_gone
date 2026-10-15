@@ -1,4 +1,7 @@
+import 'app_motion.dart';
+
 /// Layout tokens — the ONLY place layout magic numbers live
+
 /// (FOLDER_STRUCTURE_AND_CONVENTIONS.md §6.3). Fixed logical pixels;
 /// `flutter_screenutil` and percentage sizing are forbidden (§6.4).
 ///
@@ -55,10 +58,11 @@ class AppSizes {
   /// Content is centred and capped at this width (§6.3).
   final double contentMaxWidth = 640;
 
-  // Motion (§6.3).
-  final Duration motionFast = const Duration(milliseconds: 120);
-  final Duration motionNormal = const Duration(milliseconds: 200);
-  final Duration motionSlow = const Duration(milliseconds: 320);
+  // Motion (§6.3, ANIMATION_RESEARCH_2026.md).
+  final Duration motionFast = AppMotion.fast;
+  final Duration motionNormal = AppMotion.standard;
+  final Duration motionSlow = AppMotion.standard;
+
 
   /// Screen padding for a given window width.
   double paddingFor(double width) =>

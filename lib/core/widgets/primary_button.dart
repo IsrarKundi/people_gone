@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../theme/theme_ext.dart';
+import 'pressable_scale.dart';
+
 
 /// Primary action button (Conventions §6.7): token height 52, built-in
 /// loading state (spinner replaces the label, button disabled).
@@ -44,10 +46,13 @@ class PrimaryButton extends StatelessWidget {
     final disabled = !busyWithLabel && (isLoading || onPressed == null);
     final h = height ?? s.buttonPrimary;
     final r = borderRadius ?? s.radiusLg;
-    return SizedBox(
-      height: h,
-      width: double.infinity,
-      child: ElevatedButton(
+    return PressableScale(
+      enabled: !disabled,
+      child: SizedBox(
+        height: h,
+        width: double.infinity,
+        child: ElevatedButton(
+
         onPressed: disabled
             ? null
             : busyWithLabel
@@ -101,6 +106,8 @@ class PrimaryButton extends StatelessWidget {
                 ],
               ),
       ),
+    ),
     );
   }
 }
+

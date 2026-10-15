@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/person_thumbnail.dart';
+import '../../../core/widgets/pressable_scale.dart';
+
 import '../../../services/processing/processing_api.dart';
 import '../model/belonging_label.dart';
 
@@ -38,23 +41,27 @@ class PersonCard extends StatelessWidget {
     final isKeeper = person.isKeeper;
     final activeColor = isKeeper ? AppColors.emerald : AppColors.crimson;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(s.radiusLg),
-      child: Container(
-        width: 104,
-        padding: EdgeInsets.symmetric(vertical: s.sm, horizontal: s.xs),
-        decoration: BoxDecoration(
-          color: isKeeper ? AppColors.emerald.withAlpha(20) : p.surfaceVariant.withAlpha(50),
-          borderRadius: BorderRadius.circular(s.radiusLg),
-          border: Border.all(
-            color: activeColor.withAlpha(isKeeper ? 180 : 80),
-            width: isKeeper ? 1.8 : 1.0,
+    return PressableScale(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(s.radiusLg),
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          curve: AppMotion.standardCurve,
+          width: 104,
+          padding: EdgeInsets.symmetric(vertical: s.sm, horizontal: s.xs),
+          decoration: BoxDecoration(
+            color: isKeeper ? AppColors.emerald.withAlpha(20) : p.surfaceVariant.withAlpha(50),
+            borderRadius: BorderRadius.circular(s.radiusLg),
+            border: Border.all(
+              color: activeColor.withAlpha(isKeeper ? 180 : 80),
+              width: isKeeper ? 1.8 : 1.0,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+
             PersonThumbnail(
               imagePath: imagePath,
               box: person.box,
@@ -99,8 +106,10 @@ class PersonCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
+
 
   /// The "Includes:" line (X9): one flowing row — the caption plus
   /// each attached belonging's name as a small tappable chip that

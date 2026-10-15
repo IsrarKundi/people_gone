@@ -3,11 +3,14 @@ import 'package:get/get.dart';
 
 import 'config/app_config.dart';
 import 'core/bindings/initial_binding.dart';
+import 'core/constants/app_motion.dart';
 import 'core/diagnostics/diagnostics_log.dart';
 import 'core/routes/app_pages.dart';
 import 'core/routes/app_routes.dart';
+import 'core/routes/page_transitions.dart';
 import 'core/strings/app_strings.dart';
 import 'core/theme/app_theme.dart';
+
 
 /// Minimal entry only (Conventions §1.2): binding, config load, services,
 /// runApp. No UI, no feature logic.
@@ -44,7 +47,11 @@ class PeopleGoneApp extends StatelessWidget {
       initialBinding: InitialBinding(config),
       initialRoute: Routes.home,
       getPages: AppPages.pages,
+      customTransition: PeopleGonePageTransition(),
+      transitionDuration: AppMotion.standard,
       builder: (context, child) {
+
+
         final media = MediaQuery.of(context);
         final clamped = media.textScaler.clamp(
           minScaleFactor: 0.85,
