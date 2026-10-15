@@ -50,16 +50,24 @@ class PeopleGoneApp extends StatelessWidget {
       customTransition: PeopleGonePageTransition(),
       transitionDuration: AppMotion.standard,
       builder: (context, child) {
-
-
         final media = MediaQuery.of(context);
         final clamped = media.textScaler.clamp(
           minScaleFactor: 0.85,
           maxScaleFactor: 1.30,
         );
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final targetTheme = isDark ? AppTheme.dark() : AppTheme.light();
+        final duration = media.disableAnimations
+            ? Duration.zero
+            : AppMotion.themeCrossfade;
         return MediaQuery(
           data: media.copyWith(textScaler: clamped),
-          child: child ?? const SizedBox.shrink(),
+          child: AnimatedTheme(
+            data: targetTheme,
+            curve: AppMotion.standardCurve,
+            duration: duration,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );
