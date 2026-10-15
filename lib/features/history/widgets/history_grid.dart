@@ -65,6 +65,7 @@ class _HistoryGridState extends State<HistoryGrid>
   void _checkDeleting(String? id) {
     if (id == null) {
       _deletingIndex = null;
+      _deleteController?.reset();
       return;
     }
     final idx = widget.entries.indexWhere((e) => e.id == id);
@@ -121,8 +122,9 @@ class _HistoryGridState extends State<HistoryGrid>
             );
 
             if (_deleteController != null &&
-                _deleteController!.isAnimating &&
-                _deletingIndex != null) {
+                _deletingIndex != null &&
+                (_deleteController!.isAnimating ||
+                    _deleteController!.value > 0.0)) {
               if (index == _deletingIndex) {
                 final scale = (1.0 - t).clamp(0.0, 1.0);
                 tile = Transform.scale(

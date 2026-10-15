@@ -29,8 +29,9 @@ class HistoryController extends GetxController {
   }
 
   Future<void> openDetail(HistoryEntry entry) async {
-    final deletedId =
-        await Get.toNamed<String>(Routes.historyDetail, arguments: entry);
+    final dynamic result =
+        await Get.toNamed<dynamic>(Routes.historyDetail, arguments: entry);
+    final deletedId = result is String ? result : null;
     if (deletedId != null) {
       deletingId.value = deletedId;
       await Future<void>.delayed(AppMotion.deleteScale);
