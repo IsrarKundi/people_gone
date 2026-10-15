@@ -81,15 +81,34 @@ class _EarlierCleanTile extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: <Widget>[
-                        Image.file(
-                          File(entry.localPath),
-                          fit: BoxFit.cover,
-                          cacheWidth: 180,
-                          errorBuilder: (_, _, _) => Container(
-                            color: p.surfaceVariant,
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              color: p.border,
+                        Hero(
+                          tag: MediaQuery.maybeOf(context)?.disableAnimations ?? false
+                              ? 'disabled_${entry.id}'
+                              : 'history_photo_${entry.id}',
+                          flightShuttleBuilder: (
+                            flightContext,
+                            animation,
+                            flightDirection,
+                            fromHeroContext,
+                            toHeroContext,
+                          ) {
+                            return Image.file(
+                              File(entry.localPath),
+                              fit: BoxFit.cover,
+                              cacheWidth: MediaQuery.sizeOf(flightContext).width.toInt(),
+                              errorBuilder: (_, _, _) => Container(color: p.surfaceVariant),
+                            );
+                          },
+                          child: Image.file(
+                            File(entry.localPath),
+                            fit: BoxFit.cover,
+                            cacheWidth: 180,
+                            errorBuilder: (_, _, _) => Container(
+                              color: p.surfaceVariant,
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: p.border,
+                              ),
                             ),
                           ),
                         ),

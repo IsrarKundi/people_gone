@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/utils/result.dart';
 import '../../../services/storage/local_store.dart';
@@ -12,6 +13,7 @@ class HistoryController extends GetxController {
 
   final LocalStore localStore;
   final entries = <HistoryEntry>[].obs;
+  final deletingId = RxnString();
 
   @override
   void onInit() {
@@ -27,7 +29,14 @@ class HistoryController extends GetxController {
   }
 
   Future<void> openDetail(HistoryEntry entry) async {
-    await Get.toNamed<void>(Routes.historyDetail, arguments: entry);
+    final deletedId =
+        await Get.toNamed<String>(Routes.historyDetail, arguments: entry);
+    if (deletedId != null) {
+      deletingId.value = deletedId;
+      await Future<void>.delayed(AppMotion.deleteScale);
+      entries.removeWhere((e) => e.id == deletedId);
+      deletingId.value = null;
+    }
     await load();
   }
 }

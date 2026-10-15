@@ -57,7 +57,7 @@ class HistoryDetailController extends GetxController {
     switch (result) {
       case Success<void>():
         AppSnackbar.success(AppStrings.historyDeletedSnackbar);
-        Get.back<void>();
+        Get.back<String>(result: entry.id);
       case Failure<void>(:final failure):
         AppSnackbar.error(failure.userMessageKey);
     }

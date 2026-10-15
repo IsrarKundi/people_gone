@@ -94,12 +94,40 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
     final s = context.sizes;
     final entry = controller.entry;
 
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final heroTag =
+        disableAnimations ? 'disabled_${entry.id}' : 'history_photo_${entry.id}';
+
+    Widget wrapHero(Widget child) {
+      return Hero(
+        tag: heroTag,
+        flightShuttleBuilder: (
+          flightContext,
+          animation,
+          flightDirection,
+          fromHeroContext,
+          toHeroContext,
+        ) {
+          return Image.file(
+            File(entry.localPath),
+            fit: BoxFit.contain,
+            cacheWidth: MediaQuery.sizeOf(flightContext).width.toInt(),
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          );
+        },
+        child: child,
+      );
+    }
+
     if (!controller.hasOriginal) {
-      return Image.file(
-        File(entry.localPath),
-        fit: BoxFit.contain,
-        cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+      return wrapHero(
+        Image.file(
+          File(entry.localPath),
+          fit: BoxFit.contain,
+          cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        ),
       );
     }
 
@@ -127,11 +155,13 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                 onLongPressStart: (_) => controller.showOriginal.value = true,
                 onLongPressEnd: (_) => controller.showOriginal.value = false,
                 onLongPressCancel: () => controller.showOriginal.value = false,
-                child: Image.file(
-                  File(shownPath),
-                  fit: BoxFit.contain,
-                  cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                child: wrapHero(
+                  Image.file(
+                    File(shownPath),
+                    fit: BoxFit.contain,
+                    cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  ),
                 ),
               ),
             Positioned(
