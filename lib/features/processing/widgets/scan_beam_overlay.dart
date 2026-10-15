@@ -24,7 +24,18 @@ class _ScanBeamOverlayState extends State<ScanBeamOverlay>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 5000),
-    )..repeat();
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (disable) {
+      if (_controller.isAnimating) _controller.stop();
+    } else {
+      if (!_controller.isAnimating) _controller.repeat();
+    }
   }
 
   @override
@@ -36,6 +47,7 @@ class _ScanBeamOverlayState extends State<ScanBeamOverlay>
   @override
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
+    final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -44,6 +56,7 @@ class _ScanBeamOverlayState extends State<ScanBeamOverlay>
           painter: _ScanBeamPainter(
             progress: _controller.value,
             color: primary,
+            isStatic: disable,
           ),
         );
       },
@@ -52,42 +65,55 @@ class _ScanBeamOverlayState extends State<ScanBeamOverlay>
 }
 
 class _ScanBeamPainter extends CustomPainter {
-  const _ScanBeamPainter({required this.progress, required this.color});
+  const _ScanBeamPainter({
+    required this.progress,
+    required this.color,
+    this.isStatic = false,
+  });
 
   final double progress;
   final Color color;
+  final bool isStatic;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.height <= 0 || size.width <= 0) return;
 
-    // Scan beam travels from y = -beamHeight to y = height + beamHeight
-    const beamHeight = 48.0;
-    final totalDistance = size.height + beamHeight * 2;
-    final beamCenter = (progress * totalDistance) - beamHeight;
+    final double beamCenter;
+    if (isStatic) {
+      beamCenter = size.height * 0.5;
+    } else {
+      // Scan beam travels from y = -beamHeight to y = height + beamHeight
+      const beamHeight = 48.0;
+      final totalDistance = size.height + beamHeight * 2;
+      beamCenter = (progress * totalDistance) - beamHeight;
+    }
 
-    final rect = Rect.fromLTWH(0, beamCenter - (beamHeight / 2), size.width, beamHeight);
+    if (!isStatic) {
+      const beamHeight = 48.0;
+      final rect = Rect.fromLTWH(0, beamCenter - (beamHeight / 2), size.width, beamHeight);
 
-    // Soft gradient glow
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: <Color>[
-          color.withValues(alpha: 0.0),
-          color.withValues(alpha: 0.06),
-          color.withValues(alpha: 0.15),
-          color.withValues(alpha: 0.06),
-          color.withValues(alpha: 0.0),
-        ],
-        stops: const <double>[0.0, 0.3, 0.5, 0.7, 1.0],
-      ).createShader(rect);
+      // Soft gradient glow
+      final paint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            color.withValues(alpha: 0.0),
+            color.withValues(alpha: 0.06),
+            color.withValues(alpha: 0.15),
+            color.withValues(alpha: 0.06),
+            color.withValues(alpha: 0.0),
+          ],
+          stops: const <double>[0.0, 0.3, 0.5, 0.7, 1.0],
+        ).createShader(rect);
 
-    canvas.drawRect(rect, paint);
+      canvas.drawRect(rect, paint);
+    }
 
     // Crisp 1.5dp center beam line
     final linePaint = Paint()
-      ..color = color.withValues(alpha: 0.35)
+      ..color = color.withValues(alpha: isStatic ? 0.45 : 0.35)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -100,5 +126,7 @@ class _ScanBeamPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ScanBeamPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.color != color;
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color ||
+      oldDelegate.isStatic != isStatic;
 }

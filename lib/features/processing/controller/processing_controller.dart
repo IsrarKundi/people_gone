@@ -71,7 +71,9 @@ class ProcessingController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    args = Get.arguments as ProcessingArgs;
+    if (Get.arguments is ProcessingArgs) {
+      args = Get.arguments as ProcessingArgs;
+    }
     unawaited(start());
   }
 

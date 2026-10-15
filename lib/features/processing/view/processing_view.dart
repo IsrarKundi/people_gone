@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -30,7 +31,6 @@ class ProcessingView extends GetView<ProcessingController> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final s = context.sizes;
     return AppScaffold(
       body: Obx(() {
         final error = controller.errorMessage.value;
@@ -45,67 +45,132 @@ class ProcessingView extends GetView<ProcessingController> {
         return Container(
           color: p.background,
           child: SafeArea(
-            child: Column(
-              children: <Widget>[
-                // Framed photographic canvas: the frame is fitted to
-                // the photo's aspect and centred in the space above
-                // the tray; the canvas around it is the gallery air.
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      s.screenPadding,
-                      s.xxl,
-                      s.screenPadding,
-                      s.md,
-                    ),
-                    child: _FittedPhotoFrame(photoPath: controller.photoPath),
-                  ),
-                ),
-                // Bottom tray — in flow, anchored to the screen bottom.
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    s.screenPadding,
-                    0,
-                    s.screenPadding,
-                    s.screenPadding,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      _statusCard(context),
-                      SizedBox(height: s.md),
-                      PrimaryButton(
-                        labelKey: AppStrings.processingWorkInBackground,
-                        icon: Icons.arrow_back_rounded,
-                        height: 56,
-                        borderRadius: 28,
-                        onPressed: controller.workInBackground,
-                      ),
-                      SizedBox(height: s.xs),
-                      Text(
-                        AppStrings.processingLeaveCaption.tr,
-                        style: context.textStyles.caption.copyWith(
-                          color: p.textSecondary,
-                        ),
-                      ),
-                      SizedBox(height: s.xs),
-                      TextButton(
-                        onPressed: controller.cancel,
-                        child: Text(
-                          AppStrings.commonCancel.tr,
-                          style: context.textStyles.bodySm.copyWith(
-                            color: p.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            child: _ProcessingContent(controller: controller),
           ),
         );
       }),
+    );
+  }
+}
+
+class _ProcessingContent extends StatefulWidget {
+  const _ProcessingContent({required this.controller});
+
+  final ProcessingController controller;
+
+  @override
+  State<_ProcessingContent> createState() => _ProcessingContentState();
+}
+
+class _ProcessingContentState extends State<_ProcessingContent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entryController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: AppMotion.standard,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _entryController,
+      curve: AppMotion.enterCurve,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _entryController,
+      curve: AppMotion.enterCurve,
+    ));
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final s = context.sizes;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+    final content = Column(
+      children: <Widget>[
+        // Framed photographic canvas: the frame is fitted to
+        // the photo's aspect and centred in the space above
+        // the tray; the canvas around it is the gallery air.
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              s.screenPadding,
+              s.xxl,
+              s.screenPadding,
+              s.md,
+            ),
+            child: _FittedPhotoFrame(photoPath: widget.controller.photoPath),
+          ),
+        ),
+        // Bottom tray — in flow, anchored to the screen bottom.
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            s.screenPadding,
+            0,
+            s.screenPadding,
+            s.screenPadding,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Obx(() => _statusCard(context)),
+              SizedBox(height: s.md),
+              PrimaryButton(
+                labelKey: AppStrings.processingWorkInBackground,
+                icon: Icons.arrow_back_rounded,
+                height: 56,
+                borderRadius: 28,
+                onPressed: widget.controller.workInBackground,
+              ),
+              SizedBox(height: s.xs),
+              Text(
+                AppStrings.processingLeaveCaption.tr,
+                style: context.textStyles.caption.copyWith(
+                  color: p.textSecondary,
+                ),
+              ),
+              SizedBox(height: s.xs),
+              TextButton(
+                onPressed: widget.controller.cancel,
+                child: Text(
+                  AppStrings.commonCancel.tr,
+                  style: context.textStyles.bodySm.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (disableAnimations) {
+      return content;
+    }
+
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: content,
+      ),
     );
   }
 
@@ -114,9 +179,12 @@ class ProcessingView extends GetView<ProcessingController> {
   Widget _statusCard(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
-    final uploading = controller.stage.value == ProcessingStage.uploading;
-    final moved = controller.uploadMoved.value;
-    final fraction = controller.uploadFraction.value;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final uploading =
+        widget.controller.stage.value == ProcessingStage.uploading;
+    final moved = widget.controller.uploadMoved.value;
+    final fraction = widget.controller.uploadFraction.value;
     final showBar = uploading && moved;
 
     final String title;
@@ -126,7 +194,7 @@ class ProcessingView extends GetView<ProcessingController> {
       title =
           '${AppStrings.processingUploading.tr} ${(fraction * 100).round()}%';
     } else {
-      title = controller.workingTitle;
+      title = widget.controller.workingTitle;
     }
 
     return Container(
@@ -151,11 +219,21 @@ class ProcessingView extends GetView<ProcessingController> {
             ),
             SizedBox(height: s.md),
           ],
-          Text(
-            title,
-            style: context.textStyles.bodyMd.copyWith(
-              color: p.textPrimary,
-              fontWeight: FontWeight.w600,
+          AnimatedSwitcher(
+            duration: disableAnimations ? Duration.zero : AppMotion.fast,
+            switchInCurve: AppMotion.enterCurve,
+            switchOutCurve: AppMotion.exitCurve,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: Text(
+              title,
+              key: ValueKey<String>(
+                  '${widget.controller.stage.value}_${uploading && !moved}'),
+              style: context.textStyles.bodyMd.copyWith(
+                color: p.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           SizedBox(height: s.xs),
