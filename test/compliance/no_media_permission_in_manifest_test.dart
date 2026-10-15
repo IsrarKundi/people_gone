@@ -35,4 +35,20 @@ void main() {
       expect(pubspec.contains(forbidden), isFalse);
     }
   });
+
+  test('app manifest declares network permissions for gateway API', () {
+    final manifest = File('android/app/src/main/AndroidManifest.xml');
+    expect(manifest.existsSync(), isTrue);
+    final content = manifest.readAsStringSync();
+    expect(
+      content.contains('android.permission.INTERNET'),
+      isTrue,
+      reason: 'Manifest must declare INTERNET for ProcessingApi network calls',
+    );
+    expect(
+      content.contains('android.permission.ACCESS_NETWORK_STATE'),
+      isTrue,
+      reason: 'Manifest must declare ACCESS_NETWORK_STATE for connectivity checks',
+    );
+  });
 }
