@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
+
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -123,28 +125,36 @@ class HomeView extends GetView<HomeController> {
                       child: const InteractiveDemoCard(),
                     ),
                   ] else ...<Widget>[
-                    SectionHeader(
-                      titleKey: AppStrings.homeHistory,
-                      actionLabelKey: AppStrings.homeSeeAll,
-                      onAction: controller.openHistory,
-                    ),
-                    SizedBox(height: s.sm),
-                    SizedBox(
-                      height: heroHeight,
-                      child: FeaturedCleanCard(
-                        entry: controller.history.first,
-                        onTap: () => controller.openHistoryDetail(
-                          controller.history.first,
-                        ),
+                    _HomeHistoryBlockFade(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          SectionHeader(
+                            titleKey: AppStrings.homeHistory,
+                            actionLabelKey: AppStrings.homeSeeAll,
+                            onAction: controller.openHistory,
+                          ),
+                          SizedBox(height: s.sm),
+                          SizedBox(
+                            height: heroHeight,
+                            child: FeaturedCleanCard(
+                              entry: controller.history.first,
+                              onTap: () => controller.openHistoryDetail(
+                                controller.history.first,
+                              ),
+                            ),
+                          ),
+                          if (hasTray) ...<Widget>[
+                            SizedBox(height: s.lg),
+                            EarlierCleansTray(
+                              entries: controller.history.skip(1).take(10).toList(),
+                              onTap: controller.openHistoryDetail,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (hasTray) ...<Widget>[
-                      SizedBox(height: s.lg),
-                      EarlierCleansTray(
-                        entries: controller.history.skip(1).take(10).toList(),
-                        onTap: controller.openHistoryDetail,
-                      ),
-                    ],
                   ],
                 ],
               ),
@@ -155,3 +165,47 @@ class HomeView extends GetView<HomeController> {
     );
   }
 }
+
+/// Single block fade-in for the Home history section when it first loads
+/// with data (ANIMATION_RESEARCH_2026.md §3, #6). NO per-item stagger.
+class _HomeHistoryBlockFade extends StatefulWidget {
+  const _HomeHistoryBlockFade({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_HomeHistoryBlockFade> createState() => _HomeHistoryBlockFadeState();
+}
+
+class _HomeHistoryBlockFadeState extends State<_HomeHistoryBlockFade>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppMotion.standard,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: _controller,
+        curve: AppMotion.enterCurve,
+      ),
+      child: widget.child,
+    );
+  }
+}
+

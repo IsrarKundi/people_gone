@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 
@@ -10,19 +11,95 @@ import '../../../core/theme/theme_ext.dart';
 class InteractiveDemoCard extends StatefulWidget {
   const InteractiveDemoCard({super.key});
 
+  /// Whether the teaching sweep has already executed in this session.
+  @visibleForTesting
+  static bool hasRunTeachingSweep = false;
+
   @override
   State<InteractiveDemoCard> createState() => _InteractiveDemoCardState();
 }
 
-class _InteractiveDemoCardState extends State<InteractiveDemoCard> {
+class _InteractiveDemoCardState extends State<InteractiveDemoCard>
+    with SingleTickerProviderStateMixin {
   double _fraction = 0.5;
+  AnimationController? _sweepController;
+  Animation<double>? _sweepAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!InteractiveDemoCard.hasRunTeachingSweep) {
+      InteractiveDemoCard.hasRunTeachingSweep = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startTeachingSweep();
+      });
+    }
+  }
+
+  void _startTeachingSweep() {
+    if (!mounted) return;
+    final disable = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (disable) return;
+
+    _sweepController = AnimationController(
+      vsync: this,
+      duration: AppMotion.demoSweep,
+    );
+
+    // Slides smoothly to one side (revealing cleaned) and returns to center (≈1.2s total)
+    _sweepAnimation = TweenSequence<double>(<TweenSequenceItem<double>>[
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 0.5, end: 0.32)
+            .chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 50,
+      ),
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 0.32, end: 0.5)
+            .chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 50,
+      ),
+    ]).animate(_sweepController!);
+
+    _sweepController!.addListener(() {
+      if (mounted) {
+        setState(() {
+          _fraction = _sweepAnimation!.value;
+        });
+      }
+    });
+
+    _sweepController!.forward().whenComplete(() {
+      _cleanupSweep();
+    });
+  }
+
+  void _cancelSweep() {
+    if (_sweepController != null && _sweepController!.isAnimating) {
+      _sweepController!.stop();
+      _cleanupSweep();
+    }
+  }
+
+  void _cleanupSweep() {
+    _sweepController?.dispose();
+    _sweepController = null;
+    _sweepAnimation = null;
+  }
+
+  @override
+  void dispose() {
+    _cleanupSweep();
+    super.dispose();
+  }
 
   void _updateFraction(double dx, double width) {
+    _cancelSweep();
     if (width <= 0) return;
     setState(() {
       _fraction = (dx / width).clamp(0.05, 0.95);
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +128,11 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard> {
 
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  onHorizontalDragDown: (_) => _cancelSweep(),
                   onHorizontalDragUpdate: (d) =>
                       _updateFraction(d.localPosition.dx, width),
                   onTapDown: (d) => _updateFraction(d.localPosition.dx, width),
+
                   child: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[

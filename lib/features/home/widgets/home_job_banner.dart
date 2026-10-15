@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/routes/app_routes.dart';
+
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../services/processing/job_tracker.dart';
@@ -9,15 +11,51 @@ import '../../processing/model/processing_args.dart';
 
 /// Active Job Banner displayed at the top of Home when a clean is
 /// running in the background, completed, or failed (Option 3 / backgrounding flow).
-class HomeJobBanner extends StatelessWidget {
+/// Animates appearance and status changes with slide-down + fade (AppMotion.standard).
+class HomeJobBanner extends StatefulWidget {
   const HomeJobBanner({super.key, required this.job});
 
   final ActiveJob job;
 
   @override
+  State<HomeJobBanner> createState() => _HomeJobBannerState();
+}
+
+class _HomeJobBannerState extends State<HomeJobBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppMotion.standard,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(HomeJobBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.job.status != widget.job.status) {
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final job = widget.job;
     final p = context.palette;
     final s = context.sizes;
+    final disable = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
 
     Widget leadingIcon;
     String title;
@@ -73,10 +111,12 @@ class HomeJobBanner extends StatelessWidget {
         onTap = JobTracker.instance.clear;
     }
 
-    // One card language (D12): neutral hairline border at the shared
-    // card radius for every state — state colour lives in the icon,
-    // never in the container outline (Review 05 W3).
-    return Container(
+    final curved = CurvedAnimation(
+      parent: _controller,
+      curve: AppMotion.enterCurve,
+    );
+
+    final bannerCard = Container(
       margin: EdgeInsets.only(bottom: s.md),
       decoration: BoxDecoration(
         color: p.surface,
@@ -135,5 +175,21 @@ class HomeJobBanner extends StatelessWidget {
         ),
       ),
     );
+
+    if (disable) {
+      return FadeTransition(opacity: curved, child: bannerCard);
+    }
+
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0.0, -0.15),
+        end: Offset.zero,
+      ).animate(curved),
+      child: FadeTransition(
+        opacity: curved,
+        child: bannerCard,
+      ),
+    );
   }
 }
+
