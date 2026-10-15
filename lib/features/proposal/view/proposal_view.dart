@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
@@ -74,35 +75,57 @@ class ProposalView extends GetView<ProposalController> {
   }
 
   Widget _bottomPanel(BuildContext context) {
+    return Obx(() {
+      final isAnalyzing = controller.isAnalyzing.value;
+      final disableAnimations =
+          MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+      return AnimatedSwitcher(
+        duration: disableAnimations ? Duration.zero : AppMotion.standard,
+        reverseDuration: Duration.zero,
+        switchInCurve: AppMotion.enterCurve,
+        layoutBuilder: (currentChild, previousChildren) =>
+            currentChild ?? const SizedBox.shrink(),
+        transitionBuilder: (child, animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child: KeyedSubtree(
+          key: ValueKey<bool>(isAnalyzing),
+          child: isAnalyzing
+              ? _analyzingPanel(context)
+              : _resultsPanel(context),
+        ),
+      );
+    });
+  }
+
+  Widget _resultsPanel(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
+    final overlap = controller.hasOverlapRisk;
+    final persons = controller.persons;
+    final items = controller.ambiguousItems;
+    final distractions = controller.distractions;
 
-    return Obx(() {
-      if (controller.isAnalyzing.value) return _analyzingPanel(context);
-      final overlap = controller.hasOverlapRisk;
-      final persons = controller.persons;
-      final items = controller.ambiguousItems;
-      final distractions = controller.distractions;
-
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.fromLTRB(
-          s.screenPadding,
-          s.md,
-          s.screenPadding,
-          s.lg,
-        ),
-        decoration: BoxDecoration(
-          color: p.surface,
-          border: Border(top: BorderSide(color: p.border)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withAlpha(15),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        s.screenPadding,
+        s.md,
+        s.screenPadding,
+        s.lg,
+      ),
+      decoration: BoxDecoration(
+        color: p.surface,
+        border: Border(top: BorderSide(color: p.border)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withAlpha(15),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +250,6 @@ class ProposalView extends GetView<ProposalController> {
           ],
         ),
       );
-    });
   }
 
   /// Analysing state (Review 04 F1): the photo is already on screen
@@ -293,12 +315,28 @@ class ProposalView extends GetView<ProposalController> {
         : AppStrings.proposalStatusProtected.trParams(<String, String>{
             'count': '$keepers',
           });
+    final String statusText =
+        <String>[removedPart, ?itemsPart, protectedPart].join(' · ');
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
     return Semantics(
       liveRegion: true,
-      child: Text(
-        <String>[removedPart, ?itemsPart, protectedPart].join(' · '),
-        style: context.textStyles.bodyMd.copyWith(
-          color: context.palette.textSecondary,
+      child: AnimatedSwitcher(
+        duration: disableAnimations ? Duration.zero : AppMotion.fast,
+        reverseDuration: Duration.zero,
+        switchInCurve: AppMotion.enterCurve,
+        layoutBuilder: (currentChild, previousChildren) =>
+            currentChild ?? const SizedBox.shrink(),
+        transitionBuilder: (child, animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child: Text(
+          statusText,
+          key: ValueKey<String>(statusText),
+          style: context.textStyles.bodyMd.copyWith(
+            color: context.palette.textSecondary,
+          ),
         ),
       ),
     );

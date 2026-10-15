@@ -74,7 +74,9 @@ class ProposalController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    args = Get.arguments as ProposalArgs;
+    if (Get.arguments is ProposalArgs) {
+      args = Get.arguments as ProposalArgs;
+    }
     final seeded = args.proposal;
     if (seeded != null) {
       _detection = seeded;

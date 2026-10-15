@@ -78,7 +78,11 @@ class PersonCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 2),
-            Container(
+            AnimatedContainer(
+              duration: MediaQuery.maybeOf(context)?.disableAnimations ?? false
+                  ? Duration.zero
+                  : AppMotion.fast,
+              curve: AppMotion.standardCurve,
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: activeColor.withAlpha(30),

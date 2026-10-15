@@ -27,6 +27,7 @@ class ProposalOverlayPainter extends CustomPainter {
     required this.onTogglePerson,
     required this.onToggleBelonging,
     required this.onToggleDistraction,
+    this.keeperFractions,
   });
 
   final List<DetectedPerson> persons;
@@ -41,6 +42,7 @@ class ProposalOverlayPainter extends CustomPainter {
   final void Function(int id) onTogglePerson;
   final void Function(int id)? onToggleBelonging;
   final void Function(int id)? onToggleDistraction;
+  final Map<int, double>? keeperFractions;
 
   DetectedPerson? _ownerOf(DetectedBelonging item) {
     for (final person in persons) {
@@ -61,9 +63,13 @@ class ProposalOverlayPainter extends CustomPainter {
 
       // Overlay tokens only: a solid-token stroke and a low-alpha
       // fill of the same token (Conventions §6.1 overlay roles).
-      final token = person.isKeeper
-          ? palette.overlayKept
-          : palette.overlayRemoved;
+      final fraction =
+          keeperFractions?[person.id] ?? (person.isKeeper ? 1.0 : 0.0);
+      final token = Color.lerp(
+        palette.overlayRemoved,
+        palette.overlayKept,
+        fraction,
+      )!;
       final strokePaint = Paint()
         ..color = token.withValues(alpha: 1)
         ..style = PaintingStyle.stroke
@@ -101,9 +107,14 @@ class ProposalOverlayPainter extends CustomPainter {
       if (item.tier == BelongingTier.attached &&
           !detachedIds.contains(item.id)) {
         final owner = _ownerOf(item);
-        token = (owner?.isKeeper ?? false)
-            ? palette.overlayKept
-            : palette.overlayRemoved;
+        final fraction = owner == null
+            ? 0.0
+            : (keeperFractions?[owner.id] ?? (owner.isKeeper ? 1.0 : 0.0));
+        token = Color.lerp(
+          palette.overlayRemoved,
+          palette.overlayKept,
+          fraction,
+        );
       } else if (item.tier == BelongingTier.ambiguous &&
           includedItemIds.contains(item.id)) {
         token = palette.overlayRemoved;
@@ -260,5 +271,6 @@ class ProposalOverlayPainter extends CustomPainter {
       oldDelegate.includedItemIds != includedItemIds ||
       oldDelegate.distractions != distractions ||
       oldDelegate.includedDistractionIds != includedDistractionIds ||
-      oldDelegate.imageSize != imageSize;
+      oldDelegate.imageSize != imageSize ||
+      oldDelegate.keeperFractions != keeperFractions;
 }

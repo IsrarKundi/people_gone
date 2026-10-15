@@ -83,8 +83,14 @@ class DistractionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 2),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                AnimatedContainer(
+                  duration:
+                      MediaQuery.maybeOf(context)?.disableAnimations ?? false
+                          ? Duration.zero
+                          : AppMotion.fast,
+                  curve: AppMotion.standardCurve,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: included
                         ? AppColors.crimson.withAlpha(30)

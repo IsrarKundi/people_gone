@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
+import '../constants/app_motion.dart';
 import '../theme/theme_ext.dart';
 
 /// PersonThumbnail: renders a visual face/body crop from the local photo
@@ -84,10 +85,16 @@ class _PersonThumbnailState extends State<PersonThumbnail> {
     final s = context.sizes;
     final ringColor = widget.isKeeper ? AppColors.emerald : AppColors.crimson;
 
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = disableAnimations ? Duration.zero : AppMotion.fast;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Container(
+        AnimatedContainer(
+          duration: duration,
+          curve: AppMotion.standardCurve,
           width: widget.size,
           height: widget.size,
           decoration: BoxDecoration(
@@ -128,7 +135,9 @@ class _PersonThumbnailState extends State<PersonThumbnail> {
               Positioned(
                 right: -2,
                 bottom: -2,
-                child: Container(
+                child: AnimatedContainer(
+                  duration: duration,
+                  curve: AppMotion.standardCurve,
                   width: 18,
                   height: 18,
                   decoration: BoxDecoration(
