@@ -13,6 +13,9 @@ abstract final class AppStrings {
   static const String commonClose = 'common_close';
   static const String commonDelete = 'common_delete';
 
+  // Splash
+  static const String splashTagline = 'splash_tagline';
+
   // Home (S1).
   static const String homeTitle = 'home_title';
   static const String homePickPhoto = 'home_pick_photo';
@@ -224,13 +227,14 @@ class AppTranslations extends Translations {
   @override
   Map<String, Map<String, String>> get keys => <String, Map<String, String>>{
     'en_US': <String, String>{
-      AppStrings.appName: 'PeopleGone',
+      AppStrings.appName: 'Framora',
+      AppStrings.splashTagline: 'Clear the crowd. Keep your moment.',
       AppStrings.commonRetry: 'Retry',
       AppStrings.commonCancel: 'Cancel',
       AppStrings.commonContinue: 'Continue',
       AppStrings.commonClose: 'Close',
       AppStrings.commonDelete: 'Delete',
-      AppStrings.homeTitle: 'PeopleGone',
+      AppStrings.homeTitle: 'Framora',
       AppStrings.homePickPhoto: 'Pick a photo',
       AppStrings.homeEmptyLine:
           'Remove background people from a photo. Your subject stays untouched.',
@@ -240,9 +244,9 @@ class AppTranslations extends Translations {
       AppStrings.demoCaption: 'Real app output',
       AppStrings.consentTitle: 'Before your photo is uploaded',
       AppStrings.consentBody:
-          'To remove people, PeopleGone sends the photo you choose to '
+          'To remove people, Framora sends the photo you choose to '
           '@provider over an encrypted connection. Only that one photo is '
-          'sent — PeopleGone does not access the rest of your library.\n\n'
+          'sent — Framora does not access the rest of your library.\n\n'
           'Your photo is used only to create your cleaned photo. It is '
           'never used to train AI models and is deleted from our servers '
           'when processing finishes, and in all cases within 24 hours.',
@@ -418,7 +422,7 @@ class AppTranslations extends Translations {
           'You are offline. Your photo stays on this phone.',
       AppStrings.errorNotImplemented: 'This part is not ready yet.',
       AppStrings.errorPhotoTooLarge:
-          'This photo is larger than PeopleGone can process.',
+          'This photo is larger than Framora can process.',
       AppStrings.errorUploadFailed:
           "The upload didn't finish. Check your connection and try again.",
       AppStrings.errorProcessingFailed:

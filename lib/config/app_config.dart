@@ -30,7 +30,7 @@ class AppConfig {
       ),
       providerDisplayName: String.fromEnvironment(
         'PROVIDER_DISPLAY_NAME',
-        defaultValue: "PeopleGone's processing servers",
+        defaultValue: "Framora's processing servers",
       ),
       consentVersion: int.fromEnvironment('CONSENT_VERSION', defaultValue: 1),
       supportEmail: String.fromEnvironment(

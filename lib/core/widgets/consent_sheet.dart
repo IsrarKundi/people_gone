@@ -53,7 +53,7 @@ class ConsentSheet extends StatelessWidget {
     final s = context.sizes;
     final isConsentBody = bodyKey == AppStrings.consentBody;
     final provider =
-        bodyParams?['provider'] ?? "PeopleGone's processing servers";
+        bodyParams?['provider'] ?? "Framora's processing servers";
 
     return Container(
       decoration: BoxDecoration(
@@ -140,7 +140,7 @@ class ConsentSheet extends StatelessWidget {
           title: 'Encrypted single-photo transfer',
           desc:
               'Sent to $provider over an encrypted connection. '
-              'Only this photo is sent — PeopleGone never accesses the rest of your photo library.',
+              'Only this photo is sent — Framora never accesses the rest of your photo library.',
         ),
         SizedBox(height: s.sm),
         _trustItem(

@@ -17,6 +17,8 @@ import '../../features/result/view/result_view.dart';
 import '../../features/settings/binding/settings_binding.dart';
 import '../../features/settings/view/diagnostics_view.dart';
 import '../../features/settings/view/settings_view.dart';
+import '../../features/splash/binding/splash_binding.dart';
+import '../../features/splash/view/splash_view.dart';
 import 'app_routes.dart';
 
 /// The Home route's composed binding: PickerBinding runs first because
@@ -32,6 +34,11 @@ class _HomeRouteBinding extends Bindings {
 /// All route wiring (Conventions §1.2).
 abstract final class AppPages {
   static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
+    GetPage<dynamic>(
+      name: Routes.splash,
+      page: () => const SplashView(),
+      binding: SplashBinding(),
+    ),
     GetPage<dynamic>(
       name: Routes.home,
       page: () => const HomeView(),

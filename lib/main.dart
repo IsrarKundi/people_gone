@@ -29,14 +29,19 @@ void main() {
 /// Dark mode follows the system (no in-app toggle in v1, Conventions §6.1);
 /// text scaling is clamped 0.85–1.30 (§6.4).
 class PeopleGoneApp extends StatelessWidget {
-  const PeopleGoneApp({super.key, required this.config});
+  const PeopleGoneApp({
+    super.key,
+    required this.config,
+    this.initialRoute = Routes.splash,
+  });
 
   final AppConfig config;
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'PeopleGone',
+      title: 'Framora',
       debugShowCheckedModeBanner: false,
       translations: AppTranslations(),
       locale: const Locale('en', 'US'),
@@ -45,7 +50,7 @@ class PeopleGoneApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
       initialBinding: InitialBinding(config),
-      initialRoute: Routes.home,
+      initialRoute: initialRoute,
       getPages: AppPages.pages,
       customTransition: PeopleGonePageTransition(),
       transitionDuration: AppMotion.standard,

@@ -11,12 +11,14 @@ class AppScaffold extends StatelessWidget {
     super.key,
     required this.body,
     this.titleKey,
+    this.titleWidget,
     this.titleStyle,
     this.actions,
   });
 
   final Widget body;
   final String? titleKey;
+  final Widget? titleWidget;
 
   /// Optional override (e.g. the Home wordmark: Inter 800 — Design
   /// Direction R5 / Review 01). Defaults to the theme's app-bar style.
@@ -26,13 +28,14 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final hasAppBar = titleKey != null || titleWidget != null;
     return Scaffold(
       backgroundColor: p.background,
-      appBar: titleKey == null
+      appBar: !hasAppBar
           ? null
           : AppBar(
               centerTitle: false,
-              title: Text(titleKey!.tr, style: titleStyle),
+              title: titleWidget ?? Text(titleKey!.tr, style: titleStyle),
               actions: actions,
             ),
       body: SafeArea(child: body),

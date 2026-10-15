@@ -3,17 +3,24 @@
 // the pick button is present, and the teaching line sits in flow.
 // Storage is unimplemented on the test host, so the controller degrades
 // to its defaults — which is itself part of what this test proves.
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:people_gone/config/app_config.dart';
+import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/main.dart';
 
 void main() {
   testWidgets('app shell renders Home (Review 01 layout)', (tester) async {
-    await tester.pumpWidget(PeopleGoneApp(config: AppConfig.fromEnvironment()));
+    await tester.pumpWidget(
+      PeopleGoneApp(
+        config: AppConfig.fromEnvironment(),
+        initialRoute: Routes.home,
+      ),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('PeopleGone'), findsOneWidget);
+    expect(find.byType(SvgPicture), findsWidgets);
     expect(find.text('10 of 10 free saves left this month.'), findsOneWidget);
     expect(find.text('Pick a photo'), findsOneWidget);
     expect(

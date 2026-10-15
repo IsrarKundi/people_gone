@@ -41,7 +41,7 @@ void main() {
       log.add('auth', 'session established via signup (user 12345678)');
       log.add('gateway', 'confirm ok: job 1a2b3c4d');
       final out = log.export();
-      expect(out, contains('PeopleGone diagnostics'));
+      expect(out, contains('Framora diagnostics'));
       expect(out, contains('[auth] session established'));
       expect(
         out.indexOf('session established'),

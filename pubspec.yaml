@@ -1,5 +1,5 @@
 name: people_gone
-description: "PeopleGone — remove background people from your photos. Your subject stays untouched."
+description: "Framora — remove background people from your photos. Your subject stays untouched."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -21,11 +21,13 @@ dependencies:
   share_plus: ^10.1.4
   url_launcher: ^6.3.2
   gal: ^2.3.2
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -47,3 +49,12 @@ flutter:
           weight: 700
         - asset: assets/fonts/Inter-ExtraBold.ttf
           weight: 800
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/framora_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#2563EB"
+  adaptive_icon_foreground: "assets/images/framora_icon.png"
+

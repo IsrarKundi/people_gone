@@ -1,6 +1,7 @@
 /// Route name constants (Conventions §3). Paths are kebab-case; navigation
 /// goes through these names only (§7 rule 3).
 abstract final class Routes {
+  static const String splash = '/splash';
   static const String home = '/';
   static const String processing = '/processing';
   static const String proposal = '/proposal';

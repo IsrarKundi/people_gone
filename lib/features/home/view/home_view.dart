@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_motion.dart';
@@ -8,11 +9,11 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/section_header.dart';
+// import '../../../core/widgets/section_header.dart';
 import '../../../services/processing/job_tracker.dart';
 import '../controller/home_controller.dart';
 import '../widgets/earlier_cleans_tray.dart';
-import '../widgets/featured_clean_card.dart';
+// import '../widgets/featured_clean_card.dart';
 import '../widgets/home_job_banner.dart';
 import '../widgets/interactive_demo_card.dart';
 import '../widgets/saves_indicator.dart';
@@ -34,9 +35,10 @@ class HomeView extends GetView<HomeController> {
     final p = context.palette;
     final s = context.sizes;
     return AppScaffold(
-      titleKey: AppStrings.appName,
-      titleStyle: context.textStyles.titleLg.copyWith(
-        fontWeight: FontWeight.w800,
+      titleWidget: SvgPicture.asset(
+        'assets/icons/framora_logo.svg',
+        height: 24,
+        theme: SvgTheme(currentColor: p.textPrimary),
       ),
       actions: <Widget>[
         // IconButton(
@@ -113,50 +115,48 @@ class HomeView extends GetView<HomeController> {
                       //   ),
                       // ),
                       if (hasTray) ...<Widget>[
-                        // SizedBox(height: s.md),
                         EarlierCleansTray(
                           entries: controller.history.take(10).toList(),
                           onTap: controller.openHistoryDetail,
                         ),
                       ],
-
-                      SizedBox(height: s.lg),
-                      SizedBox(height: s.lg),
-
-                      // 2. The "Pick a photo" button directly below the demo
-                      PrimaryButton(
-                        labelKey: AppStrings.homePickPhoto,
-                        icon: Icons.add_photo_alternate_rounded,
-                        height: 56,
-                        borderRadius: 28,
-                        isLoading: controller.isPicking,
-                        onPressed: controller.onPickPhoto,
-                      ),
-
-                      // Existing text underneath the button kept as-is
-                      if (!hasHistory) ...<Widget>[
-                        SizedBox(height: s.xs),
-                        Text(
-                          AppStrings.homeEmptyLine.tr,
-                          style: context.textStyles.bodySm.copyWith(
-                            color: p.textSecondary,
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: s.md),
-
-                      // 3. Remaining Home items: saves line, job banner, history
-                      SavesIndicator(
-                        savesLeft: controller.savesLeft.value,
-                        of: HomeController.freeSavesPerMonth,
-                        resetDate: controller.resetDate.value,
-                      ),
-
-                      SizedBox(height: s.sm),
                     ],
                   ),
                 ),
               ],
+
+              SizedBox(height: s.lg),
+
+              // 2. The "Pick a photo" button
+              PrimaryButton(
+                labelKey: AppStrings.homePickPhoto,
+                icon: Icons.add_photo_alternate_rounded,
+                height: 56,
+                borderRadius: 28,
+                isLoading: controller.isPicking,
+                onPressed: controller.onPickPhoto,
+              ),
+
+              // Existing text underneath the button kept as-is
+              if (!hasHistory) ...<Widget>[
+                SizedBox(height: s.xs),
+                Text(
+                  AppStrings.homeEmptyLine.tr,
+                  style: context.textStyles.bodySm.copyWith(
+                    color: p.textSecondary,
+                  ),
+                ),
+              ],
+              SizedBox(height: s.md),
+
+              // 3. Remaining Home items: saves line, job banner, history
+              SavesIndicator(
+                savesLeft: controller.savesLeft.value,
+                of: HomeController.freeSavesPerMonth,
+                resetDate: controller.resetDate.value,
+              ),
+
+              SizedBox(height: s.sm),
             ],
           ),
         );
