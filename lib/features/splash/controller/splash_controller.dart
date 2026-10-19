@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/routes/app_routes.dart';
 
 /// Controller for Splash screen lifecycle and navigation.
@@ -9,7 +10,7 @@ class SplashController extends GetxController {
   SplashController({
     Duration? holdDuration,
     void Function()? onComplete,
-  })  : _holdDuration = holdDuration ?? const Duration(milliseconds: 2100),
+  })  : _holdDuration = holdDuration ?? AppMotion.splashHold,
         _onComplete = onComplete;
 
   final Duration _holdDuration;

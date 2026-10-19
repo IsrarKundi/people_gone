@@ -43,7 +43,7 @@ class _SplashBodyState extends State<_SplashBody>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: AppMotion.splashChoreography,
     );
 
     // 1. Logo entrance (0ms -> 450ms)
@@ -149,13 +149,13 @@ class _SplashBodyState extends State<_SplashBody>
                         );
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: s.xxl,
+                          vertical: s.md,
                         ),
                         child: SvgPicture.asset(
                           'assets/icons/framora_logo.svg',
-                          height: 48,
+                          height: s.giant,
                           theme: SvgTheme(currentColor: p.textPrimary),
                         ),
                       ),
