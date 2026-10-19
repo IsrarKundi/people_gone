@@ -316,9 +316,14 @@ void main() {
     );
   });
 
-  testWidgets('Home history shows latest clean card and earlier cleans tray (Option A)', (
+  testWidgets(
+      'Home history shows the earlier cleans tray and no featured card', (
     tester,
   ) async {
+    // Owner decision 2026-10-19: the FeaturedCleanCard slot was removed
+    // from Home intentionally (its code stays commented out in
+    // home_view.dart — do not restore it). The tray carries every recent
+    // clean (Home passes history.take(10)).
     store.entries = <HistoryEntry>[
       for (var i = 0; i < 4; i++)
         HistoryEntry(
@@ -328,10 +333,10 @@ void main() {
         ),
     ];
     await pumpHome(tester);
-    expect(find.byType(FeaturedCleanCard), findsOneWidget);
+    expect(find.byType(FeaturedCleanCard), findsNothing);
     expect(find.byType(EarlierCleansTray), findsOneWidget);
     final tray = tester.widget<EarlierCleansTray>(find.byType(EarlierCleansTray));
-    expect(tray.entries.length, 3);
+    expect(tray.entries.length, 4);
   });
 
   testWidgets('Home shows active job banner when a background clean is processing', (
