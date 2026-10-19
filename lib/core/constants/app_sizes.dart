@@ -35,6 +35,11 @@ class AppSizes {
   final double radiusSheet = 28;
   final double radiusPill = 999;
 
+  /// The one radius for framed photo surfaces (audit 2026-10-19
+  /// photo-frame system): every photo sits at this radius inside a
+  /// 1px hairline border, never a drop shadow.
+  final double photoRadius = 16;
+
   // Control heights.
   final double buttonPrimary = 52;
   final double buttonSecondary = 48;

@@ -317,18 +317,11 @@ class _FittedPhotoFrameState extends State<_FittedPhotoFrame> {
             height: h,
             decoration: BoxDecoration(
               color: p.surface,
-              borderRadius: BorderRadius.circular(s.radiusLg),
+              borderRadius: BorderRadius.circular(s.photoRadius),
               border: Border.all(color: p.border),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: p.scrim.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(s.radiusLg - 1),
+              borderRadius: BorderRadius.circular(s.photoRadius - 1),
               child: Stack(
                 fit: StackFit.expand,
                 children: <Widget>[

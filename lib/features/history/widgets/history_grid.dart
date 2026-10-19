@@ -215,18 +215,11 @@ class _HistoryTile extends StatelessWidget {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(s.radiusMd),
+                  borderRadius: BorderRadius.circular(s.photoRadius),
                   border: Border.all(color: p.border),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: p.scrim.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(s.radiusMd - 1),
+                  borderRadius: BorderRadius.circular(s.photoRadius - 1),
                   child: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
