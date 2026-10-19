@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../strings/app_strings.dart';
+import '../constants/app_motion.dart';
 import '../theme/theme_ext.dart';
 
 /// The only dialog shell (Conventions §6.7). Feature code never calls
@@ -20,6 +21,8 @@ abstract final class AppDialog {
     final p = context.palette;
     final s = context.sizes;
     final result = await Get.dialog<bool>(
+      transitionDuration: AppMotion.standard,
+      transitionCurve: AppMotion.standardCurve,
       AlertDialog(
         backgroundColor: p.surface,
         shape: RoundedRectangleBorder(
@@ -56,6 +59,8 @@ abstract final class AppDialog {
     if (context == null) return;
     final p = context.palette;
     await Get.dialog<void>(
+      transitionDuration: AppMotion.standard,
+      transitionCurve: AppMotion.standardCurve,
       AlertDialog(
         backgroundColor: p.surface,
         shape: RoundedRectangleBorder(

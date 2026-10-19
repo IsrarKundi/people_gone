@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/app_motion.dart';
 import '../../../core/theme/theme_ext.dart';
 
 /// Animated scan beam that sweeps vertically over the photo (5s period)
@@ -23,7 +24,7 @@ class _ScanBeamOverlayState extends State<ScanBeamOverlay>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 5000),
+      duration: AppMotion.scanBeamPeriod,
     );
   }
 

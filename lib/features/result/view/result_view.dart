@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_motion.dart';
@@ -237,10 +238,10 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
   void initState() {
     super.initState();
     if (!widget.controller.nobodyRemoved) {
-      _dissolveController = AnimationController(
-        vsync: this,
-        duration: AppMotion.resultDissolve,
-      );
+      // Unbounded: the reveal is driven by the one permitted settle
+      // spring (AppMotion.springSettle, audit 2026-10-19) instead of
+      // a fixed 450 ms tween.
+      _dissolveController = AnimationController(vsync: this);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final disable =
@@ -248,7 +249,9 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
         if (disable) {
           _dissolveController?.value = 1.0;
         } else {
-          _dissolveController?.forward();
+          _dissolveController?.animateWith(
+            SpringSimulation(AppMotion.springSettle, 0, 1, 0),
+          );
         }
         // Phase D warning line is on this screen: one soft warning
         // tick as it appears (audit 2026-10-19 haptic vocabulary).
@@ -259,6 +262,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
 
   void _cutDissolve() {
     if (_dissolveController != null && !_dissolveController!.isCompleted) {
+      _dissolveController!.stop();
       _dissolveController!.value = 1.0;
     }
   }

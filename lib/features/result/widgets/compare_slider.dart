@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import 'package:flutter/physics.dart';
 
 import '../../../core/constants/app_motion.dart';
 import '../../../core/haptics/app_haptics.dart';
@@ -44,26 +47,13 @@ class _CompareSliderState extends State<CompareSlider>
     super.initState();
     if (!CompareSlider.hasRunCompareNudge) {
       CompareSlider.hasRunCompareNudge = true;
-      _nudgeController = AnimationController(
-        vsync: this,
-        duration: AppMotion.compareNudge,
-      );
-      final animation = TweenSequence<double>(<TweenSequenceItem<double>>[
-        TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0.5, end: 0.58)
-              .chain(CurveTween(curve: Curves.easeInOutCubic)),
-          weight: 50,
-        ),
-        TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0.58, end: 0.5)
-              .chain(CurveTween(curve: Curves.easeInOutCubic)),
-          weight: 50,
-        ),
-      ]).animate(_nudgeController!);
-
+      // Unbounded controller: the teaching nudge is driven by the
+      // critically damped spring (AppMotion.springCalm), not a
+      // fixed-duration tween (audit 2026-10-19).
+      _nudgeController = AnimationController(vsync: this, value: 0.5);
       _nudgeController!.addListener(() {
         if (mounted) {
-          setState(() => _fraction = animation.value);
+          setState(() => _fraction = _nudgeController!.value);
         }
       });
 
@@ -71,16 +61,32 @@ class _CompareSliderState extends State<CompareSlider>
         if (!mounted) return;
         final disable =
             MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-        if (disable) {
-          _cancelNudge();
-        } else {
-          _nudgeController?.forward();
+        if (!disable) {
+          unawaited(_runNudge());
         }
       });
     }
   }
 
+  int _nudgeRun = 0;
+
+  /// Out to 0.58 and back to centre, both legs on the calm spring.
+  /// A user drag cancels the run (see [_applyFraction]).
+  Future<void> _runNudge() async {
+    final controller = _nudgeController;
+    if (controller == null) return;
+    final run = ++_nudgeRun;
+    await controller.animateWith(
+      SpringSimulation(AppMotion.springCalm, 0.5, 0.58, 0),
+    );
+    if (!mounted || run != _nudgeRun) return;
+    await controller.animateWith(
+      SpringSimulation(AppMotion.springCalm, 0.58, 0.5, 0),
+    );
+  }
+
   void _cancelNudge() {
+    _nudgeRun++;
     if (_nudgeController?.isAnimating ?? false) {
       _nudgeController?.stop();
     }
@@ -105,6 +111,7 @@ class _CompareSliderState extends State<CompareSlider>
   /// the compare range gives the boundary tick (audit 2026-10-19
   /// haptic vocabulary) — once per arrival, not while resting there.
   void _applyFraction(double value) {
+    if (_nudgeController?.isAnimating ?? false) _cancelNudge();
     final next = value.clamp(0.0, 1.0);
     final hitEdge =
         (next == 0.0 && _fraction != 0.0) || (next == 1.0 && _fraction != 1.0);

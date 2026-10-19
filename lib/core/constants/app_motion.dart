@@ -49,6 +49,28 @@ abstract final class AppMotion {
   /// 1000 ms animation by over a second).
   static const Duration splashHold = Duration(milliseconds: 1200);
 
+  /// Critically damped spring (damping ratio 1.0 — NO overshoot) for
+  /// touch-driven motion that animates toward a target: the calm rule
+  /// expressed as physics instead of a fixed-duration curve (audit
+  /// 2026-10-19). Used with AnimationController.animateWith.
+  static const SpringDescription springCalm = SpringDescription(
+    mass: 1,
+    stiffness: 400,
+    damping: 40,
+  );
+
+  /// The ONE permitted settle exception (ratio ≈0.85, a hint of life
+  /// at the emotional peak): the Result reveal only.
+  static const SpringDescription springSettle = SpringDescription(
+    mass: 1,
+    stiffness: 400,
+    damping: 34,
+  );
+
+  /// Scan-beam sweep period on Processing (indeterminate activity
+  /// signal — it claims motion, never measurement).
+  static const Duration scanBeamPeriod = Duration(milliseconds: 5000);
+
   /// Calm standard curves with NO visible overshoot.
   static const Curve standardCurve = Curves.easeInOutCubic;
   static const Curve enterCurve = Curves.easeOutCubic;
