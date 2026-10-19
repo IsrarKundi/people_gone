@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_motion.dart';
+import 'matte_light_glide_painter.dart';
 
 /// Server-working waiting stage photo canvas (FR-13, §6):
 /// When the server-working stage begins, the photo smoothly softens into an
@@ -16,12 +17,13 @@ import '../../../core/constants/app_motion.dart';
 ///    the photo and rests off-screen for ~0.8s between passes.
 /// 2. Dual-Density Caustic: layered wide ambient bloom + concentrated soft
 ///    specular core to mimic light refracting through frosted glass.
-/// 3. Museum Matte Rim: a delicate 0.75dp bevel highlight with soft depth shadow
-///    grounding the 98.5% scale as an intentional art mount.
-/// 4. Micro Breathing Ambient Luma: gentle 3.8s sinusoidal ambient oscillation.
-/// 5. Interactive Touch-the-Glass Specular Tilt: touching/dragging on the photo
-///    magnetically bends the specular light towards your finger; springs back
-///    calmly upon release.
+/// 3. Prismatic Chromatic Dispersion (Idea 2): physical optical caustics with
+///    warm amber leading edge and celestial violet/cyan trailing edge.
+/// 4. Interactive Touch-the-Glass Specular Tilt (Idea 1): touching/dragging
+///    magnetically tilts the specular reflection toward your finger.
+/// 5. Dynamic Ambient Canvas Bloom (Idea 3): multi-layer ambilight halo
+///    radiating outward beyond frame borders, breathing and blooming in sync
+///    with the light glide and shifting in 3D parallax on touch.
 class ServerWorkingPhotoFrame extends StatefulWidget {
   const ServerWorkingPhotoFrame({
     super.key,
@@ -148,71 +150,156 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
   Widget build(BuildContext context) {
     final disable = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
-    return ClipRect(
-      child: AnimatedBuilder(
-        animation: _settleController,
-        builder: (context, _) {
-          final progress = disable
-              ? (widget.isWorking ? 1.0 : 0.0)
-              : AppMotion.enterCurve.transform(_settleController.value);
+    return AnimatedBuilder(
+      animation: Listenable.merge(<Listenable>[
+        _settleController,
+        _glideController,
+        _breatheController,
+        _touchController,
+      ]),
+      builder: (context, _) {
+        final progress = disable
+            ? (widget.isWorking ? 1.0 : 0.0)
+            : AppMotion.enterCurve.transform(_settleController.value);
 
-          // 1.0 -> 0.985 settle (approx 98.5% scale in frame)
-          final scale = 1.0 - (0.015 * progress);
-          // Even frosted blur up to 14.0 sigma across the whole photo
-          final blurSigma = 14.0 * progress;
+        // 1.0 -> 0.985 settle (approx 98.5% scale in frame)
+        final scale = 1.0 - (0.015 * progress);
+        // Even frosted blur up to 14.0 sigma across the whole photo
+        final blurSigma = 14.0 * progress;
 
-          final screenWidth = MediaQuery.maybeSizeOf(context)?.width.toInt();
-          final cacheWidth = (screenWidth != null && screenWidth > 0)
-              ? screenWidth
-              : null;
+        final screenWidth = MediaQuery.maybeSizeOf(context)?.width.toInt();
+        final cacheWidth = (screenWidth != null && screenWidth > 0)
+            ? screenWidth
+            : null;
 
-          final photoWidget = Image.file(
-            widget.imageFile,
-            fit: BoxFit.contain,
-            cacheWidth: cacheWidth,
-            errorBuilder: (_, _, _) => const SizedBox.shrink(),
-          );
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final breatheFactor = disable
+            ? 0.0
+            : Curves.easeInOut.transform(_breatheController.value);
+        final glideVal = disable ? 0.0 : _glideController.value;
+        // Bell-curve intensity as light glide sweeps across (peaks around middle ~0.36 of active 0.72 span)
+        final sweepPeak = (glideVal < 0.72 && !disable)
+            ? math.sin((glideVal / 0.72) * math.pi)
+            : 0.0;
+        final touchWeight = disable
+            ? 0.0
+            : Curves.easeOutCubic.transform(_touchController.value);
 
-          return Transform.scale(
-            scale: scale,
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: (event) {
-                if (disable) return;
-                setState(() => _touchOffset = event.localPosition);
-                _touchController.forward();
-              },
-              onPointerMove: (event) {
-                if (disable) return;
-                setState(() => _touchOffset = event.localPosition);
-              },
-              onPointerUp: (_) {
-                if (disable) return;
-                _touchController.reverse();
-              },
-              onPointerCancel: (_) {
-                if (disable) return;
-                _touchController.reverse();
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(2),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.09 * progress),
-                    width: 0.75,
-                  ),
-                  boxShadow: progress > 0
-                      ? <BoxShadow>[
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: 0.12 * progress,
-                            ),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]
-                      : null,
+        // Parallax shift for ambilight bloom when user tilts card with touch
+        var touchShiftX = 0.0;
+        var touchShiftY = 0.0;
+        if (touchWeight > 0.001 && _touchOffset != null) {
+          final size = MediaQuery.maybeSizeOf(context);
+          final refW = (size != null && size.width > 0) ? size.width : 360.0;
+          final refH = (size != null && size.height > 0) ? size.height : 480.0;
+          touchShiftX =
+              -((_touchOffset!.dx - (refW / 2)) / (refW / 2)).clamp(-1.0, 1.0) *
+              8.0 *
+              touchWeight;
+          touchShiftY =
+              -((_touchOffset!.dy - (refH / 2)) / (refH / 2)).clamp(-1.0, 1.0) *
+              6.0 *
+              touchWeight;
+        }
+
+        final photoWidget = Image.file(
+          widget.imageFile,
+          fit: BoxFit.contain,
+          cacheWidth: cacheWidth,
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        );
+
+        return Transform.scale(
+          scale: scale,
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (event) {
+              if (disable) return;
+              setState(() => _touchOffset = event.localPosition);
+              _touchController.forward();
+            },
+            onPointerMove: (event) {
+              if (disable) return;
+              setState(() => _touchOffset = event.localPosition);
+            },
+            onPointerUp: (_) {
+              if (disable) return;
+              _touchController.reverse();
+            },
+            onPointerCancel: (_) {
+              if (disable) return;
+              _touchController.reverse();
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.09 * progress),
+                  width: 0.75,
                 ),
+                boxShadow: progress > 0
+                    ? <BoxShadow>[
+                        // 1. Anchoring physical depth shadow
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: (isDark ? 0.28 : 0.12) * progress,
+                          ),
+                          blurRadius: 16 + (4 * touchWeight),
+                          offset: Offset(
+                            touchShiftX * 0.4,
+                            4 + (2 * touchWeight) + (touchShiftY * 0.4),
+                          ),
+                        ),
+                        // 2. Ambilight Bloom: Warm Amber Leading Edge Halo
+                        BoxShadow(
+                          color: const Color(0xFFFFD180).withValues(
+                            alpha:
+                                (isDark ? 0.10 : 0.045) *
+                                progress *
+                                (0.75 +
+                                    (0.45 * sweepPeak) +
+                                    (0.15 * breatheFactor)),
+                          ),
+                          blurRadius:
+                              32 + (16 * sweepPeak) + (6 * breatheFactor),
+                          spreadRadius: 1 + (3 * sweepPeak),
+                          offset: Offset(
+                            -2 - (4 * sweepPeak) + touchShiftX,
+                            -2 - (4 * sweepPeak) + touchShiftY,
+                          ),
+                        ),
+                        // 3. Ambilight Bloom: Celestial Cyan / Violet Trailing Edge Halo
+                        BoxShadow(
+                          color: const Color(0xFF80D8FF).withValues(
+                            alpha:
+                                (isDark ? 0.09 : 0.04) *
+                                progress *
+                                (0.75 +
+                                    (0.45 * sweepPeak) +
+                                    (0.15 * breatheFactor)),
+                          ),
+                          blurRadius:
+                              40 + (18 * sweepPeak) + (8 * breatheFactor),
+                          spreadRadius: 2 + (4 * sweepPeak),
+                          offset: Offset(
+                            2 + (4 * sweepPeak) + touchShiftX,
+                            2 + (4 * sweepPeak) + touchShiftY,
+                          ),
+                        ),
+                        // 4. Ambilight Bloom: Center Specular Core Radiance
+                        if (sweepPeak > 0.08)
+                          BoxShadow(
+                            color: Colors.white.withValues(
+                              alpha:
+                                  (isDark ? 0.08 : 0.03) * progress * sweepPeak,
+                            ),
+                            blurRadius: 48 + (16 * sweepPeak),
+                            spreadRadius: 1 + (2 * sweepPeak),
+                            offset: Offset(touchShiftX, touchShiftY),
+                          ),
+                      ]
+                    : null,
+              ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(1.25),
                   child: Stack(
@@ -268,7 +355,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
                               ]),
                               builder: (context, _) {
                                 return CustomPaint(
-                                  painter: _MatteLightGlidePainter(
+                                  painter: MatteLightGlidePainter(
                                     progress: _glideController.value,
                                     opacity: progress,
                                     touchOffset: _touchOffset,
@@ -288,137 +375,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
             ),
           );
         },
-      ),
-    );
+      );
   }
 }
 
-class _MatteLightGlidePainter extends CustomPainter {
-  const _MatteLightGlidePainter({
-    required this.progress,
-    required this.opacity,
-    this.touchOffset,
-    this.touchWeight = 0.0,
-  });
-
-  final double progress;
-  final double opacity;
-  final Offset? touchOffset;
-  final double touchWeight;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.width <= 0 || size.height <= 0 || opacity <= 0) return;
-
-    // Default glide angle: ~25 degrees diagonal
-    var angle = 25.0 * math.pi / 180.0;
-
-    // Subtly tilt angle towards finger when interacting
-    if (touchWeight > 0.001 && touchOffset != null) {
-      final tiltNormalizedX =
-          ((touchOffset!.dx - (size.width / 2)) / (size.width / 2)).clamp(
-            -1.0,
-            1.0,
-          );
-      angle += tiltNormalizedX * 0.12 * touchWeight;
-    }
-
-    final cosA = math.cos(angle);
-    final sinA = math.sin(angle);
-
-    final totalSpan = size.width * cosA + size.height * sinA;
-
-    // 1. Autonomous Progress & Drift Pacing:
-    const activeFraction = 0.76;
-    final bool isResting = progress >= activeFraction;
-    final double easedProgress;
-    if (isResting) {
-      easedProgress = 1.0;
-    } else {
-      final normalized = progress / activeFraction;
-      easedProgress = Curves.easeInOutCubic.transform(normalized);
-    }
-
-    // If resting and not touching, skip painting
-    if (isResting && touchWeight <= 0.001) return;
-
-    // Compute target center from finger touch or autonomous glide
-    final autoTravel = totalSpan + (totalSpan * 0.56);
-    double targetCenter = -(totalSpan * 0.28) + (easedProgress * autoTravel);
-    if (touchOffset != null && touchWeight > 0.001) {
-      final touchProjection = touchOffset!.dx * cosA + touchOffset!.dy * sinA;
-      targetCenter = ui.lerpDouble(targetCenter, touchProjection, touchWeight)!;
-    }
-
-    // Subtle tactile boost when touched
-    final interactionBoost = 1.0 + (0.25 * touchWeight);
-
-    // 2. Dual-Density Soft Caustic:
-    // Pass 1: Wide, atmospheric ambient bloom (~56% of total span)
-    final bloomHalfWidth = math.max(110.0, totalSpan * 0.28);
-    final bloomStart = Offset(
-      (targetCenter - bloomHalfWidth) * cosA,
-      (targetCenter - bloomHalfWidth) * sinA,
-    );
-    final bloomEnd = Offset(
-      (targetCenter + bloomHalfWidth) * cosA,
-      (targetCenter + bloomHalfWidth) * sinA,
-    );
-
-    final bloomAlpha = 0.045 * opacity * interactionBoost;
-    final bloomPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        bloomStart,
-        bloomEnd,
-        <Color>[
-          const Color(0x00FFFFFF),
-          const Color(0xFFFFD180).withValues(alpha: bloomAlpha * 0.35),
-          const Color(0xFFFFF8E1).withValues(alpha: bloomAlpha * 0.70),
-          Colors.white.withValues(alpha: bloomAlpha),
-          const Color(0xFFE1F5FE).withValues(alpha: bloomAlpha * 0.70),
-          const Color(0xFF80D8FF).withValues(alpha: bloomAlpha * 0.35),
-          const Color(0x00FFFFFF),
-        ],
-        const <double>[0.0, 0.20, 0.38, 0.50, 0.62, 0.80, 1.0],
-      );
-
-    canvas.drawRect(Offset.zero & size, bloomPaint);
-
-    // Pass 2: Feathered specular core (~26% of span) with subtle iridescent refraction
-    final coreHalfWidth = math.max(55.0, totalSpan * 0.13);
-    final coreStart = Offset(
-      (targetCenter - coreHalfWidth) * cosA,
-      (targetCenter - coreHalfWidth) * sinA,
-    );
-    final coreEnd = Offset(
-      (targetCenter + coreHalfWidth) * cosA,
-      (targetCenter + coreHalfWidth) * sinA,
-    );
-
-    final coreAlpha = 0.09 * opacity * interactionBoost;
-    final corePaint = Paint()
-      ..shader = ui.Gradient.linear(
-        coreStart,
-        coreEnd,
-        <Color>[
-          const Color(0x00FFFFFF),
-          const Color(0xFFFFE082).withValues(alpha: coreAlpha * 0.30),
-          const Color(0xFFFFFDE7).withValues(alpha: coreAlpha * 0.65),
-          Colors.white.withValues(alpha: coreAlpha),
-          const Color(0xFFEDE7F6).withValues(alpha: coreAlpha * 0.65),
-          const Color(0xFFB388FF).withValues(alpha: coreAlpha * 0.30),
-          const Color(0x00FFFFFF),
-        ],
-        const <double>[0.0, 0.20, 0.38, 0.50, 0.62, 0.80, 1.0],
-      );
-
-    canvas.drawRect(Offset.zero & size, corePaint);
-  }
-
-  @override
-  bool shouldRepaint(_MatteLightGlidePainter oldDelegate) =>
-      oldDelegate.progress != progress ||
-      oldDelegate.opacity != opacity ||
-      oldDelegate.touchOffset != touchOffset ||
-      oldDelegate.touchWeight != touchWeight;
-}

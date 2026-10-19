@@ -271,6 +271,7 @@ class _FittedPhotoFrame extends StatelessWidget {
         }
         return Stack(
           fit: StackFit.expand,
+          clipBehavior: Clip.none,
           children: <Widget>[
             Positioned(
               left: band.left,
