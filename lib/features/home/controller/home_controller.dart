@@ -13,7 +13,6 @@ import '../../picker/controller/picker_controller.dart';
 import '../../proposal/model/proposal_args.dart';
 import '../widgets/interactive_demo_card.dart';
 
-
 /// Home (S1): the saves indicator, the one primary action (Pick a
 /// photo), and the recent-history section. Picking runs the consent
 /// gate first (first run only, §4.2) and then hands the photo to
@@ -74,7 +73,6 @@ class HomeController extends GetxController {
     }
   }
 
-
   Future<void> onPickPhoto() async {
     InteractiveDemoCard.cancelActiveSweep();
     errorMessage.value = null;
@@ -84,14 +82,15 @@ class HomeController extends GetxController {
         errorMessage.value = failure.userMessageKey;
       case Success<String?>(:final value):
         if (value == null) return; // user backed out of the picker
-        if (!await _consentAccepted()) {
-          _showConsent(value);
-          return;
-        }
+        // if (!await _consentAccepted()) {
+        //   _showConsent(value);
+        //   return;
+        // }
         await _openProposal(value);
     }
   }
 
+  // ignore: unused_element
   Future<bool> _consentAccepted() async {
     final stored = await localStore.acceptedConsentVersion();
     if (stored case Success<int?>(:final value)) {
@@ -102,6 +101,7 @@ class HomeController extends GetxController {
 
   /// First-run consent (S2): the only thing between the first pick and
   /// processing — one sheet, decided once (§4.2, §11.2A).
+  // ignore: unused_element
   void _showConsent(String photoPath) {
     AppSheet.show(
       ConsentSheet(
@@ -148,8 +148,10 @@ class HomeController extends GetxController {
   void openSettings() => Get.toNamed<void>(Routes.settings);
 
   void openPaywall() {
-    if (savesLeft.value == 0) {
-      Get.toNamed<void>(Routes.paywall);
-    }
+    Get.toNamed<void>(Routes.paywall);
+
+    // if (savesLeft.value == 0) {
+    //   Get.toNamed<void>(Routes.paywall);
+    // }
   }
 }

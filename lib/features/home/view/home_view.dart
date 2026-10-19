@@ -155,9 +155,12 @@ class HomeView extends GetView<HomeController> {
                 savesLeft: controller.savesLeft.value,
                 of: HomeController.freeSavesPerMonth,
                 resetDate: controller.resetDate.value,
-                onTap: controller.savesLeft.value == 0
-                    ? controller.openPaywall
-                    : null,
+                onTap:
+                    // controller.savesLeft.value == 0
+                    //     ?
+                    controller.openPaywall,
+                // :
+                // null,
               ),
 
               SizedBox(height: s.sm),
