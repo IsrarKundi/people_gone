@@ -126,7 +126,7 @@ class _EarlierCleanTile extends StatelessWidget {
                             ),
                             child: Icon(
                               Icons.check_circle_rounded,
-                              size: 8,
+                              size: 12,
                               color: p.overlayKept,
                             ),
                           ),
@@ -144,7 +144,6 @@ class _EarlierCleanTile extends StatelessWidget {
                 style: context.textStyles.caption.copyWith(
                   color: p.textSecondary,
                   fontWeight: FontWeight.w500,
-                  fontSize: 11,
                 ),
               ),
             ],

@@ -248,7 +248,7 @@ class _HistoryTile extends StatelessWidget {
                             children: <Widget>[
                               Icon(
                                 Icons.check_circle,
-                                size: 9,
+                                size: 12,
                                 color: p.overlayKept,
                               ),
                               const SizedBox(width: 2),
@@ -256,7 +256,6 @@ class _HistoryTile extends StatelessWidget {
                                 AppStrings.historyCleanedBadge.tr,
                                 style: context.textStyles.labelMd.copyWith(
                                   color: Colors.white,
-                                  fontSize: 8.5,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),

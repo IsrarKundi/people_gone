@@ -100,7 +100,6 @@ class PersonCard extends StatelessWidget {
                 style: context.textStyles.caption.copyWith(
                   color: activeColor,
                   fontWeight: FontWeight.w600,
-                  fontSize: 10,
                 ),
               ),
             ),
@@ -164,7 +163,6 @@ class PersonCard extends StatelessWidget {
           child: Text(
             name,
             style: context.textStyles.caption.copyWith(
-              fontSize: 10,
               fontWeight: FontWeight.w600,
               color: detached ? p.textSecondary : p.textPrimary,
               decoration: detached ? TextDecoration.lineThrough : null,

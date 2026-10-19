@@ -94,8 +94,7 @@ class ItemCard extends StatelessWidget {
                   style: context.textStyles.caption.copyWith(
                     color: included ? p.error : p.textSecondary,
                     fontWeight: FontWeight.w600,
-                    fontSize: 10,
-                  ),
+                    ),
                 ),
               ),
             ],

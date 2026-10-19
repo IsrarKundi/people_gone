@@ -89,7 +89,9 @@ class ConsentSheet extends StatelessWidget {
                 SizedBox(height: s.md),
                 GestureDetector(
                   onTap: onFooterTap,
-                  child: Row(
+                  child: SizedBox(
+                    height: s.minTouchTarget,
+                    child: Row(
                     children: <Widget>[
                       Icon(AppIcons.privacy, size: s.iconSm, color: p.primary),
                       SizedBox(width: s.xs),
@@ -101,6 +103,7 @@ class ConsentSheet extends StatelessWidget {
                         ),
                       ),
                     ],
+                    ),
                   ),
                 ),
               ],

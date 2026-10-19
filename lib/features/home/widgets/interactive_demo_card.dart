@@ -100,6 +100,15 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
     });
   }
 
+  /// TalkBack adjustment path for the demo compare (audit 2026-10-19):
+  /// the gesture area is exposed as an adjustable slider.
+  void _adjustFraction(double delta) {
+    _cancelSweep();
+    setState(() {
+      _fraction = (_fraction + delta).clamp(0.05, 0.95);
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +135,16 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
                 final height = constraints.maxHeight;
                 final dividerX = _fraction * width;
 
-                return GestureDetector(
+                return Semantics(
+                  label: AppStrings.demoCompareLabel.tr,
+                  value: '${(_fraction * 100).round()}%',
+                  increasedValue:
+                      '${((_fraction + 0.1).clamp(0.05, 0.95) * 100).round()}%',
+                  decreasedValue:
+                      '${((_fraction - 0.1).clamp(0.05, 0.95) * 100).round()}%',
+                  onIncrease: () => _adjustFraction(0.1),
+                  onDecrease: () => _adjustFraction(-0.1),
+                  child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onHorizontalDragDown: (_) => _cancelSweep(),
                   onHorizontalDragUpdate: (d) =>
@@ -200,6 +218,7 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
                         child: _tag(context, AppStrings.demoTagCleaned.tr),
                       ),
                     ],
+                  ),
                   ),
                 );
               },

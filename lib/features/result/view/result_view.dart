@@ -274,6 +274,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
   Widget _chromeButton(
     BuildContext context, {
     required IconData icon,
+    required String tooltip,
     required VoidCallback onPressed,
   }) {
     final p = context.palette;
@@ -283,6 +284,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
       height: s.giant,
       decoration: BoxDecoration(color: p.photoChromeBg, shape: BoxShape.circle),
       child: IconButton(
+        tooltip: tooltip,
         icon: Icon(icon, color: p.photoChromeFg, size: s.iconMd),
         padding: EdgeInsets.zero,
         constraints: BoxConstraints.tightFor(width: s.giant, height: s.giant),
@@ -387,6 +389,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
                   _chromeButton(
                     context,
                     icon: Icons.close,
+                    tooltip: AppStrings.commonClose.tr,
                     onPressed: widget.controller.goHome,
                   ),
                   if (holding && !comparing)
@@ -410,6 +413,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
                     _chromeButton(
                       context,
                       icon: Icons.compare,
+                      tooltip: AppStrings.compareAction.tr,
                       onPressed: widget.controller.toggleCompare,
                     ),
                 ],

@@ -175,6 +175,9 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
+                  tooltip: comparing
+                      ? AppStrings.commonClose.tr
+                      : AppStrings.compareAction.tr,
                   icon: Icon(
                     comparing ? Icons.close : Icons.compare,
                     color: p.photoChromeFg,
