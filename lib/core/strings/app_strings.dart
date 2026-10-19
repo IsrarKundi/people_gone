@@ -15,15 +15,20 @@ abstract final class AppStrings {
 
   // Splash
   static const String splashTagline = 'splash_tagline';
+  static const String splashFooter = 'splash_footer';
 
   // Home (S1).
   static const String homeTitle = 'home_title';
   static const String homePickPhoto = 'home_pick_photo';
   static const String homeEmptyLine = 'home_empty_line';
   static const String homeSavesLeft = 'home_saves_left';
+  static const String homeSavesLeftResets = 'home_saves_left_resets';
   static const String homeHistory = 'home_history';
   static const String homeSeeAll = 'home_see_all';
   static const String demoCaption = 'demo_caption';
+  static const String demoTagOriginal = 'demo_tag_original';
+  static const String demoTagCleaned = 'demo_tag_cleaned';
+  static const String demoCompareLabel = 'demo_compare_label';
 
   // Consent (S2) — wording verbatim from Requirements §11.2A; the provider
   // display name is interpolated from AppConfig, never hard-coded.
@@ -31,6 +36,15 @@ abstract final class AppStrings {
   static const String consentBody = 'consent_body';
   static const String consentContinue = 'consent_continue';
   static const String consentPrivacyLink = 'consent_privacy_link';
+  static const String consentTrustEncryptedTitle =
+      'consent_trust_encrypted_title';
+  static const String consentTrustEncryptedDesc =
+      'consent_trust_encrypted_desc';
+  static const String consentTrustNoTrainTitle = 'consent_trust_notrain_title';
+  static const String consentTrustNoTrainDesc = 'consent_trust_notrain_desc';
+  static const String consentTrustDeleteTitle = 'consent_trust_delete_title';
+  static const String consentTrustDeleteDesc = 'consent_trust_delete_desc';
+  static const String consentProviderFallback = 'consent_provider_fallback';
 
   // Processing (S3/S6).
   static const String processingUploading = 'processing_uploading';
@@ -63,6 +77,7 @@ abstract final class AppStrings {
 
   // Proposal (S4).
   static const String proposalTitle = 'proposal_title';
+  static const String proposalPersonLabel = 'proposal_person_label';
   static const String proposalRemoveCount = 'proposal_remove_count';
   static const String proposalRemoveOne = 'proposal_remove_one';
   static const String proposalKeepAll = 'proposal_keep_all';
@@ -186,6 +201,9 @@ abstract final class AppStrings {
 
   // History (S9).
   static const String historyTitle = 'history_title';
+  static const String historyCleanedBadge = 'history_cleaned_badge';
+  static const String historyTapToCompare = 'history_tap_to_compare';
+  static const String compareAction = 'compare_action';
   static const String historyOnDeviceLine = 'history_on_device_line';
   static const String historyEmptyLine = 'history_empty_line';
   static const String historyDeleteTitle = 'history_delete_title';
@@ -229,6 +247,7 @@ class AppTranslations extends Translations {
     'en_US': <String, String>{
       AppStrings.appName: 'Framora',
       AppStrings.splashTagline: 'Clear the crowd. Keep your moment.',
+      AppStrings.splashFooter: 'POWERED BY ARTIVO',
       AppStrings.commonRetry: 'Retry',
       AppStrings.commonCancel: 'Cancel',
       AppStrings.commonContinue: 'Continue',
@@ -239,9 +258,15 @@ class AppTranslations extends Translations {
       AppStrings.homeEmptyLine:
           'Remove background people from a photo. Your subject stays untouched.',
       AppStrings.homeSavesLeft: '@count of 10 free saves left this month.',
+      AppStrings.homeSavesLeftResets:
+          '@count of @of free saves left \u00b7 Resets @date',
       AppStrings.homeHistory: 'History',
       AppStrings.homeSeeAll: 'See all',
       AppStrings.demoCaption: 'Real app output',
+      AppStrings.demoTagOriginal: 'Original',
+      AppStrings.demoTagCleaned: 'Cleaned',
+      AppStrings.demoCompareLabel:
+          'Demo photo. Drag to compare the original and cleaned photo.',
       AppStrings.consentTitle: 'Before your photo is uploaded',
       AppStrings.consentBody:
           'To remove people, Framora sends the photo you choose to '
@@ -251,6 +276,19 @@ class AppTranslations extends Translations {
           'never used to train AI models and is deleted from our servers '
           'when processing finishes, and in all cases within 24 hours.',
       AppStrings.consentContinue: 'Continue and upload my photo',
+      AppStrings.consentTrustEncryptedTitle: 'Encrypted single-photo transfer',
+      AppStrings.consentTrustEncryptedDesc:
+          'Sent to @provider over an encrypted connection. Only this photo '
+          'is sent \u2014 Framora never accesses the rest of your photo library.',
+      AppStrings.consentTrustNoTrainTitle: 'Never used to train AI',
+      AppStrings.consentTrustNoTrainDesc:
+          'Your photo is used solely to remove background people. It is '
+          'never used to train AI models.',
+      AppStrings.consentTrustDeleteTitle: 'Deleted within 24 hours',
+      AppStrings.consentTrustDeleteDesc:
+          'Permanently deleted from our servers when processing finishes, '
+          'and in all cases within 24 hours.',
+      AppStrings.consentProviderFallback: "Framora's processing servers",
       AppStrings.consentPrivacyLink: 'Full details: Privacy Policy',
       AppStrings.processingUploading: 'Uploading your photo…',
       AppStrings.processingFindingRemoving: 'Finding people and removing them…',
@@ -276,6 +314,7 @@ class AppTranslations extends Translations {
       AppStrings.homeJobBannerFailedSub: 'No save was used',
 
       AppStrings.proposalTitle: 'Review people to remove',
+      AppStrings.proposalPersonLabel: 'Person @n',
       AppStrings.proposalRemoveCount: 'Remove @count people',
       AppStrings.proposalRemoveOne: 'Remove 1 person',
       AppStrings.proposalKeepAll: 'Keep all (nobody to remove)',
@@ -396,6 +435,9 @@ class AppTranslations extends Translations {
       AppStrings.brushSize: 'Brush size',
       AppStrings.brushFixing: 'Fixing…',
       AppStrings.historyTitle: 'History',
+      AppStrings.historyCleanedBadge: 'Cleaned',
+      AppStrings.historyTapToCompare: 'Tap icon to compare',
+      AppStrings.compareAction: 'Compare before and after',
       AppStrings.historyOnDeviceLine: 'History lives only on this phone.',
       AppStrings.historyEmptyLine: 'Photos you clean will live here.',
       AppStrings.historyDeleteTitle: 'Delete this photo from history?',

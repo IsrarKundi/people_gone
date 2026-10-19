@@ -69,7 +69,9 @@ class PersonCard extends StatelessWidget {
             ),
             SizedBox(height: s.xs),
             Text(
-              'Person ${person.id + 1}',
+              AppStrings.proposalPersonLabel.trParams(<String, String>{
+                'n': '${person.id + 1}',
+              }),
               style: context.textStyles.labelMd.copyWith(
                 fontWeight: FontWeight.w600,
               ),

@@ -51,7 +51,7 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                       ),
                       if (controller.hasOriginal)
                         Text(
-                          'Tap icon to compare',
+                          AppStrings.historyTapToCompare.tr,
                           style: context.textStyles.bodySm.copyWith(
                             color: p.textTertiary,
                           ),

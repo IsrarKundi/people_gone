@@ -191,13 +191,13 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
                       Positioned(
                         left: s.sm,
                         top: s.sm,
-                        child: _tag(context, 'Original'),
+                        child: _tag(context, AppStrings.demoTagOriginal.tr),
                       ),
                       // "After" tag
                       Positioned(
                         right: s.sm,
                         top: s.sm,
-                        child: _tag(context, 'Cleaned'),
+                        child: _tag(context, AppStrings.demoTagCleaned.tr),
                       ),
                     ],
                   ),

@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../core/constants/app_motion.dart';
+import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../services/storage/local_store.dart';
@@ -251,7 +253,7 @@ class _HistoryTile extends StatelessWidget {
                               ),
                               const SizedBox(width: 2),
                               Text(
-                                'Cleaned',
+                                AppStrings.historyCleanedBadge.tr,
                                 style: context.textStyles.labelMd.copyWith(
                                   color: Colors.white,
                                   fontSize: 8.5,

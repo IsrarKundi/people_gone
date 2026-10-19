@@ -205,7 +205,7 @@ class _SplashBodyState extends State<_SplashBody>
                       child: Padding(
                         padding: EdgeInsets.only(bottom: s.md),
                         child: Text(
-                          'POWERED BY ARTIVO',
+                          AppStrings.splashFooter.tr,
                           style: context.textStyles.overline.copyWith(
                             color: p.textSecondary.withValues(alpha: 0.5),
                             letterSpacing: 1.8,

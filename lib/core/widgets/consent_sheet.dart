@@ -54,7 +54,7 @@ class ConsentSheet extends StatelessWidget {
     final s = context.sizes;
     final isConsentBody = bodyKey == AppStrings.consentBody;
     final provider =
-        bodyParams?['provider'] ?? "Framora's processing servers";
+        bodyParams?['provider'] ?? AppStrings.consentProviderFallback.tr;
 
     return Container(
       decoration: BoxDecoration(
@@ -138,30 +138,26 @@ class ConsentSheet extends StatelessWidget {
           context,
           icon: AppIcons.lock,
           iconColor: p.primary,
-          title: 'Encrypted single-photo transfer',
-          desc:
-              'Sent to $provider over an encrypted connection. '
-              'Only this photo is sent — Framora never accesses the rest of your photo library.',
+          title: AppStrings.consentTrustEncryptedTitle.tr,
+          desc: AppStrings.consentTrustEncryptedDesc.trParams(<String, String>{
+            'provider': provider,
+          }),
         ),
         SizedBox(height: s.sm),
         _trustItem(
           context,
           icon: AppIcons.shield,
           iconColor: p.success,
-          title: 'Never used to train AI',
-          desc:
-              'Your photo is used solely to remove background people. '
-              'It is never used to train AI models.',
+          title: AppStrings.consentTrustNoTrainTitle.tr,
+          desc: AppStrings.consentTrustNoTrainDesc.tr,
         ),
         SizedBox(height: s.sm),
         _trustItem(
           context,
           icon: AppIcons.autoDelete,
           iconColor: p.secondary,
-          title: 'Deleted within 24 hours',
-          desc:
-              'Permanently deleted from our servers when processing finishes, '
-              'and in all cases within 24 hours.',
+          title: AppStrings.consentTrustDeleteTitle.tr,
+          desc: AppStrings.consentTrustDeleteDesc.tr,
         ),
       ],
     );

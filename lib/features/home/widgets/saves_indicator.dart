@@ -25,7 +25,11 @@ class SavesIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final label = resetDate != null
-        ? '$savesLeft of $of free saves left · Resets ${Formatters.dayMonth(resetDate!)}'
+        ? AppStrings.homeSavesLeftResets.trParams(<String, String>{
+            'count': '$savesLeft',
+            'of': '$of',
+            'date': Formatters.dayMonth(resetDate!),
+          })
         : AppStrings.homeSavesLeft.trParams(<String, String>{
             'count': '$savesLeft',
           });
