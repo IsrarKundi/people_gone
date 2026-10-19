@@ -6,6 +6,7 @@ import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../widgets/compact_crops_strip.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../controller/proposal_controller.dart';
@@ -132,38 +133,48 @@ class ProposalView extends GetView<ProposalController> {
           children: <Widget>[
             if (overlap) ...<Widget>[
               Container(
-                padding: EdgeInsets.symmetric(horizontal: s.md, vertical: s.sm),
+                padding: EdgeInsets.symmetric(horizontal: s.sm, vertical: 3),
                 decoration: BoxDecoration(
                   color: p.error.withAlpha(20),
-                  borderRadius: BorderRadius.circular(s.radiusMd),
+                  borderRadius: BorderRadius.circular(s.radiusPill),
                   border: Border.all(color: p.error.withAlpha(60)),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Icon(
                       AppIcons.info,
-                      size: 16,
+                      size: 13,
                       color: p.error,
                     ),
                     SizedBox(width: s.xs),
-                    Expanded(
+                    Flexible(
                       child: Text(
                         AppStrings.proposalOverlapWarning.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: context.textStyles.caption.copyWith(
                           color: p.error,
+                          fontSize: 11,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(height: s.sm),
+              SizedBox(height: s.xs),
             ],
             if (persons.isEmpty && items.isEmpty && distractions.isEmpty)
               _noPeopleActions(context)
             else ...<Widget>[
               if (persons.isNotEmpty) ...<Widget>[
                 _statusSentence(context),
+                SizedBox(height: s.xs),
+                CompactCropsStrip(
+                  persons: controller.persons,
+                  photoPath: controller.photoPath,
+                  onTogglePerson: controller.togglePerson,
+                ),
                 SizedBox(height: s.sm),
                 SizedBox(
                   // Taller when any chip carries an "Includes:" line.

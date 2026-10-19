@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +9,7 @@ import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/photo_surface.dart';
+import 'brush_loupe.dart';
 import 'brush_mask_painter.dart';
 
 /// The brush photo surface (S5): the photo fitted contain and centred,
@@ -60,6 +63,11 @@ class BrushCanvas extends StatefulWidget {
 class _BrushCanvasState extends State<BrushCanvas>
     with TickerProviderStateMixin {
   Offset? _downImagePoint;
+  Offset? _touchBandPoint;
+  int _pointerCount = 0;
+  ui.Image? _decodedImage;
+  ImageStream? _imageStream;
+  ImageStreamListener? _streamListener;
   AnimationController? _strokeFadeController;
   List<List<Offset>> _fadingStrokes = <List<Offset>>[];
   AnimationController? _guideController;
@@ -67,6 +75,7 @@ class _BrushCanvasState extends State<BrushCanvas>
   @override
   void initState() {
     super.initState();
+    _loadImage();
     _strokeFadeController = AnimationController(
       vsync: this,
       duration: AppMotion.strokeFade,
@@ -99,9 +108,26 @@ class _BrushCanvasState extends State<BrushCanvas>
     }
   }
 
+  void _loadImage() {
+    final file = File(widget.imagePath);
+    if (!file.existsSync()) return;
+    final provider = FileImage(file);
+    _imageStream = provider.resolve(ImageConfiguration.empty);
+    _streamListener = ImageStreamListener((ImageInfo info, bool _) {
+      if (mounted) setState(() => _decodedImage = info.image);
+    });
+    _imageStream!.addListener(_streamListener!);
+  }
+
   @override
   void didUpdateWidget(BrushCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.imagePath != widget.imagePath) {
+      if (_imageStream != null && _streamListener != null) {
+        _imageStream!.removeListener(_streamListener!);
+      }
+      _loadImage();
+    }
     if (oldWidget.strokes.length > widget.strokes.length) {
       final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
       if (!disable) {
@@ -115,6 +141,9 @@ class _BrushCanvasState extends State<BrushCanvas>
 
   @override
   void dispose() {
+    if (_imageStream != null && _streamListener != null) {
+      _imageStream!.removeListener(_streamListener!);
+    }
     _strokeFadeController?.dispose();
     _guideController?.dispose();
     super.dispose();
@@ -147,66 +176,107 @@ class _BrushCanvasState extends State<BrushCanvas>
           );
         }
 
-        final viewer = InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          panEnabled: false,
-          scaleEnabled: true,
-          child: SizedBox(
-            width: area.width,
-            height: area.height,
-            child: Stack(
-              children: <Widget>[
-                Positioned.fromRect(
-                  rect: band,
-                  child: Image.file(
-                    file,
-                    fit: BoxFit.fill,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  ),
-                ),
-                Positioned.fromRect(
-                  rect: band,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanDown: (details) {
-                      _fadingStrokes.clear();
-                      _strokeFadeController?.stop();
-                      _downImagePoint = toImage(details.localPosition);
-                    },
-                    onPanStart: (details) => widget.onStrokeStart(
-                      _downImagePoint ?? toImage(details.localPosition),
+        final viewer = Listener(
+          onPointerDown: (_) {
+            _pointerCount++;
+            if (_pointerCount >= 2) {
+              if (_downImagePoint != null) {
+                _downImagePoint = null;
+                widget.onStrokeEnd();
+              }
+              if (_touchBandPoint != null) {
+                setState(() => _touchBandPoint = null);
+              }
+            }
+          },
+          onPointerUp: (_) {
+            _pointerCount = math.max(0, _pointerCount - 1);
+          },
+          onPointerCancel: (_) {
+            _pointerCount = math.max(0, _pointerCount - 1);
+          },
+          child: InteractiveViewer(
+            minScale: 1,
+            maxScale: 4,
+            panEnabled: _pointerCount >= 2,
+            scaleEnabled: true,
+            child: SizedBox(
+              width: area.width,
+              height: area.height,
+              child: Stack(
+                children: <Widget>[
+                  Positioned.fromRect(
+                    rect: band,
+                    child: Image.file(
+                      file,
+                      fit: BoxFit.fill,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
                     ),
-                    onPanUpdate: (details) =>
-                        widget.onStrokePoint(toImage(details.localPosition)),
-                    onPanEnd: (_) {
-                      _downImagePoint = null;
-                      widget.onStrokeEnd();
-                    },
-                    onPanCancel: () {
-                      _downImagePoint = null;
-                      widget.onStrokeEnd();
-                    },
-                    child: CustomPaint(
-                      painter: BrushMaskPainter(
-                        strokes: widget.strokes,
-                        strokeDiameterImagePx: widget.strokeDiameterImagePx,
-                        scale: scale,
-                        color: p.overlayRemoved,
-                        fadingStrokes: _fadingStrokes,
-                        fadingOpacity: _strokeFadeController != null
-                            ? (1.0 - _strokeFadeController!.value)
-                                .clamp(0.0, 1.0)
-                            : 0.0,
-                        suggestedRegion: widget.suggestedRegion,
-                        guideColor: p.primary,
-                        guideOpacity: _guideController?.value ?? 1.0,
+                  ),
+                  Positioned.fromRect(
+                    rect: band,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanDown: (details) {
+                        if (_pointerCount >= 2) return;
+                        _fadingStrokes.clear();
+                        _strokeFadeController?.stop();
+                        _downImagePoint = toImage(details.localPosition);
+                        setState(() {
+                          _touchBandPoint = details.localPosition;
+                        });
+                      },
+                      onPanStart: (details) {
+                        if (_pointerCount >= 2) return;
+                        widget.onStrokeStart(
+                          _downImagePoint ?? toImage(details.localPosition),
+                        );
+                        setState(() {
+                          _touchBandPoint = details.localPosition;
+                        });
+                      },
+                      onPanUpdate: (details) {
+                        if (_pointerCount >= 2) return;
+                        widget.onStrokePoint(toImage(details.localPosition));
+                        setState(() {
+                          _touchBandPoint = details.localPosition;
+                        });
+                      },
+                      onPanEnd: (_) {
+                        _downImagePoint = null;
+                        widget.onStrokeEnd();
+                        setState(() {
+                          _touchBandPoint = null;
+                        });
+                      },
+                      onPanCancel: () {
+                        _downImagePoint = null;
+                        widget.onStrokeEnd();
+                        setState(() {
+                          _touchBandPoint = null;
+                        });
+                      },
+                      child: CustomPaint(
+                        painter: BrushMaskPainter(
+                          strokes: widget.strokes,
+                          strokeDiameterImagePx: widget.strokeDiameterImagePx,
+                          scale: scale,
+                          color: p.overlayRemoved,
+                          fadingStrokes: _fadingStrokes,
+                          fadingOpacity: _strokeFadeController != null
+                              ? (1.0 - _strokeFadeController!.value)
+                                  .clamp(0.0, 1.0)
+                              : 0.0,
+                          suggestedRegion: widget.suggestedRegion,
+                          guideColor: p.primary,
+                          guideOpacity: _guideController?.value ?? 1.0,
+                        ),
+                        child: SizedBox(width: band.width, height: band.height),
                       ),
-                      child: SizedBox(width: band.width, height: band.height),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -253,9 +323,44 @@ class _BrushCanvasState extends State<BrushCanvas>
                 ),
               ),
             ),
+            // Floating magnifier loupe following the finger while painting (G2.3)
+            if (_touchBandPoint != null && _decodedImage != null)
+              _buildLoupe(
+                context,
+                area: area,
+                band: band,
+                scale: scale,
+                touchLocal: _touchBandPoint!,
+              ),
           ],
         );
       },
     );
   }
+
+  Widget _buildLoupe(
+    BuildContext context, {
+    required Size area,
+    required Rect band,
+    required double scale,
+    required Offset touchLocal,
+  }) {
+    final p = context.palette;
+    final screenTouch = Offset(band.left + touchLocal.dx, band.top + touchLocal.dy);
+    final imagePoint = Offset(
+      (touchLocal.dx / scale).clamp(0, widget.imageSize!.width),
+      (touchLocal.dy / scale).clamp(0, widget.imageSize!.height),
+    );
+
+    return BrushLoupe(
+      image: _decodedImage!,
+      imagePoint: imagePoint,
+      strokeDiameterImagePx: widget.strokeDiameterImagePx,
+      overlayColor: p.overlayRemoved,
+      touchPosition: screenTouch,
+      containerSize: area,
+      diameter: 96.0,
+    );
+  }
 }
+

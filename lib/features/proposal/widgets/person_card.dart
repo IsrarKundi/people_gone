@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -89,18 +90,29 @@ class PersonCard extends StatelessWidget {
                 color: activeColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(s.radiusPill),
               ),
-              child: Text(
-                isKeeper
-                    ? AppStrings.proposalSubjectKept.tr
-                    : AppStrings.proposalPersonToRemove.tr,
-                // One line, always: the pill must never grow the
-                // card's height by wrapping (fixed-height tray).
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textStyles.caption.copyWith(
-                  color: activeColor,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    isKeeper ? AppIcons.checkCircleFill : AppIcons.close,
+                    size: 10,
+                    color: activeColor,
+                  ),
+                  const SizedBox(width: 3),
+                  Flexible(
+                    child: Text(
+                      isKeeper
+                          ? AppStrings.proposalSubjectKept.tr
+                          : AppStrings.proposalPersonToRemove.tr,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textStyles.caption.copyWith(
+                        color: activeColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (belongings.isNotEmpty) ...<Widget>[

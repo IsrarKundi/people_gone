@@ -9,6 +9,7 @@ import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
+import 'package:people_gone/features/processing/controller/processing_controller.dart';
 import 'package:people_gone/features/proposal/controller/proposal_controller.dart';
 import 'package:people_gone/features/proposal/model/distraction_label.dart';
 import 'package:people_gone/features/proposal/model/proposal_args.dart';
@@ -267,8 +268,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      // The job is gated mid-flight: S6 shows the derived line.
-      expect(find.text('Removing 1 person and 1 distraction…'), findsOneWidget);
+      // The job is gated mid-flight: S6 derives the working title.
+      expect(
+        Get.find<ProcessingController>().workingTitle,
+        'Removing 1 person and 1 distraction…',
+      );
 
       api.processGate.complete();
       await tester.pump();
