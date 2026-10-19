@@ -371,20 +371,20 @@ class _MatteLightGlidePainter extends CustomPainter {
         bloomStart,
         bloomEnd,
         <Color>[
-          Colors.white.withValues(alpha: 0.0),
-          Colors.white.withValues(alpha: bloomAlpha * 0.20),
-          Colors.white.withValues(alpha: bloomAlpha * 0.65),
+          const Color(0x00FFFFFF),
+          const Color(0xFFFFD180).withValues(alpha: bloomAlpha * 0.35),
+          const Color(0xFFFFF8E1).withValues(alpha: bloomAlpha * 0.70),
           Colors.white.withValues(alpha: bloomAlpha),
-          Colors.white.withValues(alpha: bloomAlpha * 0.65),
-          Colors.white.withValues(alpha: bloomAlpha * 0.20),
-          Colors.white.withValues(alpha: 0.0),
+          const Color(0xFFE1F5FE).withValues(alpha: bloomAlpha * 0.70),
+          const Color(0xFF80D8FF).withValues(alpha: bloomAlpha * 0.35),
+          const Color(0x00FFFFFF),
         ],
         const <double>[0.0, 0.20, 0.38, 0.50, 0.62, 0.80, 1.0],
       );
 
     canvas.drawRect(Offset.zero & size, bloomPaint);
 
-    // Pass 2: Feathered specular core (~26% of span)
+    // Pass 2: Feathered specular core (~26% of span) with subtle iridescent refraction
     final coreHalfWidth = math.max(55.0, totalSpan * 0.13);
     final coreStart = Offset(
       (targetCenter - coreHalfWidth) * cosA,
@@ -401,13 +401,13 @@ class _MatteLightGlidePainter extends CustomPainter {
         coreStart,
         coreEnd,
         <Color>[
-          Colors.white.withValues(alpha: 0.0),
-          Colors.white.withValues(alpha: coreAlpha * 0.18),
-          Colors.white.withValues(alpha: coreAlpha * 0.60),
+          const Color(0x00FFFFFF),
+          const Color(0xFFFFE082).withValues(alpha: coreAlpha * 0.30),
+          const Color(0xFFFFFDE7).withValues(alpha: coreAlpha * 0.65),
           Colors.white.withValues(alpha: coreAlpha),
-          Colors.white.withValues(alpha: coreAlpha * 0.60),
-          Colors.white.withValues(alpha: coreAlpha * 0.18),
-          Colors.white.withValues(alpha: 0.0),
+          const Color(0xFFEDE7F6).withValues(alpha: coreAlpha * 0.65),
+          const Color(0xFFB388FF).withValues(alpha: coreAlpha * 0.30),
+          const Color(0x00FFFFFF),
         ],
         const <double>[0.0, 0.20, 0.38, 0.50, 0.62, 0.80, 1.0],
       );
