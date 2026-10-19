@@ -11,15 +11,17 @@ import '../../../core/constants/app_motion.dart';
 /// even frosted blur over 400 ms and settles slightly smaller in its frame
 /// (98.5% scale), like a photo placed under museum matte glass.
 ///
-/// Refinements:
+/// Features:
 /// 1. Natural Drift Pacing: light glide glides with an ease-in-out curve across
 ///    the photo and rests off-screen for ~0.8s between passes.
 /// 2. Dual-Density Caustic: layered wide ambient bloom + concentrated soft
 ///    specular core to mimic light refracting through frosted glass.
 /// 3. Museum Matte Rim: a delicate 0.75dp bevel highlight with soft depth shadow
 ///    grounding the 98.5% scale as an intentional art mount.
-/// 4. Micro Breathing Ambient Luma: gentle 3.8s sinusoidal ambient oscillation
-///    keeping the glass organically alive during minute-long waits.
+/// 4. Micro Breathing Ambient Luma: gentle 3.8s sinusoidal ambient oscillation.
+/// 5. Interactive Touch-the-Glass Specular Tilt: touching/dragging on the photo
+///    magnetically bends the specular light towards your finger; springs back
+///    calmly upon release.
 class ServerWorkingPhotoFrame extends StatefulWidget {
   const ServerWorkingPhotoFrame({
     super.key,
@@ -40,6 +42,9 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
   late final AnimationController _settleController;
   late final AnimationController _glideController;
   late final AnimationController _breatheController;
+  late final AnimationController _touchController;
+
+  Offset? _touchOffset;
 
   @override
   void initState() {
@@ -56,6 +61,10 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
       vsync: this,
       duration: const Duration(milliseconds: 3800),
     );
+    _touchController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    );
   }
 
   void _startAnimations() {
@@ -66,6 +75,8 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
       _glideController.value = 0.0;
       _breatheController.stop();
       _breatheController.value = 0.0;
+      _touchController.stop();
+      _touchController.value = 0.0;
     } else {
       _settleController.forward();
       _glideController.repeat();
@@ -84,6 +95,8 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
     _glideController.value = 0.0;
     _breatheController.stop();
     _breatheController.value = 0.0;
+    _touchController.stop();
+    _touchController.value = 0.0;
   }
 
   @override
@@ -95,6 +108,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
         _settleController.value = 1.0;
         if (_glideController.isAnimating) _glideController.stop();
         if (_breatheController.isAnimating) _breatheController.stop();
+        if (_touchController.isAnimating) _touchController.stop();
       } else {
         if (!_settleController.isCompleted && !_settleController.isAnimating) {
           _settleController.forward();
@@ -126,6 +140,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
     _settleController.dispose();
     _glideController.dispose();
     _breatheController.dispose();
+    _touchController.dispose();
     super.dispose();
   }
 
@@ -160,85 +175,114 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
 
           return Transform.scale(
             scale: scale,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.09 * progress),
-                  width: 0.75,
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (event) {
+                if (disable) return;
+                setState(() => _touchOffset = event.localPosition);
+                _touchController.forward();
+              },
+              onPointerMove: (event) {
+                if (disable) return;
+                setState(() => _touchOffset = event.localPosition);
+              },
+              onPointerUp: (_) {
+                if (disable) return;
+                _touchController.reverse();
+              },
+              onPointerCancel: (_) {
+                if (disable) return;
+                _touchController.reverse();
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.09 * progress),
+                    width: 0.75,
+                  ),
+                  boxShadow: progress > 0
+                      ? <BoxShadow>[
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: 0.12 * progress,
+                            ),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
-                boxShadow: progress > 0
-                    ? <BoxShadow>[
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12 * progress),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(1.25),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    // Photo layer: isolated in RepaintBoundary so ImageFilter is
-                    // not re-rasterized on every tick of the light glide or breathe loop.
-                    RepaintBoundary(
-                      child: blurSigma > 0.05
-                          ? ImageFiltered(
-                              imageFilter: ui.ImageFilter.blur(
-                                sigmaX: blurSigma,
-                                sigmaY: blurSigma,
-                                tileMode: TileMode.clamp,
-                              ),
-                              child: photoWidget,
-                            )
-                          : photoWidget,
-                    ),
-
-                    // Organic breathing frosted scrim overlay
-                    if (progress > 0)
-                      Positioned.fill(
-                        child: AnimatedBuilder(
-                          animation: _breatheController,
-                          builder: (context, _) {
-                            final breatheFactor = disable
-                                ? 0.0
-                                : Curves.easeInOut.transform(
-                                    _breatheController.value,
-                                  );
-                            final frostedAlpha =
-                                (0.025 + (0.015 * breatheFactor)) * progress;
-                            return DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(
-                                  alpha: frostedAlpha,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(1.25),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      // Photo layer: isolated in RepaintBoundary so ImageFilter is
+                      // not re-rasterized on every tick of the light glide or breathe loop.
+                      RepaintBoundary(
+                        child: blurSigma > 0.05
+                            ? ImageFiltered(
+                                imageFilter: ui.ImageFilter.blur(
+                                  sigmaX: blurSigma,
+                                  sigmaY: blurSigma,
+                                  tileMode: TileMode.clamp,
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                                child: photoWidget,
+                              )
+                            : photoWidget,
                       ),
 
-                    // Diagonal light glide band: dual-density soft caustic with drift & rest
-                    if (widget.isWorking && !disable && progress > 0)
-                      Positioned.fill(
-                        child: RepaintBoundary(
+                      // Organic breathing frosted scrim overlay
+                      if (progress > 0)
+                        Positioned.fill(
                           child: AnimatedBuilder(
-                            animation: _glideController,
+                            animation: _breatheController,
                             builder: (context, _) {
-                              return CustomPaint(
-                                painter: _MatteLightGlidePainter(
-                                  progress: _glideController.value,
-                                  opacity: progress,
+                              final breatheFactor = disable
+                                  ? 0.0
+                                  : Curves.easeInOut.transform(
+                                      _breatheController.value,
+                                    );
+                              final frostedAlpha =
+                                  (0.025 + (0.015 * breatheFactor)) * progress;
+                              return DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(
+                                    alpha: frostedAlpha,
+                                  ),
                                 ),
                               );
                             },
                           ),
                         ),
-                      ),
-                  ],
+
+                      // Diagonal light glide band: dual-density soft caustic + touch tracking
+                      if (widget.isWorking && !disable && progress > 0)
+                        Positioned.fill(
+                          child: RepaintBoundary(
+                            child: AnimatedBuilder(
+                              animation: Listenable.merge(<Listenable>[
+                                _glideController,
+                                _touchController,
+                              ]),
+                              builder: (context, _) {
+                                return CustomPaint(
+                                  painter: _MatteLightGlidePainter(
+                                    progress: _glideController.value,
+                                    opacity: progress,
+                                    touchOffset: _touchOffset,
+                                    touchWeight: Curves.easeOutCubic.transform(
+                                      _touchController.value,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -253,50 +297,75 @@ class _MatteLightGlidePainter extends CustomPainter {
   const _MatteLightGlidePainter({
     required this.progress,
     required this.opacity,
+    this.touchOffset,
+    this.touchWeight = 0.0,
   });
 
   final double progress;
   final double opacity;
+  final Offset? touchOffset;
+  final double touchWeight;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0 || opacity <= 0) return;
 
-    // Glide angle: ~25 degrees diagonal
-    const angle = 25.0 * math.pi / 180.0;
+    // Default glide angle: ~25 degrees diagonal
+    var angle = 25.0 * math.pi / 180.0;
+
+    // Subtly tilt angle towards finger when interacting
+    if (touchWeight > 0.001 && touchOffset != null) {
+      final tiltNormalizedX =
+          ((touchOffset!.dx - (size.width / 2)) / (size.width / 2)).clamp(
+            -1.0,
+            1.0,
+          );
+      angle += tiltNormalizedX * 0.12 * touchWeight;
+    }
+
     final cosA = math.cos(angle);
     final sinA = math.sin(angle);
 
-    // Total span along the direction vector
     final totalSpan = size.width * cosA + size.height * sinA;
 
-    // 1. Natural Drift Pacing:
-    // Glides actively during 0.0 -> 0.76 of period with easeInOut,
-    // rests offscreen during 0.76 -> 1.0 (~0.84s pause).
+    // 1. Autonomous Progress & Drift Pacing:
     const activeFraction = 0.76;
-    if (progress >= activeFraction) {
-      // Rest period: band has completely exited past the bottom-right edge
-      return;
+    final bool isResting = progress >= activeFraction;
+    final double easedProgress;
+    if (isResting) {
+      easedProgress = 1.0;
+    } else {
+      final normalized = progress / activeFraction;
+      easedProgress = Curves.easeInOutCubic.transform(normalized);
     }
-    final normalized = progress / activeFraction;
-    final easedProgress = Curves.easeInOutCubic.transform(normalized);
+
+    // If resting and not touching, skip painting
+    if (isResting && touchWeight <= 0.001) return;
+
+    // Compute target center from finger touch or autonomous glide
+    final autoTravel = totalSpan + (totalSpan * 0.56);
+    double targetCenter = -(totalSpan * 0.28) + (easedProgress * autoTravel);
+    if (touchOffset != null && touchWeight > 0.001) {
+      final touchProjection = touchOffset!.dx * cosA + touchOffset!.dy * sinA;
+      targetCenter = ui.lerpDouble(targetCenter, touchProjection, touchWeight)!;
+    }
+
+    // Subtle tactile boost when touched
+    final interactionBoost = 1.0 + (0.25 * touchWeight);
 
     // 2. Dual-Density Soft Caustic:
     // Pass 1: Wide, atmospheric ambient bloom (~56% of total span)
     final bloomHalfWidth = math.max(110.0, totalSpan * 0.28);
-    final bloomTravel = totalSpan + (bloomHalfWidth * 2);
-    final bloomCenter = -bloomHalfWidth + (easedProgress * bloomTravel);
-
     final bloomStart = Offset(
-      (bloomCenter - bloomHalfWidth) * cosA,
-      (bloomCenter - bloomHalfWidth) * sinA,
+      (targetCenter - bloomHalfWidth) * cosA,
+      (targetCenter - bloomHalfWidth) * sinA,
     );
     final bloomEnd = Offset(
-      (bloomCenter + bloomHalfWidth) * cosA,
-      (bloomCenter + bloomHalfWidth) * sinA,
+      (targetCenter + bloomHalfWidth) * cosA,
+      (targetCenter + bloomHalfWidth) * sinA,
     );
 
-    final bloomAlpha = 0.045 * opacity;
+    final bloomAlpha = 0.045 * opacity * interactionBoost;
     final bloomPaint = Paint()
       ..shader = ui.Gradient.linear(
         bloomStart,
@@ -317,19 +386,16 @@ class _MatteLightGlidePainter extends CustomPainter {
 
     // Pass 2: Feathered specular core (~26% of span)
     final coreHalfWidth = math.max(55.0, totalSpan * 0.13);
-    final coreTravel = totalSpan + (coreHalfWidth * 2);
-    final coreCenter = -coreHalfWidth + (easedProgress * coreTravel);
-
     final coreStart = Offset(
-      (coreCenter - coreHalfWidth) * cosA,
-      (coreCenter - coreHalfWidth) * sinA,
+      (targetCenter - coreHalfWidth) * cosA,
+      (targetCenter - coreHalfWidth) * sinA,
     );
     final coreEnd = Offset(
-      (coreCenter + coreHalfWidth) * cosA,
-      (coreCenter + coreHalfWidth) * sinA,
+      (targetCenter + coreHalfWidth) * cosA,
+      (targetCenter + coreHalfWidth) * sinA,
     );
 
-    final coreAlpha = 0.09 * opacity;
+    final coreAlpha = 0.09 * opacity * interactionBoost;
     final corePaint = Paint()
       ..shader = ui.Gradient.linear(
         coreStart,
@@ -351,5 +417,8 @@ class _MatteLightGlidePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MatteLightGlidePainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.opacity != opacity;
+      oldDelegate.progress != progress ||
+      oldDelegate.opacity != opacity ||
+      oldDelegate.touchOffset != touchOffset ||
+      oldDelegate.touchWeight != touchWeight;
 }
