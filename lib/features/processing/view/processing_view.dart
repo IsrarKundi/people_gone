@@ -11,6 +11,7 @@ import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/error_view.dart';
+import '../../../core/widgets/photo_surface.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../controller/processing_controller.dart';
 import '../widgets/scan_beam_overlay.dart';
@@ -103,19 +104,10 @@ class _ProcessingContentState extends State<_ProcessingContent>
 
     final content = Column(
       children: <Widget>[
-        // Framed photographic canvas: the frame is fitted to
-        // the photo's aspect and centred in the space above
-        // the tray; the canvas around it is the gallery air.
+        // Photographic canvas: fitted to the photo's aspect in
+        // the space above the tray, consistent with Proposal and Result.
         Expanded(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              s.screenPadding,
-              s.xxl,
-              s.screenPadding,
-              s.md,
-            ),
-            child: _FittedPhotoFrame(photoPath: widget.controller.photoPath),
-          ),
+          child: _FittedPhotoFrame(photoPath: widget.controller.photoPath),
         ),
         // Bottom tray — in flow, anchored to the screen bottom.
         Padding(
@@ -246,94 +238,40 @@ class _ProcessingContentState extends State<_ProcessingContent>
 }
 
 /// The photo's frame, fitted to the photo's own aspect ratio (resolved
-/// from the file) and centred in the available area — the frame hugs
-/// the photo (D13), so no band of empty surface ever sits inside it.
-class _FittedPhotoFrame extends StatefulWidget {
+/// The photo's fitted canvas, consistent with Proposal and Result:
+/// hugs the photo aspect ratio with no rounded borders or inset snapping.
+class _FittedPhotoFrame extends StatelessWidget {
   const _FittedPhotoFrame({required this.photoPath});
 
   final String photoPath;
 
   @override
-  State<_FittedPhotoFrame> createState() => _FittedPhotoFrameState();
-}
-
-class _FittedPhotoFrameState extends State<_FittedPhotoFrame> {
-  double _aspectRatio = 4 / 3;
-  ImageStream? _stream;
-  ImageStreamListener? _listener;
-
-  @override
-  void initState() {
-    super.initState();
-    _resolve();
-  }
-
-  @override
-  void dispose() {
-    _detach();
-    super.dispose();
-  }
-
-  void _detach() {
-    if (_stream != null && _listener != null) {
-      _stream!.removeListener(_listener!);
-    }
-    _stream = null;
-    _listener = null;
-  }
-
-  void _resolve() {
-    final file = File(widget.photoPath);
-    if (!file.existsSync()) return;
-    _stream = FileImage(file).resolve(const ImageConfiguration());
-    _listener = ImageStreamListener((info, _) {
-      if (!mounted) return;
-      final w = info.image.width;
-      final h = info.image.height;
-      if (w > 0 && h > 0) {
-        setState(() => _aspectRatio = (w / h).clamp(0.5, 2.4).toDouble());
-      }
-    }, onError: (_, _) {});
-    _stream!.addListener(_listener!);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final p = context.palette;
-    final s = context.sizes;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        var w = constraints.maxWidth;
-        var h = w / _aspectRatio;
-        if (h > constraints.maxHeight) {
-          h = constraints.maxHeight;
-          w = h * _aspectRatio;
-        }
-        return Center(
-          child: Container(
-            width: w,
-            height: h,
-            decoration: BoxDecoration(
-              color: p.surface,
-              borderRadius: BorderRadius.circular(s.photoRadius),
-              border: Border.all(color: p.border),
+    final file = File(photoPath);
+    return PhotoSurface(
+      imageProvider: ResizeImage(
+        FileImage(file),
+        width: MediaQuery.sizeOf(context).width.toInt(),
+      ),
+      builder: (context, band) {
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            Image.file(
+              file,
+              fit: BoxFit.contain,
+              cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(s.photoRadius - 1),
-              child: Stack(
-                fit: StackFit.expand,
-                children: <Widget>[
-                  Image.file(
-                    File(widget.photoPath),
-                    fit: BoxFit.contain,
-                    cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  ),
-                  const Positioned.fill(child: ScanBeamOverlay()),
-                ],
+            if (band.width > 0 && band.height > 0)
+              Positioned(
+                left: band.left,
+                top: band.top,
+                width: band.width,
+                height: band.height,
+                child: const ScanBeamOverlay(),
               ),
-            ),
-          ),
+          ],
         );
       },
     );

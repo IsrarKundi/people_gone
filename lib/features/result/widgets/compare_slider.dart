@@ -178,8 +178,8 @@ class _CompareSliderState extends State<CompareSlider>
                 ),
                 Positioned(
                   left: dividerX - 1,
-                  top: 0,
-                  bottom: 0,
+                  top: band.top,
+                  height: band.height,
                   child: Container(width: 2, color: p.photoChromeFg),
                 ),
                 Positioned(

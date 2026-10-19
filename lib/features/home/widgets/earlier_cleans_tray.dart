@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
 import '../../../core/constants/app_icons.dart';
+import '../../../core/strings/app_strings.dart';
 
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
@@ -111,17 +114,31 @@ class _EarlierCleanTile extends StatelessWidget {
                           right: s.xs,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 1.5,
+                              horizontal: 5,
+                              vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.65),
+                              color: Colors.black.withValues(alpha: 0.55),
                               borderRadius: BorderRadius.circular(s.radiusSm),
                             ),
-                            child: Icon(
-                              AppIcons.checkCircleFill,
-                              size: 12,
-                              color: p.overlayKept,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Icon(
+                                  AppIcons.checkCircleFill,
+                                  size: 9,
+                                  color: p.overlayKept,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  AppStrings.historyCleanedBadge.tr,
+                                  style: context.textStyles.labelMd.copyWith(
+                                    fontSize: 9,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

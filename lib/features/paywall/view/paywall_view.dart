@@ -196,19 +196,21 @@ class PaywallView extends GetView<PaywallController> {
         vertical: s.xs,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          Text(
-            AppStrings.paywallTitle.tr,
-            style: context.textStyles.titleMd.copyWith(
-              color: p.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
           IconButton(
             tooltip: AppStrings.commonClose.tr,
             icon: Icon(AppIcons.close, color: p.textPrimary),
             onPressed: controller.close,
+          ),
+          SizedBox(width: s.xs),
+          Expanded(
+            child: Text(
+              AppStrings.paywallTitle.tr,
+              style: context.textStyles.titleMd.copyWith(
+                color: p.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),

@@ -94,46 +94,15 @@ class ResultView extends GetView<ResultController> {
           ],
         ),
         SizedBox(height: s.xs),
-        // Fact 2: Save quota cost & remaining
-        if (!savedNow) ...<Widget>[
-          //   Text(
-          //     left > 0
-          //         ? AppStrings.resultSaveUses.trParams(<String, String>{
-          //             'count': '${left - 1}',
-          //           })
-          //         : AppStrings.resultNoSaves.tr,
-          //     style: context.textStyles.bodySm.copyWith(color: p.textSecondary),
-          //   ),
-          //   SizedBox(height: 2),
-          //   // Fact 3: Location data removal
-          //   Text(
-          //     AppStrings.resultLocationNote.tr,
-          //     style: context.textStyles.caption.copyWith(color: p.textTertiary),
-          //   ),
-          // ],
-          // // Phase D (X13): a probable reflection of a removed person
-          // if (controller.reflectionWarning) ...<Widget>[
-          //   SizedBox(height: s.sm),
-          //   Row(
-          //     children: <Widget>[
-          //       Icon(AppIcons.info, size: 18, color: p.textSecondary),
-          //       SizedBox(width: s.xs),
-          //       Expanded(
-          //         child: Text(
-          //           AppStrings.resultReflectionWarning.tr,
-          //           style: context.textStyles.bodySm.copyWith(
-          //             color: p.textSecondary,
-          //           ),
-          //         ),
-          //       ),
-          //     ],
-          //   ),
-          SizedBox(height: s.sm),
-          SecondaryButton(
-            labelKey: AppStrings.resultReflectionFix,
-            onPressed: controller.openReflectionFix,
-          ),
-        ],
+        SizedBox(height: s.sm),
+        SecondaryButton(
+          labelKey: controller.reflectionWarning
+              ? AppStrings.resultReflectionFix
+              : AppStrings.resultBrushFix,
+          onPressed: controller.reflectionWarning
+              ? controller.openReflectionFix
+              : controller.openTouchUp,
+        ),
         SizedBox(height: s.md),
         LayoutBuilder(
           builder: (rowContext, constraints) {
@@ -399,13 +368,15 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
                         ),
                       ),
                     )
-                  else
+                  else if (!comparing)
                     _chromeButton(
                       context,
                       icon: AppIcons.arrowsLeftRight,
                       tooltip: AppStrings.compareAction.tr,
                       onPressed: widget.controller.toggleCompare,
-                    ),
+                    )
+                  else
+                    const SizedBox.shrink(),
                 ],
               ),
             ),

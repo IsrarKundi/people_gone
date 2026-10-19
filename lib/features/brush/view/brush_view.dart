@@ -32,10 +32,16 @@ class BrushView extends GetView<BrushController> {
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: s.screenPadding,
-              vertical: s.sm,
+              vertical: s.xs,
             ),
             child: Row(
               children: <Widget>[
+                IconButton(
+                  tooltip: AppStrings.commonCancel.tr,
+                  icon: Icon(AppIcons.close, color: p.textPrimary),
+                  onPressed: controller.cancel,
+                ),
+                SizedBox(width: s.xs),
                 Expanded(
                   child: Text(
                     AppStrings.brushTitle.tr,

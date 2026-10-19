@@ -41,23 +41,11 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Text(
-                        Formatters.date(entry.savedAt),
-                        style: context.textStyles.bodyMd.copyWith(
-                          color: p.textSecondary,
-                        ),
-                      ),
-                      if (controller.hasOriginal)
-                        Text(
-                          AppStrings.historyTapToCompare.tr,
-                          style: context.textStyles.bodySm.copyWith(
-                            color: p.textTertiary,
-                          ),
-                        ),
-                    ],
+                  Text(
+                    Formatters.date(entry.savedAt),
+                    style: context.textStyles.bodyMd.copyWith(
+                      color: p.textSecondary,
+                    ),
                   ),
                   SizedBox(height: s.md),
                   Row(
@@ -69,13 +57,22 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                         ),
                       ),
                       SizedBox(width: s.md),
-                      TextButton.icon(
-                        onPressed: controller.delete,
-                        icon: Icon(AppIcons.trash, size: s.iconSm, color: p.error),
-                        label: Text(
-                          AppStrings.commonDelete.tr,
-                          style: context.textStyles.labelLg.copyWith(
-                            color: p.error,
+                      SizedBox(
+                        height: s.buttonSecondary,
+                        child: OutlinedButton.icon(
+                          onPressed: controller.delete,
+                          icon: Icon(AppIcons.trash, size: s.iconSm, color: p.error),
+                          label: Text(
+                            AppStrings.commonDelete.tr,
+                            style: context.textStyles.labelLg.copyWith(
+                              color: p.error,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: p.border),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(s.radiusMd),
+                            ),
                           ),
                         ),
                       ),

@@ -99,7 +99,7 @@ class HomeView extends GetView<HomeController> {
                             child: Text(
                               AppStrings.homeSeeAll.tr,
                               style: context.textStyles.labelMd.copyWith(
-                                color: p.secondary,
+                                color: p.primary,
                               ),
                             ),
                           ),

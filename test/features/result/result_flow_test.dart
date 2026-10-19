@@ -455,7 +455,7 @@ void main() {
     tester,
   ) async {
     await pumpResult(tester);
-    await tester.tap(find.byIcon(AppIcons.arrowsLeftRight));
+    await tester.tap(find.byTooltip(AppStrings.compareAction.tr));
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('Before'), findsOneWidget);
     expect(find.text('After'), findsOneWidget);
@@ -512,7 +512,7 @@ void main() {
 
   testWidgets('compare pills sit below the chrome row (F7)', (tester) async {
     await pumpResult(tester);
-    await tester.tap(find.byIcon(AppIcons.arrowsLeftRight));
+    await tester.tap(find.byTooltip(AppStrings.compareAction.tr));
     await tester.pump(const Duration(milliseconds: 50));
     await settlePhotoBand(tester);
     final chrome = tester.getRect(chromeButton(AppIcons.close));
