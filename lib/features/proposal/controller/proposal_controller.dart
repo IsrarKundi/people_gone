@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 
 
 import '../../../core/diagnostics/diagnostics_log.dart';
+import '../../../core/haptics/app_haptics.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/utils/result.dart';
 import '../../../services/processing/processing_api.dart';
@@ -183,7 +184,7 @@ class ProposalController extends GetxController {
 
     final person = persons[index];
     persons[index] = person.copyWith(isKeeper: !person.isKeeper);
-    unawaited(HapticFeedback.lightImpact());
+    AppHaptics.selection();
   }
 
 
@@ -197,7 +198,7 @@ class ProposalController extends GetxController {
       detachedBelongingIds.add(itemId);
     }
     detachedBelongingIds.refresh();
-    unawaited(HapticFeedback.lightImpact());
+    AppHaptics.selection();
   }
 
   /// Include / exclude an ambiguous belonging (X3/X10: default Keep).
@@ -208,7 +209,7 @@ class ProposalController extends GetxController {
       includedItemIds.add(itemId);
     }
     includedItemIds.refresh();
-    unawaited(HapticFeedback.lightImpact());
+    AppHaptics.selection();
   }
 
   /// Canvas tap on a belonging (tap priority is resolved by the
@@ -233,7 +234,7 @@ class ProposalController extends GetxController {
       includedDistractionIds.add(id);
     }
     includedDistractionIds.refresh();
-    unawaited(HapticFeedback.lightImpact());
+    AppHaptics.selection();
   }
 
   /// Group header "Remove all" (X4): sets EVERY chip in the
@@ -265,7 +266,7 @@ class ProposalController extends GetxController {
   /// belongings decisions (included ambiguous items, detached
   /// attached items).
   void confirmProposal() {
-    unawaited(HapticFeedback.lightImpact());
+    AppHaptics.confirm();
     final keepIds = persons.where((p) => p.isKeeper).map((p) => p.id).toList();
     // Belongings and distractions share the worker's remove_item_ids
     // field (their id ranges never collide — worker contract v3).
@@ -297,7 +298,7 @@ class ProposalController extends GetxController {
   /// No processPhoto call and no save credit — Result's nobodyRemoved
   /// handling renders it from there (§7.3).
   void completeKeepAll() {
-    unawaited(HapticFeedback.lightImpact());
+    AppHaptics.confirm();
     Get.offNamed<void>(
       Routes.result,
       arguments: ProcessingOutcome(

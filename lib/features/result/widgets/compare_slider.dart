@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_motion.dart';
+import '../../../core/haptics/app_haptics.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/photo_surface.dart';
@@ -93,11 +94,22 @@ class _CompareSliderState extends State<CompareSlider>
 
   void _setFromX(double x, double width) {
     if (width <= 0) return;
-    setState(() => _fraction = (x / width).clamp(0.0, 1.0));
+    _applyFraction(x / width);
   }
 
   void _nudge(double delta) {
-    setState(() => _fraction = (_fraction + delta).clamp(0.0, 1.0));
+    _applyFraction(_fraction + delta);
+  }
+
+  /// User-driven fraction changes route here so reaching either end of
+  /// the compare range gives the boundary tick (audit 2026-10-19
+  /// haptic vocabulary) — once per arrival, not while resting there.
+  void _applyFraction(double value) {
+    final next = value.clamp(0.0, 1.0);
+    final hitEdge =
+        (next == 0.0 && _fraction != 0.0) || (next == 1.0 && _fraction != 1.0);
+    setState(() => _fraction = next);
+    if (hitEdge) AppHaptics.boundary();
   }
 
   Widget _image(BuildContext context, String path) {

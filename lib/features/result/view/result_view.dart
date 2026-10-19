@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_motion.dart';
+import '../../../core/haptics/app_haptics.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
@@ -251,6 +252,9 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
         } else {
           _dissolveController?.forward();
         }
+        // Phase D warning line is on this screen: one soft warning
+        // tick as it appears (audit 2026-10-19 haptic vocabulary).
+        if (widget.controller.reflectionWarning) AppHaptics.warning();
       });
     }
   }

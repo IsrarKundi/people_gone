@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 
 import '../../../config/app_config.dart';
+import '../../../core/haptics/app_haptics.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
@@ -216,10 +216,11 @@ class ResultController extends GetxController {
       savesLeft.value = savesLeft.value - 1;
       if (gatewaySavesLeft != null) savesLeft.value = gatewaySavesLeft;
       saved.value = true;
-      unawaited(HapticFeedback.lightImpact());
+      AppHaptics.success();
       AppSnackbar.success(AppStrings.resultSavedSnackbar);
     } else {
 
+      AppHaptics.error();
       await _refundGatewayCredit();
       AppSnackbar.error(AppStrings.errorSaveFailed);
     }
