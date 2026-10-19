@@ -13,7 +13,7 @@ import 'package:people_gone/core/utils/result.dart';
 import 'package:people_gone/features/processing/controller/processing_controller.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
 import 'package:people_gone/features/processing/view/processing_view.dart';
-import 'package:people_gone/features/processing/widgets/scan_beam_overlay.dart';
+import 'package:people_gone/features/processing/widgets/server_working_photo_frame.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
 
@@ -265,50 +265,63 @@ void main() {
       }
     });
 
-    testWidgets('ScanBeamOverlay draws beam when active and static line when reduced motion is on', (tester) async {
-      // Normal motion: active animated beam
+    testWidgets('ServerWorkingPhotoFrame settles into frosted blur and runs light glide, static under reduced motion', (tester) async {
+      // Normal motion: active animated frame
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 300,
               height: 400,
-              child: ScanBeamOverlay(),
+              child: ServerWorkingPhotoFrame(
+                imageFile: photoFile,
+                isWorking: true,
+              ),
             ),
           ),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(find.byType(CustomPaint), findsWidgets);
-
-      // Render goldens for visual motion verification
-      final activeFinder = find.byType(ScanBeamOverlay);
-      await expectLater(
-        activeFinder,
-        matchesGoldenFile('processing_beam_active.png'),
+      final frameCustomPaintFinder = find.descendant(
+        of: find.byType(ServerWorkingPhotoFrame),
+        matching: find.byType(CustomPaint),
       );
 
-      // Reduced motion: static beam line, no continuous ticker
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(frameCustomPaintFinder, findsOneWidget);
+      expect(find.byType(ImageFiltered), findsOneWidget);
+
+      // Settle past the 400ms entrance
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(frameCustomPaintFinder, findsOneWidget);
+
+      // Reduced motion: photo blurs and settles, but light band is disabled
       await tester.pumpWidget(
-        const MediaQuery(
-          data: MediaQueryData(disableAnimations: true),
-          child: MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 300,
-                height: 400,
-                child: ScanBeamOverlay(),
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(disableAnimations: true),
+                child: SizedBox(
+                  width: 300,
+                  height: 400,
+                  child: ServerWorkingPhotoFrame(
+                    imageFile: photoFile,
+                    isWorking: true,
+                  ),
+                ),
               ),
             ),
           ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));
-
-      final reducedFinder = find.byType(ScanBeamOverlay);
-      await expectLater(
-        reducedFinder,
-        matchesGoldenFile('processing_beam_reduced.png'),
+      expect(find.byType(ImageFiltered), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ServerWorkingPhotoFrame),
+          matching: find.byType(CustomPaint),
+        ),
+        findsNothing,
       );
     });
   });

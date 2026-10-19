@@ -71,9 +71,11 @@ abstract final class AppMotion {
     damping: 34,
   );
 
-  /// Scan-beam sweep period on Processing (indeterminate activity
-  /// signal — it claims motion, never measurement).
-  static const Duration scanBeamPeriod = Duration(milliseconds: 5000);
+  /// Frosted blur entrance duration on Processing (≈400 ms).
+  static const Duration frostedBlurEntrance = Duration(milliseconds: 400);
+
+  /// Waiting light glide period across the frosted photo on Processing (≈3.5 s).
+  static const Duration matteLightGlidePeriod = Duration(milliseconds: 3500);
 
   /// Calm standard curves with NO visible overshoot.
   static const Curve standardCurve = Curves.easeInOutCubic;

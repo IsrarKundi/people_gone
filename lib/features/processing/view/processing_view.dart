@@ -14,7 +14,7 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/photo_surface.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../controller/processing_controller.dart';
-import '../widgets/scan_beam_overlay.dart';
+import '../widgets/server_working_photo_frame.dart';
 
 /// Processing (S3/S6) — "The Living Canvas", finished per Review 05
 /// Supplement (R1, R4–R6, R8, F1): the layout is a column, not a stack
@@ -107,7 +107,10 @@ class _ProcessingContentState extends State<_ProcessingContent>
         // Photographic canvas: fitted to the photo's aspect in
         // the space above the tray, consistent with Proposal and Result.
         Expanded(
-          child: _FittedPhotoFrame(photoPath: widget.controller.photoPath),
+          child: _FittedPhotoFrame(
+            photoPath: widget.controller.photoPath,
+            controller: widget.controller,
+          ),
         ),
         // Bottom tray — in flow, anchored to the screen bottom.
         Padding(
@@ -241,9 +244,13 @@ class _ProcessingContentState extends State<_ProcessingContent>
 /// The photo's fitted canvas, consistent with Proposal and Result:
 /// hugs the photo aspect ratio with no rounded borders or inset snapping.
 class _FittedPhotoFrame extends StatelessWidget {
-  const _FittedPhotoFrame({required this.photoPath});
+  const _FittedPhotoFrame({
+    required this.photoPath,
+    required this.controller,
+  });
 
   final String photoPath;
+  final ProcessingController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -254,23 +261,31 @@ class _FittedPhotoFrame extends StatelessWidget {
         width: MediaQuery.sizeOf(context).width.toInt(),
       ),
       builder: (context, band) {
+        if (band.width <= 0 || band.height <= 0) {
+          return Image.file(
+            file,
+            fit: BoxFit.contain,
+            cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          );
+        }
         return Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            Image.file(
-              file,
-              fit: BoxFit.contain,
-              cacheWidth: MediaQuery.sizeOf(context).width.toInt(),
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            Positioned(
+              left: band.left,
+              top: band.top,
+              width: band.width,
+              height: band.height,
+              child: Obx(() {
+                final isWorking =
+                    controller.stage.value == ProcessingStage.working;
+                return ServerWorkingPhotoFrame(
+                  imageFile: file,
+                  isWorking: isWorking,
+                );
+              }),
             ),
-            if (band.width > 0 && band.height > 0)
-              Positioned(
-                left: band.left,
-                top: band.top,
-                width: band.width,
-                height: band.height,
-                child: const ScanBeamOverlay(),
-              ),
           ],
         );
       },
