@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -39,7 +38,7 @@ class PersonCard extends StatelessWidget {
     final p = context.palette;
     final s = context.sizes;
     final isKeeper = person.isKeeper;
-    final activeColor = isKeeper ? AppColors.emerald : AppColors.crimson;
+    final activeColor = isKeeper ? p.success : p.error;
 
     return PressableScale(
       child: InkWell(
@@ -51,7 +50,7 @@ class PersonCard extends StatelessWidget {
           width: 104,
           padding: EdgeInsets.symmetric(vertical: s.sm, horizontal: s.xs),
           decoration: BoxDecoration(
-            color: isKeeper ? AppColors.emerald.withAlpha(20) : p.surfaceVariant.withAlpha(50),
+            color: isKeeper ? p.success.withAlpha(20) : p.surfaceVariant.withAlpha(50),
             borderRadius: BorderRadius.circular(s.radiusLg),
             border: Border.all(
               color: activeColor.withAlpha(isKeeper ? 180 : 80),

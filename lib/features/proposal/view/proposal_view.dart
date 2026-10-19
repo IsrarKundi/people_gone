@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -134,23 +133,23 @@ class ProposalView extends GetView<ProposalController> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: s.md, vertical: s.sm),
                 decoration: BoxDecoration(
-                  color: AppColors.crimson.withAlpha(20),
+                  color: p.error.withAlpha(20),
                   borderRadius: BorderRadius.circular(s.radiusMd),
-                  border: Border.all(color: AppColors.crimson.withAlpha(60)),
+                  border: Border.all(color: p.error.withAlpha(60)),
                 ),
                 child: Row(
                   children: <Widget>[
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: AppColors.crimson,
+                      color: p.error,
                     ),
                     SizedBox(width: s.xs),
                     Expanded(
                       child: Text(
                         AppStrings.proposalOverlapWarning.tr,
                         style: context.textStyles.caption.copyWith(
-                          color: AppColors.crimson,
+                          color: p.error,
                         ),
                       ),
                     ),

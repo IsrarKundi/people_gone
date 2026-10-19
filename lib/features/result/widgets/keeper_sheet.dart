@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/person_thumbnail.dart';
@@ -61,7 +60,7 @@ class KeeperSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(s.radiusLg),
                   border: Border.all(
                     color: person.kept
-                        ? AppColors.emerald.withAlpha(100)
+                        ? p.success.withAlpha(100)
                         : p.border,
                   ),
                 ),

@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -51,12 +50,12 @@ class ItemCard extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: s.sm, horizontal: s.xs),
           decoration: BoxDecoration(
             color: included
-                ? AppColors.crimson.withAlpha(16)
+                ? p.error.withAlpha(16)
                 : p.surfaceVariant.withAlpha(50),
             borderRadius: BorderRadius.circular(s.radiusLg),
             border: Border.all(
               color: included
-                  ? AppColors.crimson.withAlpha(120)
+                  ? p.error.withAlpha(120)
                   : p.border,
               width: 1.0,
             ),
@@ -84,7 +83,7 @@ class ItemCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: included
-                      ? AppColors.crimson.withAlpha(30)
+                      ? p.error.withAlpha(30)
                       : p.surfaceVariant,
                   borderRadius: BorderRadius.circular(s.radiusPill),
                 ),
@@ -93,7 +92,7 @@ class ItemCard extends StatelessWidget {
                       ? AppStrings.proposalItemRemove.tr
                       : AppStrings.proposalItemKeep.tr,
                   style: context.textStyles.caption.copyWith(
-                    color: included ? AppColors.crimson : p.textSecondary,
+                    color: included ? p.error : p.textSecondary,
                     fontWeight: FontWeight.w600,
                     fontSize: 10,
                   ),

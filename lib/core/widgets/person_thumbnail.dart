@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../constants/app_colors.dart';
 import '../constants/app_motion.dart';
 import '../theme/theme_ext.dart';
 
@@ -83,7 +82,7 @@ class _PersonThumbnailState extends State<PersonThumbnail> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
-    final ringColor = widget.isKeeper ? AppColors.emerald : AppColors.crimson;
+    final ringColor = widget.isKeeper ? p.success : p.error;
 
     final disableAnimations =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
