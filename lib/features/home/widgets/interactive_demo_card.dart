@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import '../../../core/constants/app_icons.dart';
 import 'package:get/get.dart';
 
@@ -24,7 +27,7 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
     with SingleTickerProviderStateMixin {
   double _fraction = 0.5;
   AnimationController? _sweepController;
-  Animation<double>? _sweepAnimation;
+  int _sweepRun = 0;
 
   @override
   void initState() {
@@ -42,54 +45,52 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
     final disable = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     if (disable) return;
 
-    _sweepController = AnimationController(
-      vsync: this,
-      duration: AppMotion.demoSweep,
-    );
-
-    // Slides smoothly to one side (revealing cleaned) and returns to center (≈1.2s total)
-    _sweepAnimation = TweenSequence<double>(<TweenSequenceItem<double>>[
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 0.5, end: 0.32)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 50,
-      ),
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 0.32, end: 0.5)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 50,
-      ),
-    ]).animate(_sweepController!);
-
+    // Unbounded controller: the teaching sweep is driven by the
+    // critically damped spring (AppMotion.springCalm), not a
+    // fixed-duration tween sequence (audit 2026-10-19, Task 3).
+    _sweepController = AnimationController(vsync: this, value: 0.5);
     _sweepController!.addListener(() {
       if (mounted) {
-        setState(() {
-          _fraction = _sweepAnimation!.value;
-        });
+        setState(() => _fraction = _sweepController!.value);
       }
     });
 
-    _sweepController!.forward().whenComplete(() {
-      _cleanupSweep();
-    });
+    unawaited(_runSweep());
+  }
+
+  /// Out to 0.32 (revealing cleaned) and back to centre (0.5), both legs on the calm spring.
+  /// User input cancels the run.
+  Future<void> _runSweep() async {
+    final controller = _sweepController;
+    if (controller == null) return;
+    final run = ++_sweepRun;
+    await controller.animateWith(
+      SpringSimulation(AppMotion.springCalm, 0.5, 0.32, 0),
+    );
+    if (!mounted || run != _sweepRun) return;
+    await controller.animateWith(
+      SpringSimulation(AppMotion.springCalm, 0.32, 0.5, 0),
+    );
+    if (!mounted || run != _sweepRun) return;
+    _cleanupSweep();
   }
 
   void _cancelSweep() {
-    if (_sweepController != null && _sweepController!.isAnimating) {
-      _sweepController!.stop();
-      _cleanupSweep();
+    _sweepRun++;
+    if (_sweepController?.isAnimating ?? false) {
+      _sweepController?.stop();
     }
+    _cleanupSweep();
   }
 
   void _cleanupSweep() {
     _sweepController?.dispose();
     _sweepController = null;
-    _sweepAnimation = null;
   }
 
   @override
   void dispose() {
-    _cleanupSweep();
+    _cancelSweep();
     super.dispose();
   }
 
