@@ -33,6 +33,35 @@ class AppTextStyles {
 
   TextStyle get display =>
       _base(size: 32, weight: FontWeight.w700, lineHeight: 1.20);
+
+  // Brand display role (audit 2026-10-19): Poppins — the logo's
+  // typeface — is reserved for headline MOMENTS only (paywall and
+  // first-run headlines, empty-state headlines, the Result outcome
+  // line). Inter remains the UI/body family everywhere else; mixing
+  // the two inside body text is exactly what this split forbids.
+  static const String _brandFamily = 'Poppins';
+
+  TextStyle _brand({
+    required double size,
+    required FontWeight weight,
+    required double lineHeight,
+  }) {
+    return TextStyle(
+      fontFamily: _brandFamily,
+      fontSize: size,
+      fontWeight: weight,
+      height: lineHeight,
+      color: palette.textPrimary,
+    );
+  }
+
+  /// Large brand headline (paywall / first-run moments).
+  TextStyle get displayBrand =>
+      _brand(size: 28, weight: FontWeight.w700, lineHeight: 1.25);
+
+  /// Standard brand headline (empty states, Result outcome line).
+  TextStyle get headlineBrand =>
+      _brand(size: 20, weight: FontWeight.w700, lineHeight: 1.30);
   TextStyle get headlineLg =>
       _base(size: 24, weight: FontWeight.w700, lineHeight: 1.25);
   TextStyle get headlineMd =>

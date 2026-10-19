@@ -89,9 +89,7 @@ class ResultView extends GetView<ResultController> {
             Expanded(
               child: Text(
                 controller.summaryLine,
-                style: context.textStyles.bodyMd.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: context.textStyles.headlineBrand,
               ),
             ),
           ],
