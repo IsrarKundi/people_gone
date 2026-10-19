@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_icons.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_motion.dart';
@@ -84,7 +85,7 @@ class _HomeJobBannerState extends State<HomeJobBanner>
         };
       case ActiveJobStatus.done:
         leadingIcon = Icon(
-          Icons.check_circle_rounded,
+          AppIcons.checkCircleFill,
           color: p.overlayKept,
           size: s.iconSm,
         );
@@ -99,7 +100,7 @@ class _HomeJobBannerState extends State<HomeJobBanner>
         };
       case ActiveJobStatus.failed:
         leadingIcon = Icon(
-          Icons.error_outline_rounded,
+          AppIcons.error,
           color: p.overlayRemoved,
           size: s.iconSm,
         );
@@ -158,13 +159,13 @@ class _HomeJobBannerState extends State<HomeJobBanner>
                 ),
                 if (job.status != ActiveJobStatus.processing) ...<Widget>[
                   IconButton(
-                    icon: Icon(Icons.close, size: 18, color: p.textTertiary),
+                    icon: Icon(AppIcons.close, size: 18, color: p.textTertiary),
                     onPressed: JobTracker.instance.clear,
                     tooltip: AppStrings.commonCancel.tr,
                   ),
                 ] else ...<Widget>[
                   Icon(
-                    Icons.chevron_right_rounded,
+                    AppIcons.caretRight,
                     color: p.textTertiary,
                     size: 20,
                   ),

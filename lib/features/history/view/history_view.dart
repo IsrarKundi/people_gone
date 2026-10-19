@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
@@ -15,7 +16,6 @@ class HistoryView extends GetView<HistoryController> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
     final s = context.sizes;
     return AppScaffold(
       titleKey: AppStrings.historyTitle,
@@ -23,7 +23,7 @@ class HistoryView extends GetView<HistoryController> {
         if (controller.entries.isEmpty) {
           return const EmptyView(
             messageKey: AppStrings.historyEmptyLine,
-            icon: Icons.photo_library_outlined,
+            icon: AppIcons.photoLibrary,
           );
         }
         return Padding(
@@ -31,13 +31,13 @@ class HistoryView extends GetView<HistoryController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                AppStrings.historyOnDeviceLine.tr,
-                style: context.textStyles.bodySm.copyWith(
-                  color: p.textSecondary,
-                ),
-              ),
-              SizedBox(height: s.md),
+              // Text(
+              //   AppStrings.historyOnDeviceLine.tr,
+              //   style: context.textStyles.bodySm.copyWith(
+              //     color: p.textSecondary,
+              //   ),
+              // ),
+              // SizedBox(height: s.md),
               Expanded(
                 child: HistoryGrid(
                   entries: controller.entries,

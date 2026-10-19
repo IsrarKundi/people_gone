@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -44,12 +45,11 @@ class _HistoryGridState extends State<HistoryGrid>
   @override
   void initState() {
     super.initState();
-    _deleteController = AnimationController(
-      vsync: this,
-      duration: AppMotion.deleteScale,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _deleteController =
+        AnimationController(vsync: this, duration: AppMotion.deleteScale)
+          ..addListener(() {
+            if (mounted) setState(() {});
+          });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _checkDeleting(widget.deletingId);
@@ -107,8 +107,9 @@ class _HistoryGridState extends State<HistoryGrid>
 
         return GridView.builder(
           shrinkWrap: widget.shrinkWrap,
-          physics:
-              widget.shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+          physics: widget.shrinkWrap
+              ? const NeverScrollableScrollPhysics()
+              : null,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: widget.crossAxisCount,
             mainAxisSpacing: spacing,
@@ -131,10 +132,7 @@ class _HistoryGridState extends State<HistoryGrid>
                 final scale = (1.0 - t).clamp(0.0, 1.0);
                 tile = Transform.scale(
                   scale: scale,
-                  child: Opacity(
-                    opacity: scale,
-                    child: tile,
-                  ),
+                  child: Opacity(opacity: scale, child: tile),
                 );
               } else if (index > _deletingIndex!) {
                 final colCurrent = index % widget.crossAxisCount;
@@ -179,27 +177,28 @@ class _HistoryTile extends StatelessWidget {
       cacheWidth: 360,
       errorBuilder: (_, _, _) => Container(
         color: p.surfaceVariant,
-        child: Icon(Icons.broken_image_outlined, color: p.border),
+        child: Icon(AppIcons.brokenImage, color: p.border),
       ),
     );
 
     if (heroTag != null) {
       image = Hero(
         tag: heroTag,
-        flightShuttleBuilder: (
-          flightContext,
-          animation,
-          flightDirection,
-          fromHeroContext,
-          toHeroContext,
-        ) {
-          return Image.file(
-            File(entry.localPath),
-            fit: BoxFit.cover,
-            cacheWidth: MediaQuery.sizeOf(flightContext).width.toInt(),
-            errorBuilder: (_, _, _) => Container(color: p.surfaceVariant),
-          );
-        },
+        flightShuttleBuilder:
+            (
+              flightContext,
+              animation,
+              flightDirection,
+              fromHeroContext,
+              toHeroContext,
+            ) {
+              return Image.file(
+                File(entry.localPath),
+                fit: BoxFit.cover,
+                cacheWidth: MediaQuery.sizeOf(flightContext).width.toInt(),
+                errorBuilder: (_, _, _) => Container(color: p.surfaceVariant),
+              );
+            },
         child: image,
       );
     }
@@ -233,23 +232,24 @@ class _HistoryTile extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.65),
+                            color: Colors.black.withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(s.radiusSm),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                               Icon(
-                                Icons.check_circle,
-                                size: 12,
+                                AppIcons.checkCircleFill,
+                                size: 9,
                                 color: p.overlayKept,
                               ),
                               const SizedBox(width: 2),
                               Text(
                                 AppStrings.historyCleanedBadge.tr,
                                 style: context.textStyles.labelMd.copyWith(
+                                  fontSize: 9,
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],

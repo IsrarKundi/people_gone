@@ -25,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:people_gone/config/app_config.dart';
+import 'package:people_gone/core/constants/app_icons.dart';
 import 'package:people_gone/core/routes/app_pages.dart';
 import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/features/brush/controller/brush_controller.dart';
@@ -552,7 +553,7 @@ void main() {
     // Default state: the cleaned photo, compare available.
     await snap(tester, 's7_result.png');
     // Bonus for the review: compare mode engaged (Before/After slider).
-    await tester.tap(find.byIcon(Icons.compare));
+    await tester.tap(find.byIcon(AppIcons.arrowsLeftRight));
     await tester.pump(const Duration(milliseconds: 100));
     await snap(tester, 's7_result_compare.png');
   });

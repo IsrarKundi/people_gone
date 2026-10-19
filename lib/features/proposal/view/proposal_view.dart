@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -58,7 +59,7 @@ class ProposalView extends GetView<ProposalController> {
       child: Row(
         children: <Widget>[
           IconButton(
-            icon: Icon(Icons.close, color: p.textPrimary),
+            icon: Icon(AppIcons.close, color: p.textPrimary),
             onPressed: controller.goHome,
           ),
           SizedBox(width: s.xs),
@@ -140,7 +141,7 @@ class ProposalView extends GetView<ProposalController> {
                 child: Row(
                   children: <Widget>[
                     Icon(
-                      Icons.info_outline,
+                      AppIcons.info,
                       size: 16,
                       color: p.error,
                     ),

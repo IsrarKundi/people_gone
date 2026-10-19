@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:people_gone/config/app_config.dart';
+import 'package:people_gone/core/constants/app_icons.dart';
 import 'package:people_gone/core/routes/app_pages.dart';
 import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
@@ -448,7 +449,7 @@ void main() {
     tester,
   ) async {
     await pumpResult(tester);
-    await tester.tap(find.byIcon(Icons.compare));
+    await tester.tap(find.byIcon(AppIcons.arrowsLeftRight));
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('Before'), findsOneWidget);
     expect(find.text('After'), findsOneWidget);
@@ -493,7 +494,7 @@ void main() {
     await primePhoto(tester, resultFile.path);
     await pumpResult(tester);
     await settlePhotoBand(tester);
-    final close = chromeButton(Icons.close);
+    final close = chromeButton(AppIcons.close);
     expect(tester.getSize(close), const Size(48, 48));
     final rect = tester.getRect(close);
     // The 1x1 test photo pillarboxes in the wide photo area, so a
@@ -505,10 +506,10 @@ void main() {
 
   testWidgets('compare pills sit below the chrome row (F7)', (tester) async {
     await pumpResult(tester);
-    await tester.tap(find.byIcon(Icons.compare));
+    await tester.tap(find.byIcon(AppIcons.arrowsLeftRight));
     await tester.pump(const Duration(milliseconds: 50));
     await settlePhotoBand(tester);
-    final chrome = tester.getRect(chromeButton(Icons.close));
+    final chrome = tester.getRect(chromeButton(AppIcons.close));
     final before = tester.getRect(find.text('Before'));
     expect(before.top, greaterThanOrEqualTo(chrome.bottom - 1));
   });

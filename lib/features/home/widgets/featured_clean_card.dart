@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../services/storage/local_store.dart';
@@ -135,7 +136,7 @@ class _FeaturedCleanCardState extends State<FeaturedCleanCard> {
                               errorBuilder: (_, _, _) => Container(
                                 color: p.surfaceVariant,
                                 child: Icon(
-                                  Icons.broken_image_outlined,
+                                  AppIcons.brokenImage,
                                   color: p.border,
                                 ),
                               ),
@@ -158,7 +159,7 @@ class _FeaturedCleanCardState extends State<FeaturedCleanCard> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
                                     Icon(
-                                      Icons.check_circle_rounded,
+                                      AppIcons.checkCircleFill,
                                       size: 12,
                                       color: p.overlayKept,
                                     ),
@@ -212,7 +213,7 @@ class _FeaturedCleanCardState extends State<FeaturedCleanCard> {
                         ),
                         const SizedBox(width: 2),
                         Icon(
-                          Icons.chevron_right_rounded,
+                          AppIcons.caretRight,
                           size: 16,
                           color: p.primary,
                         ),

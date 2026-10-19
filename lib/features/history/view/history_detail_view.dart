@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
@@ -70,7 +71,7 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                       SizedBox(width: s.md),
                       TextButton.icon(
                         onPressed: controller.delete,
-                        icon: Icon(Icons.delete_outline, size: s.iconSm, color: p.error),
+                        icon: Icon(AppIcons.trash, size: s.iconSm, color: p.error),
                         label: Text(
                           AppStrings.commonDelete.tr,
                           style: context.textStyles.labelLg.copyWith(
@@ -179,7 +180,7 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                       ? AppStrings.commonClose.tr
                       : AppStrings.compareAction.tr,
                   icon: Icon(
-                    comparing ? Icons.close : Icons.compare,
+                    comparing ? AppIcons.close : AppIcons.arrowsLeftRight,
                     color: p.photoChromeFg,
                     size: s.iconMd,
                   ),

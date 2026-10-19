@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
@@ -29,7 +30,7 @@ class SettingsView extends GetView<SettingsController> {
               final reset = controller.resetDate.value;
               return _row(
                 context,
-                icon: Icons.savings_outlined,
+                icon: AppIcons.piggyBank,
                 label: reset == null
                     ? AppStrings.homeSavesLeft.trParams(<String, String>{
                         'count': '${controller.savesLeft.value}',
@@ -50,28 +51,28 @@ class SettingsView extends GetView<SettingsController> {
               children: <Widget>[
                 _providerRow(
                   context,
-                  icon: Icons.dns_outlined,
+                  icon: AppIcons.database,
                   label: AppStrings.settingsProcessingProvider.tr,
                   value: controller.providerName,
                 ),
                 Divider(height: 1, color: p.border),
                 _actionRow(
                   context,
-                  icon: Icons.shield_outlined,
+                  icon: AppIcons.shield,
                   label: AppStrings.settingsHowHandled.tr,
                   onTap: controller.showPhotoHandling,
                 ),
                 Divider(height: 1, color: p.border),
                 _actionRow(
                   context,
-                  icon: Icons.privacy_tip_outlined,
+                  icon: AppIcons.privacy,
                   label: AppStrings.settingsPrivacyPolicy.tr,
                   onTap: controller.openPrivacyPolicy,
                 ),
                 Divider(height: 1, color: p.border),
                 _actionRow(
                   context,
-                  icon: Icons.bug_report_outlined,
+                  icon: AppIcons.bug,
                   label: AppStrings.diagnosticsTitle.tr,
                   onTap: controller.openDiagnostics,
                 ),
@@ -184,7 +185,7 @@ class SettingsView extends GetView<SettingsController> {
               SizedBox(width: s.sm),
             ],
             Expanded(child: Text(label, style: context.textStyles.bodyMd)),
-            Icon(Icons.chevron_right, color: p.textSecondary),
+            Icon(AppIcons.caretRight, color: p.textSecondary),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -163,14 +164,14 @@ class BrushView extends GetView<BrushController> {
                     onPressed: hasStrokes && !busy
                         ? controller.undoStroke
                         : null,
-                    icon: Icon(Icons.undo, size: s.iconSm),
+                    icon: Icon(AppIcons.arrowCounterClockwise, size: s.iconSm),
                     label: Text(AppStrings.brushUndo.tr),
                   ),
                   TextButton.icon(
                     onPressed: hasStrokes && !busy
                         ? controller.clearStrokes
                         : null,
-                    icon: Icon(Icons.clear, size: s.iconSm),
+                    icon: Icon(AppIcons.close, size: s.iconSm),
                     label: Text(AppStrings.brushClear.tr),
                   ),
                   const Spacer(),

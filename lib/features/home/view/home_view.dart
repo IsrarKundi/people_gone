@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_icons.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
@@ -42,7 +43,7 @@ class HomeView extends GetView<HomeController> {
       ),
       actions: <Widget>[
         // IconButton(
-        //   icon: const Icon(Icons.settings_outlined),
+        //   icon: const Icon(AppIcons.gear),
         //   tooltip: AppStrings.settingsTitle.tr,
         //   onPressed: controller.openSettings,
         // ),
@@ -75,7 +76,7 @@ class HomeView extends GetView<HomeController> {
               ],
 
               if (hasHistory) ...<Widget>[
-                SizedBox(height: s.lg),
+                SizedBox(height: s.sm),
                 _HomeHistoryBlockFade(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,24 +131,24 @@ class HomeView extends GetView<HomeController> {
               // 2. The "Pick a photo" button
               PrimaryButton(
                 labelKey: AppStrings.homePickPhoto,
-                icon: Icons.add_photo_alternate_rounded,
-                height: 56,
+                icon: AppIcons.camera,
+                height: 48,
                 borderRadius: 28,
                 isLoading: controller.isPicking,
                 onPressed: controller.onPickPhoto,
               ),
 
               // Existing text underneath the button kept as-is
-              if (!hasHistory) ...<Widget>[
-                SizedBox(height: s.xs),
-                Text(
-                  AppStrings.homeEmptyLine.tr,
-                  style: context.textStyles.bodySm.copyWith(
-                    color: p.textSecondary,
-                  ),
-                ),
-              ],
-              SizedBox(height: s.md),
+              // if (!hasHistory) ...<Widget>[
+              //   SizedBox(height: s.xs),
+              //   Text(
+              //     AppStrings.homeEmptyLine.tr,
+              //     style: context.textStyles.bodySm.copyWith(
+              //       color: p.textSecondary,
+              //     ),
+              //   ),
+              // ],
+              SizedBox(height: s.sm),
 
               // 3. Remaining Home items: saves line, job banner, history
               SavesIndicator(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/strings/app_strings.dart';
@@ -133,7 +134,7 @@ class _ProcessingContentState extends State<_ProcessingContent>
               SizedBox(height: s.md),
               PrimaryButton(
                 labelKey: AppStrings.processingWorkInBackground,
-                icon: Icons.arrow_back_rounded,
+                icon: AppIcons.caretLeft,
                 height: 56,
                 borderRadius: 28,
                 onPressed: widget.controller.workInBackground,

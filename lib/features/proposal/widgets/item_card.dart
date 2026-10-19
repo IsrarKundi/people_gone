@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
@@ -187,7 +188,7 @@ class _ItemThumbnailState extends State<ItemThumbnail> {
               )
             : Center(
                 child: Icon(
-                  Icons.inventory_2_outlined,
+                  AppIcons.stack,
                   size: widget.size * 0.5,
                   color: p.textSecondary,
                 ),

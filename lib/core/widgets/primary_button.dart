@@ -59,8 +59,8 @@ class PrimaryButton extends StatelessWidget {
           onPressed: disabled
               ? null
               : busyWithLabel
-                  ? () {}
-                  : onPressed,
+              ? () {}
+              : onPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: p.primary,
             foregroundColor: p.onPrimary,
@@ -68,7 +68,9 @@ class PrimaryButton extends StatelessWidget {
             disabledForegroundColor: isSuccess ? p.onPrimary : p.textTertiary,
             elevation: disabled && !isSuccess ? 0 : 2,
             shadowColor: p.primary.withValues(alpha: 0.35),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(r)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(r),
+            ),
             textStyle: context.textStyles.labelLg.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -101,7 +103,9 @@ class PrimaryButton extends StatelessWidget {
                     ],
                   )
                 : Row(
-                    key: ValueKey('primary_content_${icon?.codePoint}_$labelKey'),
+                    key: ValueKey(
+                      'primary_content_${icon?.codePoint}_$labelKey',
+                    ),
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
@@ -109,7 +113,9 @@ class PrimaryButton extends StatelessWidget {
                         Icon(
                           icon,
                           size: s.iconSm,
-                          color: disabled && !isSuccess ? p.textTertiary : p.onPrimary,
+                          color: disabled && !isSuccess
+                              ? p.textTertiary
+                              : p.onPrimary,
                         ),
                         SizedBox(width: s.sm),
                       ],
@@ -126,4 +132,3 @@ class PrimaryButton extends StatelessWidget {
     );
   }
 }
-

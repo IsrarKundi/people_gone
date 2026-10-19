@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 
 import 'package:flutter/physics.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/haptics/app_haptics.dart';
 import '../../../core/strings/app_strings.dart';
@@ -207,7 +208,7 @@ class _CompareSliderState extends State<CompareSlider>
                         color: p.photoChromeBg,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.compare_arrows, color: p.photoChromeFg),
+                      child: Icon(AppIcons.arrowsLeftRight, color: p.photoChromeFg),
                     ),
                   ),
                 ),

@@ -41,8 +41,8 @@ class AppSizes {
   final double photoRadius = 16;
 
   // Control heights.
-  final double buttonPrimary = 52;
-  final double buttonSecondary = 48;
+  final double buttonPrimary = 46;
+  final double buttonSecondary = 46;
   final double buttonCompact = 40;
   final double input = 52;
   final double listRowMin = 56;
@@ -67,7 +67,6 @@ class AppSizes {
   final Duration motionFast = AppMotion.fast;
   final Duration motionNormal = AppMotion.standard;
   final Duration motionSlow = AppMotion.standard;
-
 
   /// Screen padding for a given window width.
   double paddingFor(double width) =>

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/haptics/app_haptics.dart';
 import '../../../core/strings/app_strings.dart';
@@ -15,7 +16,6 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../controller/result_controller.dart';
 import '../widgets/compare_slider.dart';
-import '../widgets/disclosure_line.dart';
 
 /// Result (S7) — the cleaned photo full-bleed; judge it (hold-to-compare
 /// + slider compare, FR-13), then Save / Share / fix. The saves meter
@@ -26,7 +26,6 @@ class ResultView extends GetView<ResultController> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
     final s = context.sizes;
     return AppScaffold(
       body: Column(
@@ -35,10 +34,10 @@ class ResultView extends GetView<ResultController> {
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(s.screenPadding),
-            decoration: BoxDecoration(
-              color: p.surface,
-              border: Border(top: BorderSide(color: p.border)),
-            ),
+            // decoration: BoxDecoration(
+            //   color: p.surface,
+            //   border: Border(top: BorderSide(color: p.border)),
+            // ),
             // nobodyRemoved never changes during this screen's life, so
             // its static zone stays outside the Obx (which must read at
             // least one observable).
@@ -76,7 +75,6 @@ class ResultView extends GetView<ResultController> {
     final p = context.palette;
     final s = context.sizes;
     final savedNow = controller.saved.value;
-    final left = controller.savesLeft.value;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -85,12 +83,12 @@ class ResultView extends GetView<ResultController> {
         // Fact 1: People removed count with clean subject indicator
         Row(
           children: <Widget>[
-            Icon(Icons.check_circle_outline, size: 18, color: p.overlayKept),
-            SizedBox(width: s.xs),
+            // Icon(AppIcons.checkCircleFill, size: 18, color: p.overlayKept),
+            // SizedBox(width: s.xs),
             Expanded(
               child: Text(
                 controller.summaryLine,
-                style: context.textStyles.headlineBrand,
+                style: context.textStyles.titleMd.copyWith(fontSize: 15),
               ),
             ),
           ],
@@ -98,38 +96,38 @@ class ResultView extends GetView<ResultController> {
         SizedBox(height: s.xs),
         // Fact 2: Save quota cost & remaining
         if (!savedNow) ...<Widget>[
-          Text(
-            left > 0
-                ? AppStrings.resultSaveUses.trParams(<String, String>{
-                    'count': '${left - 1}',
-                  })
-                : AppStrings.resultNoSaves.tr,
-            style: context.textStyles.bodySm.copyWith(color: p.textSecondary),
-          ),
-          SizedBox(height: 2),
-          // Fact 3: Location data removal
-          Text(
-            AppStrings.resultLocationNote.tr,
-            style: context.textStyles.caption.copyWith(color: p.textTertiary),
-          ),
-        ],
-        // Phase D (X13): a probable reflection of a removed person
-        if (controller.reflectionWarning) ...<Widget>[
-          SizedBox(height: s.sm),
-          Row(
-            children: <Widget>[
-              Icon(Icons.info_outline, size: 18, color: p.textSecondary),
-              SizedBox(width: s.xs),
-              Expanded(
-                child: Text(
-                  AppStrings.resultReflectionWarning.tr,
-                  style: context.textStyles.bodySm.copyWith(
-                    color: p.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          //   Text(
+          //     left > 0
+          //         ? AppStrings.resultSaveUses.trParams(<String, String>{
+          //             'count': '${left - 1}',
+          //           })
+          //         : AppStrings.resultNoSaves.tr,
+          //     style: context.textStyles.bodySm.copyWith(color: p.textSecondary),
+          //   ),
+          //   SizedBox(height: 2),
+          //   // Fact 3: Location data removal
+          //   Text(
+          //     AppStrings.resultLocationNote.tr,
+          //     style: context.textStyles.caption.copyWith(color: p.textTertiary),
+          //   ),
+          // ],
+          // // Phase D (X13): a probable reflection of a removed person
+          // if (controller.reflectionWarning) ...<Widget>[
+          //   SizedBox(height: s.sm),
+          //   Row(
+          //     children: <Widget>[
+          //       Icon(AppIcons.info, size: 18, color: p.textSecondary),
+          //       SizedBox(width: s.xs),
+          //       Expanded(
+          //         child: Text(
+          //           AppStrings.resultReflectionWarning.tr,
+          //           style: context.textStyles.bodySm.copyWith(
+          //             color: p.textSecondary,
+          //           ),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
           SizedBox(height: s.sm),
           SecondaryButton(
             labelKey: AppStrings.resultReflectionFix,
@@ -174,9 +172,9 @@ class ResultView extends GetView<ResultController> {
             if (fits) {
               return Row(
                 children: <Widget>[
-                  Expanded(flex: 3, child: saveButton),
+                  Expanded(flex: 4, child: saveButton),
                   SizedBox(width: s.sm),
-                  Expanded(flex: 1, child: shareButton),
+                  Expanded(flex: 2, child: shareButton),
                 ],
               );
             }
@@ -190,24 +188,14 @@ class ResultView extends GetView<ResultController> {
             );
           },
         ),
-        SizedBox(height: s.sm),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: SecondaryButton(
-                labelKey: AppStrings.resultBrushFix,
-                onPressed: controller.openTouchUp,
-              ),
-            ),
-          ],
-        ),
+
         if (controller.canCorrectKeeper) ...<Widget>[
           SizedBox(height: s.xs),
           Align(
             alignment: Alignment.center,
             child: TextButton.icon(
               onPressed: controller.openKeeperSheet,
-              icon: Icon(Icons.swap_horiz, size: 18, color: p.primary),
+              icon: Icon(AppIcons.arrowsLeftRight, size: 18, color: p.primary),
               label: Text(
                 AppStrings.resultWrongKeeper.tr,
                 style: context.textStyles.labelMd.copyWith(color: p.primary),
@@ -215,8 +203,8 @@ class ResultView extends GetView<ResultController> {
             ),
           ),
         ],
-        SizedBox(height: s.xs),
-        DisclosureLine(onReport: controller.report),
+        // SizedBox(height: s.xs),
+        // DisclosureLine(onReport: controller.report),
       ],
     );
   }
@@ -244,8 +232,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
       _dissolveController = AnimationController(vsync: this);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        final disable =
-            MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+        final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
         if (disable) {
           _dissolveController?.value = 1.0;
         } else {
@@ -362,8 +349,9 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
                             child: Image.file(
                               File(outcome.originalPath),
                               fit: BoxFit.contain,
-                              cacheWidth:
-                                  MediaQuery.sizeOf(context).width.toInt(),
+                              cacheWidth: MediaQuery.sizeOf(
+                                context,
+                              ).width.toInt(),
                               errorBuilder: (_, _, _) =>
                                   const SizedBox.shrink(),
                             ),
@@ -390,7 +378,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
                 children: <Widget>[
                   _chromeButton(
                     context,
-                    icon: Icons.close,
+                    icon: AppIcons.close,
                     tooltip: AppStrings.commonClose.tr,
                     onPressed: widget.controller.goHome,
                   ),
@@ -414,7 +402,7 @@ class _ResultPhotoAreaState extends State<_ResultPhotoArea>
                   else
                     _chromeButton(
                       context,
-                      icon: Icons.compare,
+                      icon: AppIcons.arrowsLeftRight,
                       tooltip: AppStrings.compareAction.tr,
                       onPressed: widget.controller.toggleCompare,
                     ),
@@ -474,7 +462,7 @@ class _SaveReceiptButtonState extends State<_SaveReceiptButton> {
       final savedNow = widget.controller.saved.value;
       return PrimaryButton(
         labelKey: savedNow ? AppStrings.resultSaved : AppStrings.resultSave,
-        icon: savedNow ? Icons.check_rounded : null,
+        icon: savedNow ? AppIcons.checkFill : null,
         isSuccess: savedNow && _holdingReceipt,
         isLoading: widget.controller.isSaving.value,
         onPressed: savedNow ? null : widget.controller.save,

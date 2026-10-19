@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_icons.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_motion.dart';
@@ -161,7 +162,7 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
                         errorBuilder: (_, _, _) => Container(
                           color: p.surfaceVariant,
                           alignment: Alignment.center,
-                          child: Icon(Icons.photo, color: p.textTertiary),
+                          child: Icon(AppIcons.photoLibrary, color: p.textTertiary),
                         ),
                       ),
                       // Original on top, clipped by fraction (left side)
@@ -199,7 +200,7 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
                             ],
                           ),
                           child: Icon(
-                            Icons.compare_arrows_rounded,
+                            AppIcons.arrowsLeftRight,
                             size: s.iconMd,
                             color: p.textPrimary,
                           ),

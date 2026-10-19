@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_icons.dart';
 
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
@@ -99,7 +100,7 @@ class _EarlierCleanTile extends StatelessWidget {
                             errorBuilder: (_, _, _) => Container(
                               color: p.surfaceVariant,
                               child: Icon(
-                                Icons.broken_image_outlined,
+                                AppIcons.brokenImage,
                                 color: p.border,
                               ),
                             ),
@@ -118,7 +119,7 @@ class _EarlierCleanTile extends StatelessWidget {
                               borderRadius: BorderRadius.circular(s.radiusSm),
                             ),
                             child: Icon(
-                              Icons.check_circle_rounded,
+                              AppIcons.checkCircleFill,
                               size: 12,
                               color: p.overlayKept,
                             ),

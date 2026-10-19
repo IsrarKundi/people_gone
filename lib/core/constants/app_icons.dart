@@ -13,8 +13,8 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 /// - **Duotone** is reserved for a few premium accent spots, decided
 ///   per screen — none in core yet.
 ///
-/// Migrated so far: the core widgets. Feature screens migrate against
-/// this same table (see ANTIGRAVITY-HANDOFF.md for the full mapping).
+/// Migrated so far: core widgets (original) + all feature screens
+/// (Task 1, 2026-10-19, per ANTIGRAVITY-HANDOFF.md concept mapping).
 abstract final class AppIcons {
   /// Errors / warning surfaces (was Material `error_outline`).
   static const IconData error = PhosphorIconsRegular.warningCircle;
@@ -42,4 +42,74 @@ abstract final class AppIcons {
 
   /// Dismiss / removed (was `close`).
   static const IconData close = PhosphorIconsRegular.x;
+
+  // ─── Feature-screen icons added in Task 1 (2026-10-19) ──────────────
+
+  /// Photo pick / camera  (was `add_photo_alternate_rounded`).
+  static const IconData camera = PhosphorIconsRegular.camera;
+
+  /// Navigate back / left  (was `arrow_back_rounded`).
+  static const IconData caretLeft = PhosphorIconsRegular.caretLeft;
+
+  /// Navigate forward / right  (was `chevron_right`, `chevron_right_rounded`).
+  static const IconData caretRight = PhosphorIconsRegular.caretRight;
+
+  /// Broken / missing image placeholder  (was `broken_image_outlined`).
+  static const IconData brokenImage = PhosphorIconsRegular.imageBroken;
+
+  /// Success badge — **Fill weight**; selected/active only
+  /// (was `check_circle_rounded`, `check_circle`).
+  static const IconData checkCircleFill = PhosphorIconsFill.checkCircle;
+
+  /// Saved-state check — **Fill weight**; receipt confirmation only
+  /// (was `check_rounded` on the save button).
+  static const IconData checkFill = PhosphorIconsFill.check;
+
+  /// Trash / delete  (was `delete_outline`).
+  static const IconData trash = PhosphorIconsRegular.trash;
+
+  /// Before/after compare — ONE glyph everywhere (unifies
+  /// `compare`, `compare_arrows`, `compare_arrows_rounded`, `swap_horiz`).
+  static const IconData arrowsLeftRight = PhosphorIconsRegular.arrowsLeftRight;
+
+  /// Undo / step back  (was `undo`).
+  static const IconData arrowCounterClockwise =
+      PhosphorIconsRegular.arrowCounterClockwise;
+
+  /// Info / overlap-risk note  (was `info_outline`).
+  static const IconData info = PhosphorIconsRegular.info;
+
+  /// Item / ambiguous-object placeholder  (was `inventory_2_outlined`).
+  static const IconData stack = PhosphorIconsRegular.stack;
+
+  /// Processing provider display  (was `dns_outlined`).
+  static const IconData database = PhosphorIconsRegular.database;
+
+  /// Diagnostics / bug report  (was `bug_report_outlined`).
+  static const IconData bug = PhosphorIconsRegular.bugBeetle;
+
+  /// Free-saves / savings counter  (was `savings_outlined`).
+  static const IconData piggyBank = PhosphorIconsRegular.piggyBank;
+
+  /// Person removal  (was `person_remove`).
+  static const IconData userMinus = PhosphorIconsRegular.userMinus;
+
+  /// Manual brush tool  (was `brush`).
+  static const IconData paintBrush = PhosphorIconsRegular.paintBrush;
+
+  /// Fix / wand  (was `auto_fix_high`).
+  static const IconData magicWand = PhosphorIconsRegular.magicWand;
+
+  /// Eraser  (was `cleaning_services`).
+  static const IconData eraser = PhosphorIconsRegular.eraser;
+
+  /// History  (was `history`).
+  static const IconData clockCounterClockwise =
+      PhosphorIconsRegular.clockCounterClockwise;
+
+  /// Share photo  (was `share`).
+  static const IconData shareNetwork = PhosphorIconsRegular.shareNetwork;
+
+  /// Settings  (was `settings_outlined`).
+  static const IconData gear = PhosphorIconsRegular.gear;
 }
