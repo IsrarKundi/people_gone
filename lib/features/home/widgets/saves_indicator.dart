@@ -15,11 +15,13 @@ class SavesIndicator extends StatelessWidget {
     required this.savesLeft,
     required this.of,
     this.resetDate,
+    this.onTap,
   });
 
   final int savesLeft;
   final int of;
   final DateTime? resetDate;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -34,12 +36,21 @@ class SavesIndicator extends StatelessWidget {
             'count': '$savesLeft',
           });
 
-    return Text(
+    final text = Text(
       label,
       style: context.textStyles.caption.copyWith(
         color: p.textSecondary,
         fontWeight: FontWeight.w600,
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: text,
+      );
+    }
+    return text;
   }
 }

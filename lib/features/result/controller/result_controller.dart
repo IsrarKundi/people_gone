@@ -10,12 +10,12 @@ import '../../../core/haptics/app_haptics.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
-import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_sheet.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../services/processing/processing_api.dart';
 import '../../../services/storage/local_store.dart';
 import '../../brush/model/brush_args.dart';
+import '../../paywall/model/paywall_args.dart';
 import '../../processing/model/processing_args.dart';
 import '../widgets/keeper_sheet.dart';
 
@@ -164,9 +164,15 @@ class ResultController extends GetxController {
           }
           if (value.paymentRequired) {
             isSaving.value = false;
-            await AppDialog.info(
-              titleKey: AppStrings.savesOutTitle,
-              bodyKey: AppStrings.savesOutBody,
+            unawaited(
+              Get.toNamed<void>(
+                Routes.paywall,
+                arguments: PaywallArgs(
+                  originalPath: outcome.originalPath,
+                  resultPath: resultPath.value,
+                  arrivalReason: AppStrings.savesOutBody.tr,
+                ),
+              ),
             );
             return;
           }
@@ -178,9 +184,15 @@ class ResultController extends GetxController {
       }
     } else {
       if (savesLeft.value <= 0) {
-        await AppDialog.info(
-          titleKey: AppStrings.savesOutTitle,
-          bodyKey: AppStrings.savesOutBody,
+        unawaited(
+          Get.toNamed<void>(
+            Routes.paywall,
+            arguments: PaywallArgs(
+              originalPath: outcome.originalPath,
+              resultPath: resultPath.value,
+              arrivalReason: AppStrings.savesOutBody.tr,
+            ),
+          ),
         );
         return;
       }

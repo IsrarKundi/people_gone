@@ -143,4 +143,10 @@ class HomeController extends GetxController {
   }
 
   void openSettings() => Get.toNamed<void>(Routes.settings);
+
+  void openPaywall() {
+    if (savesLeft.value == 0) {
+      Get.toNamed<void>(Routes.paywall);
+    }
+  }
 }

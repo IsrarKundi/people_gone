@@ -1,9 +1,18 @@
 import 'package:get/get.dart';
 
-/// Paywall feature binding (Phase 1 Task 1.1 scaffold). Controllers are
-/// registered here — and only here — as the feature is built
-/// (Conventions §7 rule 2).
+import '../../../services/purchase/purchase_service.dart';
+import '../controller/paywall_controller.dart';
+
+/// Paywall feature binding. Controllers are registered here — and only here.
 class PaywallBinding extends Bindings {
   @override
-  void dependencies() {}
+  void dependencies() {
+    Get.lazyPut<PaywallController>(
+      () => PaywallController(
+        purchaseService: Get.isRegistered<PurchaseService>()
+            ? Get.find<PurchaseService>()
+            : null,
+      ),
+    );
+  }
 }

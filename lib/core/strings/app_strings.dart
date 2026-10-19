@@ -199,6 +199,33 @@ abstract final class AppStrings {
   static const String brushSize = 'brush_size';
   static const String brushFixing = 'brush_fixing';
 
+  // Paywall (S8).
+  static const String paywallTitle = 'paywall_title';
+  static const String paywallHeadline = 'paywall_headline';
+  static const String paywallSubhead = 'paywall_subhead';
+  static const String paywallPlanYearlyTitle = 'paywall_plan_yearly_title';
+  static const String paywallPlanYearlySubtitle =
+      'paywall_plan_yearly_subtitle';
+  static const String paywallPlanLifetimeTitle = 'paywall_plan_lifetime_title';
+  static const String paywallPlanLifetimeSubtitle =
+      'paywall_plan_lifetime_subtitle';
+  static const String paywallPlanMonthlyTitle = 'paywall_plan_monthly_title';
+  static const String paywallPlanMonthlySubtitle =
+      'paywall_plan_monthly_subtitle';
+  static const String paywallContinue = 'paywall_continue';
+  static const String paywallContinueYearly = 'paywall_continue_yearly';
+  static const String paywallContinueLifetime = 'paywall_continue_lifetime';
+  static const String paywallContinueMonthly = 'paywall_continue_monthly';
+  static const String paywallTermsYearly = 'paywall_terms_yearly';
+  static const String paywallTermsMonthly = 'paywall_terms_monthly';
+  static const String paywallTermsLifetime = 'paywall_terms_lifetime';
+  static const String paywallRestore = 'paywall_restore';
+  static const String paywallNotNow = 'paywall_not_now';
+  static const String paywallNotNowNote = 'paywall_not_now_note';
+  static const String paywallPricesUnavailable = 'paywall_prices_unavailable';
+  static const String paywallPurchaseUnavailable =
+      'paywall_purchase_unavailable';
+
   // History (S9).
   static const String historyTitle = 'history_title';
   static const String historyCleanedBadge = 'history_cleaned_badge';
@@ -434,6 +461,37 @@ class AppTranslations extends Translations {
       AppStrings.brushClear: 'Clear',
       AppStrings.brushSize: 'Brush size',
       AppStrings.brushFixing: 'Fixing…',
+      AppStrings.paywallTitle: 'Framora Pro',
+      AppStrings.paywallHeadline: 'Keep this photo — and every photo after it.',
+      AppStrings.paywallSubhead:
+          'Pro removes the monthly limit. Free saves return on the 1st.',
+      AppStrings.paywallPlanYearlyTitle: 'Pro — Yearly',
+      AppStrings.paywallPlanYearlySubtitle:
+          'Renews yearly. Cancel anytime in Google Play.',
+      AppStrings.paywallPlanLifetimeTitle: 'Lifetime',
+      AppStrings.paywallPlanLifetimeSubtitle:
+          'One payment. Yours for good — never moved to a subscription.',
+      AppStrings.paywallPlanMonthlyTitle: 'Pro — Monthly',
+      AppStrings.paywallPlanMonthlySubtitle:
+          'Renews monthly. Cancel anytime in Google Play.',
+      AppStrings.paywallContinue: 'Continue',
+      AppStrings.paywallContinueYearly: 'Continue — Yearly',
+      AppStrings.paywallContinueLifetime: 'Continue — Lifetime',
+      AppStrings.paywallContinueMonthly: 'Continue — Monthly',
+      AppStrings.paywallTermsYearly:
+          'Renews automatically each year unless cancelled. Manage or cancel anytime in Google Play subscriptions.',
+      AppStrings.paywallTermsMonthly:
+          'Renews automatically each month unless cancelled. Manage or cancel anytime in Google Play subscriptions.',
+      AppStrings.paywallTermsLifetime:
+          'One-time payment. Full access forever on all your Android devices.',
+      AppStrings.paywallRestore: 'Restore Purchases',
+      AppStrings.paywallNotNow: 'Not now',
+      AppStrings.paywallNotNowNote:
+          'This photo stays available for 24 hours.',
+      AppStrings.paywallPricesUnavailable:
+          "Prices couldn't load. Check your connection.",
+      AppStrings.paywallPurchaseUnavailable:
+          'In-app purchases are coming soon.',
       AppStrings.historyTitle: 'History',
       AppStrings.historyCleanedBadge: 'Cleaned',
       AppStrings.historyTapToCompare: 'Tap icon to compare',

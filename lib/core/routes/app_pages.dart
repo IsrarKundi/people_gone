@@ -8,6 +8,8 @@ import '../../features/history/view/history_view.dart';
 import '../../features/home/binding/home_binding.dart';
 import '../../features/home/view/home_view.dart';
 import '../../features/picker/binding/picker_binding.dart';
+import '../../features/paywall/binding/paywall_binding.dart';
+import '../../features/paywall/view/paywall_view.dart';
 import '../../features/processing/binding/processing_binding.dart';
 import '../../features/processing/view/processing_view.dart';
 import '../../features/proposal/binding/proposal_binding.dart';
@@ -58,6 +60,11 @@ abstract final class AppPages {
       name: Routes.result,
       page: () => const ResultView(),
       binding: ResultBinding(),
+    ),
+    GetPage<dynamic>(
+      name: Routes.paywall,
+      page: () => const PaywallView(),
+      binding: PaywallBinding(),
     ),
     GetPage<dynamic>(
       name: Routes.brush,
