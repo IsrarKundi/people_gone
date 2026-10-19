@@ -9,16 +9,17 @@ import '../../../core/constants/app_motion.dart';
 /// Server-working waiting stage photo canvas (FR-13, §6):
 /// When the server-working stage begins, the photo smoothly softens into an
 /// even frosted blur over 400 ms and settles slightly smaller in its frame
-/// (98.5% scale), like a photo placed under matte glass.
+/// (98.5% scale), like a photo placed under museum matte glass.
 ///
-/// While waiting, one wide, very soft band of light glides diagonally across
-/// the blurred photo every 3.5 seconds in a calm loop (no sharp edges, very
-/// low opacity — a soft glow passing over glass, not a line).
-///
-/// Under reduced motion, the photo still blurs and settles, but the light band
-/// does not move. The blurred photo is cached in a [RepaintBoundary] so only the
-/// lightweight specular band repaints, ensuring locked 60/120 fps performance
-/// even on budget Android devices during minute-long waits.
+/// Refinements:
+/// 1. Natural Drift Pacing: light glide glides with an ease-in-out curve across
+///    the photo and rests off-screen for ~0.8s between passes.
+/// 2. Dual-Density Caustic: layered wide ambient bloom + concentrated soft
+///    specular core to mimic light refracting through frosted glass.
+/// 3. Museum Matte Rim: a delicate 0.75dp bevel highlight with soft depth shadow
+///    grounding the 98.5% scale as an intentional art mount.
+/// 4. Micro Breathing Ambient Luma: gentle 3.8s sinusoidal ambient oscillation
+///    keeping the glass organically alive during minute-long waits.
 class ServerWorkingPhotoFrame extends StatefulWidget {
   const ServerWorkingPhotoFrame({
     super.key,
@@ -38,6 +39,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
     with TickerProviderStateMixin {
   late final AnimationController _settleController;
   late final AnimationController _glideController;
+  late final AnimationController _breatheController;
 
   @override
   void initState() {
@@ -50,6 +52,10 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
       vsync: this,
       duration: AppMotion.matteLightGlidePeriod,
     );
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3800),
+    );
   }
 
   void _startAnimations() {
@@ -58,9 +64,12 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
       _settleController.value = 1.0;
       _glideController.stop();
       _glideController.value = 0.0;
+      _breatheController.stop();
+      _breatheController.value = 0.0;
     } else {
       _settleController.forward();
       _glideController.repeat();
+      _breatheController.repeat(reverse: true);
     }
   }
 
@@ -73,6 +82,8 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
     }
     _glideController.stop();
     _glideController.value = 0.0;
+    _breatheController.stop();
+    _breatheController.value = 0.0;
   }
 
   @override
@@ -83,12 +94,16 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
       if (disable) {
         _settleController.value = 1.0;
         if (_glideController.isAnimating) _glideController.stop();
+        if (_breatheController.isAnimating) _breatheController.stop();
       } else {
         if (!_settleController.isCompleted && !_settleController.isAnimating) {
           _settleController.forward();
         }
         if (!_glideController.isAnimating) {
           _glideController.repeat();
+        }
+        if (!_breatheController.isAnimating) {
+          _breatheController.repeat(reverse: true);
         }
       }
     }
@@ -110,6 +125,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
   void dispose() {
     _settleController.dispose();
     _glideController.dispose();
+    _breatheController.dispose();
     super.dispose();
   }
 
@@ -144,53 +160,87 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
 
           return Transform.scale(
             scale: scale,
-            child: Stack(
-              fit: StackFit.expand,
-              children: <Widget>[
-                // Photo layer: isolated in RepaintBoundary so ImageFilter is
-                // not re-rasterized on every tick of the 3.5s light glide loop.
-                RepaintBoundary(
-                  child: blurSigma > 0.05
-                      ? ImageFiltered(
-                          imageFilter: ui.ImageFilter.blur(
-                            sigmaX: blurSigma,
-                            sigmaY: blurSigma,
-                            tileMode: TileMode.clamp,
-                          ),
-                          child: photoWidget,
-                        )
-                      : photoWidget,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.09 * progress),
+                  width: 0.75,
                 ),
-
-                // Subtle frosted scrim to evoke the matte glass surface
-                if (progress > 0)
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03 * progress),
-                      ),
+                boxShadow: progress > 0
+                    ? <BoxShadow>[
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12 * progress),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(1.25),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    // Photo layer: isolated in RepaintBoundary so ImageFilter is
+                    // not re-rasterized on every tick of the light glide or breathe loop.
+                    RepaintBoundary(
+                      child: blurSigma > 0.05
+                          ? ImageFiltered(
+                              imageFilter: ui.ImageFilter.blur(
+                                sigmaX: blurSigma,
+                                sigmaY: blurSigma,
+                                tileMode: TileMode.clamp,
+                              ),
+                              child: photoWidget,
+                            )
+                          : photoWidget,
                     ),
-                  ),
 
-                // Diagonal light glide band: wide, soft glow passing over glass.
-                // Disabled / still under reduced motion.
-                if (widget.isWorking && !disable && progress > 0)
-                  Positioned.fill(
-                    child: RepaintBoundary(
-                      child: AnimatedBuilder(
-                        animation: _glideController,
-                        builder: (context, _) {
-                          return CustomPaint(
-                            painter: _MatteLightGlidePainter(
-                              progress: _glideController.value,
-                              opacity: progress,
-                            ),
-                          );
-                        },
+                    // Organic breathing frosted scrim overlay
+                    if (progress > 0)
+                      Positioned.fill(
+                        child: AnimatedBuilder(
+                          animation: _breatheController,
+                          builder: (context, _) {
+                            final breatheFactor = disable
+                                ? 0.0
+                                : Curves.easeInOut.transform(
+                                    _breatheController.value,
+                                  );
+                            final frostedAlpha =
+                                (0.025 + (0.015 * breatheFactor)) * progress;
+                            return DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(
+                                  alpha: frostedAlpha,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ),
-              ],
+
+                    // Diagonal light glide band: dual-density soft caustic with drift & rest
+                    if (widget.isWorking && !disable && progress > 0)
+                      Positioned.fill(
+                        child: RepaintBoundary(
+                          child: AnimatedBuilder(
+                            animation: _glideController,
+                            builder: (context, _) {
+                              return CustomPaint(
+                                painter: _MatteLightGlidePainter(
+                                  progress: _glideController.value,
+                                  opacity: progress,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -220,41 +270,83 @@ class _MatteLightGlidePainter extends CustomPainter {
     // Total span along the direction vector
     final totalSpan = size.width * cosA + size.height * sinA;
 
-    // One wide, very soft band of light (≈ 44% of total span, min 160dp)
-    final bandHalfWidth = math.max(80.0, totalSpan * 0.22);
-    final travelDistance = totalSpan + (bandHalfWidth * 2);
+    // 1. Natural Drift Pacing:
+    // Glides actively during 0.0 -> 0.76 of period with easeInOut,
+    // rests offscreen during 0.76 -> 1.0 (~0.84s pause).
+    const activeFraction = 0.76;
+    if (progress >= activeFraction) {
+      // Rest period: band has completely exited past the bottom-right edge
+      return;
+    }
+    final normalized = progress / activeFraction;
+    final easedProgress = Curves.easeInOutCubic.transform(normalized);
 
-    // Center of band traverses smoothly from offscreen top-left to offscreen bottom-right
-    final center = -bandHalfWidth + (progress * travelDistance);
+    // 2. Dual-Density Soft Caustic:
+    // Pass 1: Wide, atmospheric ambient bloom (~56% of total span)
+    final bloomHalfWidth = math.max(110.0, totalSpan * 0.28);
+    final bloomTravel = totalSpan + (bloomHalfWidth * 2);
+    final bloomCenter = -bloomHalfWidth + (easedProgress * bloomTravel);
 
-    final start = Offset(
-      (center - bandHalfWidth) * cosA,
-      (center - bandHalfWidth) * sinA,
+    final bloomStart = Offset(
+      (bloomCenter - bloomHalfWidth) * cosA,
+      (bloomCenter - bloomHalfWidth) * sinA,
     );
-    final end = Offset(
-      (center + bandHalfWidth) * cosA,
-      (center + bandHalfWidth) * sinA,
+    final bloomEnd = Offset(
+      (bloomCenter + bloomHalfWidth) * cosA,
+      (bloomCenter + bloomHalfWidth) * sinA,
     );
 
-    // Soft glow with zero sharp edge, very low peak opacity (~0.12 * opacity)
-    final peakAlpha = 0.12 * opacity;
-    final paint = Paint()
+    final bloomAlpha = 0.045 * opacity;
+    final bloomPaint = Paint()
       ..shader = ui.Gradient.linear(
-        start,
-        end,
+        bloomStart,
+        bloomEnd,
         <Color>[
           Colors.white.withValues(alpha: 0.0),
-          Colors.white.withValues(alpha: peakAlpha * 0.18),
-          Colors.white.withValues(alpha: peakAlpha * 0.60),
-          Colors.white.withValues(alpha: peakAlpha),
-          Colors.white.withValues(alpha: peakAlpha * 0.60),
-          Colors.white.withValues(alpha: peakAlpha * 0.18),
+          Colors.white.withValues(alpha: bloomAlpha * 0.20),
+          Colors.white.withValues(alpha: bloomAlpha * 0.65),
+          Colors.white.withValues(alpha: bloomAlpha),
+          Colors.white.withValues(alpha: bloomAlpha * 0.65),
+          Colors.white.withValues(alpha: bloomAlpha * 0.20),
           Colors.white.withValues(alpha: 0.0),
         ],
         const <double>[0.0, 0.20, 0.38, 0.50, 0.62, 0.80, 1.0],
       );
 
-    canvas.drawRect(Offset.zero & size, paint);
+    canvas.drawRect(Offset.zero & size, bloomPaint);
+
+    // Pass 2: Feathered specular core (~26% of span)
+    final coreHalfWidth = math.max(55.0, totalSpan * 0.13);
+    final coreTravel = totalSpan + (coreHalfWidth * 2);
+    final coreCenter = -coreHalfWidth + (easedProgress * coreTravel);
+
+    final coreStart = Offset(
+      (coreCenter - coreHalfWidth) * cosA,
+      (coreCenter - coreHalfWidth) * sinA,
+    );
+    final coreEnd = Offset(
+      (coreCenter + coreHalfWidth) * cosA,
+      (coreCenter + coreHalfWidth) * sinA,
+    );
+
+    final coreAlpha = 0.09 * opacity;
+    final corePaint = Paint()
+      ..shader = ui.Gradient.linear(
+        coreStart,
+        coreEnd,
+        <Color>[
+          Colors.white.withValues(alpha: 0.0),
+          Colors.white.withValues(alpha: coreAlpha * 0.18),
+          Colors.white.withValues(alpha: coreAlpha * 0.60),
+          Colors.white.withValues(alpha: coreAlpha),
+          Colors.white.withValues(alpha: coreAlpha * 0.60),
+          Colors.white.withValues(alpha: coreAlpha * 0.18),
+          Colors.white.withValues(alpha: 0.0),
+        ],
+        const <double>[0.0, 0.20, 0.38, 0.50, 0.62, 0.80, 1.0],
+      );
+
+    canvas.drawRect(Offset.zero & size, corePaint);
   }
 
   @override
