@@ -246,6 +246,7 @@ class GatewayProcessingApi implements ProcessingApi {
           onUploadProgress,
         );
       }
+      onUploadProgress?.call(1.0);
       final poller = GatewayJobPoller(
         dio: _dio,
         interval: _pollInterval,

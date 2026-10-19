@@ -123,11 +123,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
         builder: (context, _) {
           final progress = disable
               ? (widget.isWorking ? 1.0 : 0.0)
-              : CurvedAnimation(
-                  parent: _settleController,
-                  curve: AppMotion.enterCurve,
-                  reverseCurve: AppMotion.exitCurve,
-                ).value;
+              : AppMotion.enterCurve.transform(_settleController.value);
 
           // 1.0 -> 0.985 settle (approx 98.5% scale in frame)
           final scale = 1.0 - (0.015 * progress);
