@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import '../constants/app_icons.dart';
 
 import '../constants/app_motion.dart';
 import '../theme/theme_ext.dart';
@@ -124,7 +125,7 @@ class _PersonThumbnailState extends State<PersonThumbnail> {
                         )
                       : Center(
                           child: Icon(
-                            Icons.person,
+                            AppIcons.person,
                             size: widget.size * 0.55,
                             color: p.textSecondary,
                           ),
@@ -146,7 +147,7 @@ class _PersonThumbnailState extends State<PersonThumbnail> {
                   ),
                   child: Center(
                     child: Icon(
-                      widget.isKeeper ? Icons.check : Icons.close,
+                      widget.isKeeper ? AppIcons.check : AppIcons.close,
                       size: 11,
                       color: Colors.white,
                     ),

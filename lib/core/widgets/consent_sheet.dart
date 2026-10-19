@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_icons.dart';
 import 'package:get/get.dart';
 
 import '../strings/app_strings.dart';
@@ -90,7 +91,7 @@ class ConsentSheet extends StatelessWidget {
                   onTap: onFooterTap,
                   child: Row(
                     children: <Widget>[
-                      Icon(Icons.privacy_tip_outlined, size: s.iconSm, color: p.primary),
+                      Icon(AppIcons.privacy, size: s.iconSm, color: p.primary),
                       SizedBox(width: s.xs),
                       Text(
                         footerKey!.tr,
@@ -135,7 +136,7 @@ class ConsentSheet extends StatelessWidget {
       children: <Widget>[
         _trustItem(
           context,
-          icon: Icons.lock_outline,
+          icon: AppIcons.lock,
           iconColor: p.primary,
           title: 'Encrypted single-photo transfer',
           desc:
@@ -145,7 +146,7 @@ class ConsentSheet extends StatelessWidget {
         SizedBox(height: s.sm),
         _trustItem(
           context,
-          icon: Icons.shield_outlined,
+          icon: AppIcons.shield,
           iconColor: p.success,
           title: 'Never used to train AI',
           desc:
@@ -155,7 +156,7 @@ class ConsentSheet extends StatelessWidget {
         SizedBox(height: s.sm),
         _trustItem(
           context,
-          icon: Icons.auto_delete_outlined,
+          icon: AppIcons.autoDelete,
           iconColor: p.secondary,
           title: 'Deleted within 24 hours',
           desc:

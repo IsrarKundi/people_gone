@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_icons.dart';
 import 'package:get/get.dart';
 
 import '../theme/theme_ext.dart';
@@ -12,7 +13,7 @@ class EmptyView extends StatelessWidget {
     required this.messageKey,
     this.actionLabelKey,
     this.onAction,
-    this.icon = Icons.photo_library_outlined,
+    this.icon = AppIcons.photoLibrary,
   });
 
   final String messageKey;
