@@ -160,7 +160,7 @@ void main() {
       );
     });
 
-    testWidgets('Entry Point (a): Home saves line tap when saves > 0 does NOT open paywall', (
+    testWidgets('Entry Point (a): Home saves line tap when saves > 0 opens paywall', (
       tester,
     ) async {
       tester.view.devicePixelRatio = 2.0;
@@ -201,8 +201,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      // Remains on home
-      expect(Get.currentRoute, Routes.home);
+      // Navigates to paywall
+      expect(Get.currentRoute, Routes.paywall);
+      expect(
+        find.text(AppStrings.paywallHeadline.tr),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Entry Point (b): Result Save button tap when saves = 0 opens paywall with photo args', (
