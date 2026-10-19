@@ -277,14 +277,10 @@ class _FittedPhotoFrame extends StatelessWidget {
               top: band.top,
               width: band.width,
               height: band.height,
-              child: Obx(() {
-                final isWorking =
-                    controller.stage.value == ProcessingStage.working;
-                return ServerWorkingPhotoFrame(
-                  imageFile: file,
-                  isWorking: isWorking,
-                );
-              }),
+              child: ServerWorkingPhotoFrame(
+                imageFile: file,
+                isWorking: true,
+              ),
             ),
           ],
         );
