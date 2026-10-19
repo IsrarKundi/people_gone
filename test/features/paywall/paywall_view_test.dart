@@ -78,11 +78,11 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text('Keep this photo — and every photo after it.'),
+        find.text(AppStrings.paywallHeadline.tr),
         findsOneWidget,
       );
       expect(
-        find.text('Pro removes the monthly limit. Free saves return on the 1st.'),
+        find.text(AppStrings.paywallSubhead.tr),
         findsOneWidget,
       );
 

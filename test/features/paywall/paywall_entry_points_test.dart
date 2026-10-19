@@ -155,7 +155,7 @@ void main() {
       // Should be on paywall screen
       expect(Get.currentRoute, Routes.paywall);
       expect(
-        find.text('Keep this photo — and every photo after it.'),
+        find.text(AppStrings.paywallHeadline.tr),
         findsOneWidget,
       );
     });
@@ -262,7 +262,7 @@ void main() {
       // Replaces info dialog with Paywall navigation
       expect(Get.currentRoute, Routes.paywall);
       expect(
-        find.text('Keep this photo — and every photo after it.'),
+        find.text(AppStrings.paywallHeadline.tr),
         findsOneWidget,
       );
       expect(find.text('This photo stays available for 24 hours.'), findsOneWidget);

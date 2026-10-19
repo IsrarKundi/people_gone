@@ -462,9 +462,9 @@ class AppTranslations extends Translations {
       AppStrings.brushSize: 'Brush size',
       AppStrings.brushFixing: 'Fixing…',
       AppStrings.paywallTitle: 'Framora Pro',
-      AppStrings.paywallHeadline: 'Keep this photo — and every photo after it.',
+      AppStrings.paywallHeadline: '10 saves a month becomes 300',
       AppStrings.paywallSubhead:
-          'Pro removes the monthly limit. Free saves return on the 1st.',
+          'Every save is full resolution, with no watermark — free or Pro.',
       AppStrings.paywallPlanYearlyTitle: 'Pro — Yearly',
       AppStrings.paywallPlanYearlySubtitle:
           'Renews yearly. Cancel anytime in Google Play.',
