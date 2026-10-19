@@ -119,6 +119,7 @@ class _ResultPhotoAreaState extends State<ResultPhotoArea>
               CompareSlider(
                 originalPath: outcome.originalPath,
                 resultPath: widget.controller.resultPath.value,
+                removedCenters: widget.controller.removedCenters,
               )
             else
               GestureDetector(

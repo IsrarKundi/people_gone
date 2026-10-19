@@ -26,10 +26,14 @@ class CompareSlider extends StatefulWidget {
     super.key,
     required this.originalPath,
     required this.resultPath,
+    this.removedCenters = const <double>[],
   });
 
   final String originalPath;
   final String resultPath;
+
+  /// Horizontal centres of removed people's boxes as fractions of photo width (G4.1).
+  final List<double> removedCenters;
 
   /// Session flag: teaching nudge runs at most once per session.
   static bool hasRunCompareNudge = false;
@@ -111,16 +115,18 @@ class _CompareSliderState extends State<CompareSlider>
   /// User-driven fraction changes route here so reaching either end of
   /// the compare range gives the boundary tick (audit 2026-10-19
   /// haptic vocabulary) — once per arrival, not while resting there.
-  /// When actively dragging, passing threshold steps gives a selection tick (G4.1).
+  /// When actively dragging, ticks fire ONLY when the divider crosses
+  /// the horizontal centre of a removed person's box (G4.1).
   void _applyFraction(double value, {bool fromDrag = false}) {
     if (_nudgeController?.isAnimating ?? false) _cancelNudge();
     final next = value.clamp(0.0, 1.0);
     final hitEdge =
         (next == 0.0 && _fraction != 0.0) || (next == 1.0 && _fraction != 1.0);
-    if (fromDrag && !hitEdge) {
-      final prevStep = (_fraction * 10).floor();
-      final nextStep = (next * 10).floor();
-      if (prevStep != nextStep) {
+    if (fromDrag && widget.removedCenters.isNotEmpty) {
+      final crossedCount = widget.removedCenters.where(
+        (c) => (_fraction < c && next >= c) || (_fraction > c && next <= c),
+      ).length;
+      for (var i = 0; i < crossedCount; i++) {
         AppHaptics.selection();
       }
     }

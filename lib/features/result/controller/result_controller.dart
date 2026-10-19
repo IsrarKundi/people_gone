@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
@@ -58,12 +60,63 @@ class ResultController extends GetxController {
   final compareMode = false.obs;
   final showOriginal = false.obs;
 
+  /// Horizontal centres of removed people's boxes as fractions of photo width (G4.1).
+  final removedCenters = <double>[].obs;
+
   @override
   void onInit() {
     super.onInit();
     outcome = Get.arguments as ProcessingOutcome;
     resultPath = outcome.resultPath.obs;
+    _initRemovedCenters();
+    _loadExactRemovedCenters();
     unawaitedRefresh();
+  }
+
+  void _initRemovedCenters() {
+    if (outcome.persons.isEmpty || outcome.removedIds.isEmpty) return;
+    var maxX = 0;
+    for (final p in outcome.persons) {
+      if (p.box.length >= 3 && p.box[2] > maxX) {
+        maxX = p.box[2];
+      }
+    }
+    if (maxX > 0) {
+      final width = maxX.toDouble();
+      final centers = <double>[];
+      for (final p in outcome.persons) {
+        if (outcome.removedIds.contains(p.id) && p.box.length >= 4) {
+          final cx = (p.box[0] + p.box[2]) / 2.0;
+          centers.add((cx / width).clamp(0.0, 1.0));
+        }
+      }
+      removedCenters.assignAll(centers);
+    }
+  }
+
+  Future<void> _loadExactRemovedCenters() async {
+    if (outcome.persons.isEmpty || outcome.removedIds.isEmpty) return;
+    try {
+      final file = File(outcome.originalPath);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+        final descriptor = await ui.ImageDescriptor.encoded(buffer);
+        final width = descriptor.width.toDouble();
+        descriptor.dispose();
+        buffer.dispose();
+        if (width > 0) {
+          final centers = <double>[];
+          for (final p in outcome.persons) {
+            if (outcome.removedIds.contains(p.id) && p.box.length >= 4) {
+              final cx = (p.box[0] + p.box[2]) / 2.0;
+              centers.add((cx / width).clamp(0.0, 1.0));
+            }
+          }
+          removedCenters.assignAll(centers);
+        }
+      }
+    } catch (_) {}
   }
 
   // onInit must stay synchronous; the counter load runs unawaited.

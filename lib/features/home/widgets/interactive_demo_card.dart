@@ -151,18 +151,36 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
     super.dispose();
   }
 
-  void _updateFraction(double dx, double width) {
+  /// The 3 background people removed in the demo photo (639×360 café asset):
+  /// Customer 2 (far left): [138, 150, 196, 258] -> center X 167 (167 / 639 ≈ 0.261)
+  /// Customer 1 (left): [210, 135, 295, 270] -> center X 252.5 (252.5 / 639 ≈ 0.395)
+  /// Barista (upper right): [428, 38, 548, 150] -> center X 488 (488 / 639 ≈ 0.764)
+  static const List<double> demoRemovedCenters = <double>[
+    167.0 / 639.0,
+    252.5 / 639.0,
+    488.0 / 639.0,
+  ];
+
+  void _updateFraction(double dx, double width, {bool fromDrag = false}) {
     _cancelSweep();
     if (width <= 0) return;
     final next = (dx / width).clamp(0.05, 0.95);
-    final prevStep = (_fraction * 8).floor();
-    final nextStep = (next * 8).floor();
-    if (prevStep != nextStep) {
-      AppHaptics.selection();
+    final hitEdge =
+        (next == 0.05 && _fraction != 0.05) || (next == 0.95 && _fraction != 0.95);
+    if (fromDrag) {
+      final crossedCount = demoRemovedCenters.where(
+        (c) => (_fraction < c && next >= c) || (_fraction > c && next <= c),
+      ).length;
+      for (var i = 0; i < crossedCount; i++) {
+        AppHaptics.selection();
+      }
     }
     setState(() {
       _fraction = next;
     });
+    if (hitEdge && fromDrag) {
+      AppHaptics.boundary();
+    }
   }
 
   /// TalkBack adjustment path for the demo compare (audit 2026-10-19):
@@ -212,9 +230,9 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
                     behavior: HitTestBehavior.opaque,
                     onHorizontalDragDown: (_) => _cancelSweep(),
                     onHorizontalDragUpdate: (d) =>
-                        _updateFraction(d.localPosition.dx, width),
+                        _updateFraction(d.localPosition.dx, width, fromDrag: true),
                     onTapDown: (d) =>
-                        _updateFraction(d.localPosition.dx, width),
+                        _updateFraction(d.localPosition.dx, width, fromDrag: false),
 
                     child: Stack(
                       fit: StackFit.expand,
