@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:people_gone/config/app_config.dart';
+import 'package:people_gone/core/constants/app_icons.dart';
 import 'package:people_gone/core/constants/app_motion.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
@@ -177,7 +178,6 @@ void main() {
   });
 
   tearDown(() {
-    Get.closeAllSnackbars();
     try {
       tempDir.deleteSync(recursive: true);
     } catch (_) {}
@@ -277,7 +277,7 @@ void main() {
     // Receipt state: Check icon morphs in with "Saved"
     expect(controller.saved.value, isTrue);
     expect(find.text('Saved'), findsOneWidget);
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.checkFill), findsOneWidget);
 
     // Capture receipt hold visual evidence
     await expectLater(
@@ -290,9 +290,10 @@ void main() {
     await tester.pump();
     expect(find.text('Saved'), findsOneWidget);
 
-    // Dismiss the save snackbar cleanly before ending test
-    Get.closeAllSnackbars();
-    await tester.pumpAndSettle();
+    // Flush the save snackbar cleanly before ending test
+    for (int i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   });
 
   testWidgets('Item 13: CompareSlider handle nudges once and returns over 600ms',
