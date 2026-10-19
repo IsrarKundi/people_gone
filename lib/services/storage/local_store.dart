@@ -69,6 +69,12 @@ abstract interface class LocalStore {
 
   /// Clears the in-flight gateway job record.
   Future<Result<void>> clearGatewayJob();
+
+  /// Whether the first-run choreography flag has been set (brief §4).
+  Future<Result<bool>> introSeen();
+
+  /// Persists that the first-run choreography has been armed/seen.
+  Future<Result<void>> setIntroSeen();
 }
 
 /// One in-flight gateway job, recorded so a relaunch can reattach to a

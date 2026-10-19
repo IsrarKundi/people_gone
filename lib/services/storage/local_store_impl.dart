@@ -32,6 +32,7 @@ class LocalStoreImpl implements LocalStore {
 
   static const FlutterSecureStorage _secure = FlutterSecureStorage();
   static const String _consentKey = 'consent_version';
+  static const String _introSeenKey = 'intro_seen_v1';
 
   final Future<Directory> Function() _documentsDir;
   final Future<String?> Function(String key) _secureRead;
@@ -349,6 +350,28 @@ class LocalStoreImpl implements LocalStore {
     try {
       final file = await _gatewayJobFile();
       if (await file.exists()) await file.delete();
+      return const Success<void>(null);
+    } catch (e) {
+      return _storageFailure<void>(e);
+    }
+  }
+
+  // --- First-run choreography -----------------------------------------------
+
+  @override
+  Future<Result<bool>> introSeen() async {
+    try {
+      final raw = await _secureRead(_introSeenKey);
+      return Success<bool>(raw == 'true');
+    } catch (e) {
+      return _storageFailure<bool>(e);
+    }
+  }
+
+  @override
+  Future<Result<void>> setIntroSeen() async {
+    try {
+      await _secureWrite(_introSeenKey, 'true');
       return const Success<void>(null);
     } catch (e) {
       return _storageFailure<void>(e);

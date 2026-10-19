@@ -145,6 +145,12 @@ class FakeLocalStore implements LocalStore {
     gatewayJobRecord = null;
     return const Success<void>(null);
   }
+
+  @override
+  Future<Result<bool>> introSeen() async => const Success<bool>(true);
+
+  @override
+  Future<Result<void>> setIntroSeen() async => const Success<void>(null);
 }
 
 /// Renders a solid [w]x[h] PNG to a temp file (real bytes, so the

@@ -16,6 +16,10 @@ abstract final class AppMotion {
   /// Teaching sweep for Home demo card (≈1.2 s, ease in-out, once per session).
   static const Duration demoSweep = Duration(milliseconds: 1200);
 
+  /// First-run delay before starting the demo card sweep on Home (≈400 ms)
+  /// so the eye finds the card first (first-run choreography brief §2 Beat 1).
+  static const Duration firstRunSweepDelay = Duration(milliseconds: 400);
+
   /// Result first-open Before->After dissolve (≈450 ms, once).
   static const Duration resultDissolve = Duration(milliseconds: 450);
 

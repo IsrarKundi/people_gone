@@ -11,6 +11,7 @@ import '../../../services/processing/job_tracker.dart';
 import '../../../services/storage/local_store.dart';
 import '../../picker/controller/picker_controller.dart';
 import '../../proposal/model/proposal_args.dart';
+import '../widgets/interactive_demo_card.dart';
 
 
 /// Home (S1): the saves indicator, the one primary action (Pick a
@@ -75,6 +76,7 @@ class HomeController extends GetxController {
 
 
   Future<void> onPickPhoto() async {
+    InteractiveDemoCard.cancelActiveSweep();
     errorMessage.value = null;
     final picked = await picker.pickPhoto();
     switch (picked) {
@@ -131,6 +133,7 @@ class HomeController extends GetxController {
   }
 
   Future<void> openHistory() async {
+    InteractiveDemoCard.cancelActiveSweep();
     await Get.toNamed<void>(Routes.history);
     await reloadData();
   }

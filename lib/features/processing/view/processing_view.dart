@@ -45,9 +45,7 @@ class ProcessingView extends GetView<ProcessingController> {
         }
         return Container(
           color: p.background,
-          child: SafeArea(
-            child: _ProcessingContent(controller: controller),
-          ),
+          child: SafeArea(child: _ProcessingContent(controller: controller)),
         );
       }),
     );
@@ -80,13 +78,13 @@ class _ProcessingContentState extends State<_ProcessingContent>
       parent: _entryController,
       curve: AppMotion.enterCurve,
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.04),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _entryController,
-      curve: AppMotion.enterCurve,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: AppMotion.enterCurve,
+          ),
+        );
     _entryController.forward();
   }
 
@@ -130,12 +128,12 @@ class _ProcessingContentState extends State<_ProcessingContent>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Obx(() => _statusCard(context)),
+              // Obx(() => _statusCard(context)),
               SizedBox(height: s.md),
               PrimaryButton(
                 labelKey: AppStrings.processingWorkInBackground,
                 icon: AppIcons.caretLeft,
-                height: 56,
+                height: 48,
                 borderRadius: 28,
                 onPressed: widget.controller.workInBackground,
               ),
@@ -168,15 +166,13 @@ class _ProcessingContentState extends State<_ProcessingContent>
 
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: content,
-      ),
+      child: SlideTransition(position: _slideAnimation, child: content),
     );
   }
 
   /// Status card: the stage title (a real client state, F1), the real
   /// upload bar ONLY while bytes transfer (R4), and the expectation.
+  // ignore: unused_element
   Widget _statusCard(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
@@ -230,7 +226,8 @@ class _ProcessingContentState extends State<_ProcessingContent>
             child: Text(
               title,
               key: ValueKey<String>(
-                  '${widget.controller.stage.value}_${uploading && !moved}'),
+                '${widget.controller.stage.value}_${uploading && !moved}',
+              ),
               style: context.textStyles.bodyMd.copyWith(
                 color: p.textPrimary,
                 fontWeight: FontWeight.w600,

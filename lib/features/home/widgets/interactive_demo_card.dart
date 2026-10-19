@@ -2,22 +2,34 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import '../../../core/constants/app_icons.dart';
 import 'package:get/get.dart';
-
+import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
+import '../../../core/utils/result.dart';
+import '../../../services/storage/local_store.dart';
 
 /// An interactive before/after split slider demonstrating real output of the
 /// PeopleGone pipeline (landmark photo with pedestrians cleanly removed).
 /// Gives first-time users immediate proof of value without making an upload.
 class InteractiveDemoCard extends StatefulWidget {
-  const InteractiveDemoCard({super.key});
+  const InteractiveDemoCard({super.key, this.localStore, this.startDelay});
+
+  final LocalStore? localStore;
+  final Duration? startDelay;
 
   /// Whether the teaching sweep has already executed in this session.
   @visibleForTesting
   static bool hasRunTeachingSweep = false;
+
+  /// Active instance reference for cancelling active sweeps from external triggers
+  /// (e.g. tapping Pick button on Home, brief §3).
+  static _InteractiveDemoCardState? _activeState;
+
+  static void cancelActiveSweep() {
+    _activeState?._cancelSweep();
+  }
 
   @override
   State<InteractiveDemoCard> createState() => _InteractiveDemoCardState();
@@ -28,14 +40,53 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
   double _fraction = 0.5;
   AnimationController? _sweepController;
   int _sweepRun = 0;
+  Timer? _startTimer;
 
   @override
   void initState() {
     super.initState();
+    InteractiveDemoCard._activeState = this;
     if (!InteractiveDemoCard.hasRunTeachingSweep) {
       InteractiveDemoCard.hasRunTeachingSweep = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _startTeachingSweep();
+        _armTeachingSweep();
+      });
+    }
+  }
+
+  Future<void> _armTeachingSweep() async {
+    if (!mounted) return;
+
+    final disable = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+    final store =
+        widget.localStore ??
+        (Get.isRegistered<LocalStore>() ? Get.find<LocalStore>() : null);
+    Duration delay = widget.startDelay ?? Duration.zero;
+
+    if (store != null) {
+      final seen = await store.introSeen();
+      if (seen case Success<bool>(:final value)) {
+        if (!value) {
+          // Write-then-play: arming sets the flag immediately (§4)
+          await store.setIntroSeen();
+          delay = widget.startDelay ?? AppMotion.firstRunSweepDelay;
+        }
+      }
+    }
+
+    if (!mounted) return;
+
+    // Under reduced motion, the sweep NEVER runs (§5)
+    if (disable) return;
+
+    if (delay == Duration.zero) {
+      _startTeachingSweep();
+    } else {
+      _startTimer = Timer(delay, () {
+        if (mounted) {
+          _startTeachingSweep();
+        }
       });
     }
   }
@@ -77,6 +128,8 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
 
   void _cancelSweep() {
     _sweepRun++;
+    _startTimer?.cancel();
+    _startTimer = null;
     if (_sweepController?.isAnimating ?? false) {
       _sweepController?.stop();
     }
@@ -90,6 +143,9 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
 
   @override
   void dispose() {
+    if (InteractiveDemoCard._activeState == this) {
+      InteractiveDemoCard._activeState = null;
+    }
     _cancelSweep();
     super.dispose();
   }
@@ -110,7 +166,6 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
       _fraction = (_fraction + delta).clamp(0.05, 0.95);
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -147,80 +202,84 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
                   onIncrease: () => _adjustFraction(0.1),
                   onDecrease: () => _adjustFraction(-0.1),
                   child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onHorizontalDragDown: (_) => _cancelSweep(),
-                  onHorizontalDragUpdate: (d) =>
-                      _updateFraction(d.localPosition.dx, width),
-                  onTapDown: (d) => _updateFraction(d.localPosition.dx, width),
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragDown: (_) => _cancelSweep(),
+                    onHorizontalDragUpdate: (d) =>
+                        _updateFraction(d.localPosition.dx, width),
+                    onTapDown: (d) =>
+                        _updateFraction(d.localPosition.dx, width),
 
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      // Cleaned result underneath (right side revealed)
-                      Image.asset(
-                        'assets/images/demo_result.jpg',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
-                          color: p.surfaceVariant,
-                          alignment: Alignment.center,
-                          child: Icon(AppIcons.photoLibrary, color: p.textTertiary),
-                        ),
-                      ),
-                      // Original on top, clipped by fraction (left side)
-                      ClipRect(
-                        clipper: _DemoFractionClip(_fraction),
-                        child: Image.asset(
-                          'assets/images/demo_original.jpg',
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: <Widget>[
+                        // Cleaned result underneath (right side revealed)
+                        Image.asset(
+                          'assets/images/demo_result.jpg',
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                        ),
-                      ),
-                      // Vertical divider line
-                      Positioned(
-                        left: dividerX - 1.5,
-                        top: 0,
-                        bottom: 0,
-                        child: Container(width: 3, color: Colors.white),
-                      ),
-                      // Center drag handle
-                      Positioned(
-                        left: dividerX - 20,
-                        top: (height / 2) - 20,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: <BoxShadow>[
-                              BoxShadow(
-                                color: Colors.black.withAlpha(60),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            AppIcons.arrowsLeftRight,
-                            size: s.iconMd,
-                            color: p.textPrimary,
+                          errorBuilder: (_, _, _) => Container(
+                            color: p.surfaceVariant,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              AppIcons.photoLibrary,
+                              color: p.textTertiary,
+                            ),
                           ),
                         ),
-                      ),
-                      // "Before" tag
-                      Positioned(
-                        left: s.sm,
-                        top: s.sm,
-                        child: _tag(context, AppStrings.demoTagOriginal.tr),
-                      ),
-                      // "After" tag
-                      Positioned(
-                        right: s.sm,
-                        top: s.sm,
-                        child: _tag(context, AppStrings.demoTagCleaned.tr),
-                      ),
-                    ],
-                  ),
+                        // Original on top, clipped by fraction (left side)
+                        ClipRect(
+                          clipper: _DemoFractionClip(_fraction),
+                          child: Image.asset(
+                            'assets/images/demo_original.jpg',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                          ),
+                        ),
+                        // Vertical divider line
+                        Positioned(
+                          left: dividerX - 1.5,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(width: 3, color: Colors.white),
+                        ),
+                        // Center drag handle
+                        Positioned(
+                          left: dividerX - 20,
+                          top: (height / 2) - 20,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(60),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              AppIcons.arrowsLeftRight,
+                              size: s.iconMd,
+                              color: p.textPrimary,
+                            ),
+                          ),
+                        ),
+                        // "Before" tag
+                        Positioned(
+                          left: s.sm,
+                          top: s.sm,
+                          child: _tag(context, AppStrings.demoTagOriginal.tr),
+                        ),
+                        // "After" tag
+                        Positioned(
+                          right: s.sm,
+                          top: s.sm,
+                          child: _tag(context, AppStrings.demoTagCleaned.tr),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

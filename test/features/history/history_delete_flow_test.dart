@@ -36,6 +36,12 @@ class _FakeStore implements LocalStore {
   }
 
   @override
+  Future<Result<bool>> introSeen() async => const Success<bool>(true);
+
+  @override
+  Future<Result<void>> setIntroSeen() async => const Success<void>(null);
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

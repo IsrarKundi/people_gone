@@ -151,4 +151,12 @@ void main() {
       expect(unwrap(await store.acceptedConsentVersion()), 1);
     });
   });
+
+  group('intro_seen_v1', () {
+    test('false initially, then true once setIntroSeen is called', () async {
+      expect(unwrap(await store.introSeen()), isFalse);
+      unwrap(await store.setIntroSeen());
+      expect(unwrap(await store.introSeen()), isTrue);
+    });
+  });
 }

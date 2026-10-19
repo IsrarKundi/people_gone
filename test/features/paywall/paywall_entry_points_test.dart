@@ -83,6 +83,12 @@ class StubLocalStore implements LocalStore {
 
   @override
   Future<Result<void>> clearGatewayJob() async => const Success<void>(null);
+
+  @override
+  Future<Result<bool>> introSeen() async => const Success<bool>(true);
+
+  @override
+  Future<Result<void>> setIntroSeen() async => const Success<void>(null);
 }
 
 void main() {

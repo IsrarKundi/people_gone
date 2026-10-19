@@ -97,6 +97,17 @@ class FakeStore implements LocalStore {
   @override
   Future<Result<String>> writeSessionResult(Uint8List bytes) async =>
       const Success<String>('/session/result.jpg');
+
+  bool isIntroSeen = true;
+
+  @override
+  Future<Result<bool>> introSeen() async => Success<bool>(isIntroSeen);
+
+  @override
+  Future<Result<void>> setIntroSeen() async {
+    isIntroSeen = true;
+    return const Success<void>(null);
+  }
 }
 
 class FakeProcessingApi implements ProcessingApi {

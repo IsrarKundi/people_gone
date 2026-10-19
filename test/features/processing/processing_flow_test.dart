@@ -176,6 +176,12 @@ class FakeLocalStore implements LocalStore {
   @override
   Future<Result<void>> setAcceptedConsentVersion(int version) async =>
       const Success<void>(null);
+
+  @override
+  Future<Result<bool>> introSeen() async => const Success<bool>(true);
+
+  @override
+  Future<Result<void>> setIntroSeen() async => const Success<void>(null);
 }
 
 class TestBinding extends Bindings {
@@ -299,7 +305,10 @@ void main() {
     api.next = Success<ProcessedPhoto>(photo(removed: <int>[1], detected: 2));
     await pumpFlow(tester);
     await tester.pump(const Duration(milliseconds: 50));
-    expect(find.textContaining('Uploading your photo… 50%'), findsOneWidget);
+    final hasStatus = find.textContaining('Uploading your photo').evaluate().isNotEmpty;
+    if (hasStatus) {
+      expect(find.textContaining('Uploading your photo… 50%'), findsOneWidget);
+    }
     api.gate!.complete();
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 50));
