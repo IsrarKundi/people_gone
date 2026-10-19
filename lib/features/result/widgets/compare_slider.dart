@@ -99,9 +99,9 @@ class _CompareSliderState extends State<CompareSlider>
     super.dispose();
   }
 
-  void _setFromX(double x, double width) {
+  void _setFromX(double x, double width, {bool fromDrag = false}) {
     if (width <= 0) return;
-    _applyFraction(x / width);
+    _applyFraction(x / width, fromDrag: fromDrag);
   }
 
   void _nudge(double delta) {
@@ -111,11 +111,19 @@ class _CompareSliderState extends State<CompareSlider>
   /// User-driven fraction changes route here so reaching either end of
   /// the compare range gives the boundary tick (audit 2026-10-19
   /// haptic vocabulary) — once per arrival, not while resting there.
-  void _applyFraction(double value) {
+  /// When actively dragging, passing threshold steps gives a selection tick (G4.1).
+  void _applyFraction(double value, {bool fromDrag = false}) {
     if (_nudgeController?.isAnimating ?? false) _cancelNudge();
     final next = value.clamp(0.0, 1.0);
     final hitEdge =
         (next == 0.0 && _fraction != 0.0) || (next == 1.0 && _fraction != 1.0);
+    if (fromDrag && !hitEdge) {
+      final prevStep = (_fraction * 10).floor();
+      final nextStep = (next * 10).floor();
+      if (prevStep != nextStep) {
+        AppHaptics.selection();
+      }
+    }
     setState(() => _fraction = next);
     if (hitEdge) AppHaptics.boundary();
   }
@@ -166,14 +174,15 @@ class _CompareSliderState extends State<CompareSlider>
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onHorizontalDragStart: (_) => _cancelNudge(),
-            onHorizontalDragUpdate: (d) => _setFromX(d.localPosition.dx, width),
+            onHorizontalDragUpdate: (d) =>
+                _setFromX(d.localPosition.dx, width, fromDrag: true),
             onTapDown: (d) => _setFromX(d.localPosition.dx, width),
             child: Stack(
               fit: StackFit.expand,
               children: <Widget>[
                 _image(context, widget.resultPath),
                 ClipRect(
-                  clipper: _FractionClip(_fraction),
+                  clipper: FractionClip(_fraction),
                   child: _image(context, widget.originalPath),
                 ),
                 Positioned(
@@ -221,8 +230,8 @@ class _CompareSliderState extends State<CompareSlider>
   }
 }
 
-class _FractionClip extends CustomClipper<Rect> {
-  const _FractionClip(this.fraction);
+class FractionClip extends CustomClipper<Rect> {
+  const FractionClip(this.fraction);
 
   final double fraction;
 
@@ -231,6 +240,6 @@ class _FractionClip extends CustomClipper<Rect> {
       Rect.fromLTWH(0, 0, size.width * fraction, size.height);
 
   @override
-  bool shouldReclip(_FractionClip oldClipper) =>
+  bool shouldReclip(FractionClip oldClipper) =>
       oldClipper.fraction != fraction;
 }

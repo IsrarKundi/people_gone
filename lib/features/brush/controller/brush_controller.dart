@@ -35,6 +35,9 @@ class BrushController extends GetxController {
   /// Brush radius in DISPLAY pixels, set by the size slider (8–64).
   final brushSizeDisplay = 24.0.obs;
 
+  /// Whether the user is actively adjusting the brush size slider (G3.4).
+  final isAdjustingSize = false.obs;
+
   final isBusy = false.obs;
 
   /// The hint chip's job ends at the first stroke (Review 07 B2): once

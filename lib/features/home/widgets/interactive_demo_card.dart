@@ -5,6 +5,7 @@ import 'package:flutter/physics.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
+import '../../../core/haptics/app_haptics.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/result.dart';
@@ -153,8 +154,14 @@ class _InteractiveDemoCardState extends State<InteractiveDemoCard>
   void _updateFraction(double dx, double width) {
     _cancelSweep();
     if (width <= 0) return;
+    final next = (dx / width).clamp(0.05, 0.95);
+    final prevStep = (_fraction * 8).floor();
+    final nextStep = (next * 8).floor();
+    if (prevStep != nextStep) {
+      AppHaptics.selection();
+    }
     setState(() {
-      _fraction = (dx / width).clamp(0.05, 0.95);
+      _fraction = next;
     });
   }
 

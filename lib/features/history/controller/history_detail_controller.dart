@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/haptics/app_haptics.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/widgets/app_dialog.dart';
@@ -38,6 +39,23 @@ class HistoryDetailController extends GetxController {
   void onInit() {
     super.onInit();
     entry = Get.arguments as HistoryEntry;
+  }
+
+  final isSaving = false.obs;
+
+  Future<void> saveToGallery() async {
+    if (isSaving.value) return;
+    isSaving.value = true;
+    final result = await localStore.saveToGallery(entry.localPath);
+    isSaving.value = false;
+    switch (result) {
+      case Success<void>():
+        AppHaptics.success();
+        AppSnackbar.success(AppStrings.resultSavedSnackbar);
+      case Failure<void>(:final failure):
+        AppHaptics.error();
+        AppSnackbar.error(failure.userMessageKey);
+    }
   }
 
   Future<void> share() async {

@@ -41,6 +41,7 @@ class HistoryView extends GetView<HistoryController> {
               Expanded(
                 child: HistoryGrid(
                   entries: controller.entries,
+                  crossAxisCount: 2,
                   deletingId: controller.deletingId.value,
                   onTap: controller.openDetail,
                 ),

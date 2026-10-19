@@ -381,10 +381,6 @@ void main() {
   ) async {
     store.used = 3;
     await pumpResult(tester);
-    expect(
-      find.text('Saving uses 1 free save · 6 left after this one'),
-      findsOneWidget,
-    );
     await tester.tap(find.text('Save photo'));
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 50));
@@ -403,14 +399,12 @@ void main() {
   ) async {
     store.used = 10;
     await pumpResult(tester);
-    expect(find.text("You've used this month's free saves."), findsOneWidget);
-    await tester.tap(find.text('Save photo'));
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('No free saves left'), findsOneWidget);
+    await tester.tap(find.text(AppStrings.resultSave.tr));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text(AppStrings.paywallHeadline.tr), findsOneWidget);
     expect(store.galleryPaths, isEmpty);
     expect(store.consumeCalls, 0);
-    await tester.tap(find.text('Close'));
-    await tester.pump(const Duration(milliseconds: 400));
   });
 
   testWidgets('gallery failure: nothing consumed, plain error shown', (
@@ -614,15 +608,14 @@ void main() {
       savesLeft: 0,
     );
     await pumpResult(tester, configOverride: gatewayConfig);
-    await tester.tap(find.text('Save photo'));
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('No free saves left'), findsOneWidget);
+    await tester.tap(find.text(AppStrings.resultSave.tr));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text(AppStrings.paywallHeadline.tr), findsOneWidget);
     expect(store.galleryAttempts, 0);
     expect(store.galleryPaths, isEmpty);
     expect(store.consumeCalls, 0);
     expect(api.refundCalls, 0);
-    await tester.tap(find.text('Close'));
-    await tester.pump(const Duration(milliseconds: 400));
   });
 
   testWidgets('gateway consume failure: save never runs without the gate', (

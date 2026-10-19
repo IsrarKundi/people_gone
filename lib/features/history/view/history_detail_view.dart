@@ -9,6 +9,7 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/photo_surface.dart';
+import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../../result/widgets/compare_slider.dart';
 import '../controller/history_detail_controller.dart';
@@ -48,6 +49,12 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                     ),
                   ),
                   SizedBox(height: s.md),
+                  PrimaryButton(
+                    labelKey: AppStrings.resultSave,
+                    icon: AppIcons.checkFill,
+                    onPressed: controller.saveToGallery,
+                  ),
+                  SizedBox(height: s.sm),
                   Row(
                     children: <Widget>[
                       Expanded(
@@ -56,22 +63,24 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                           onPressed: controller.share,
                         ),
                       ),
-                      SizedBox(width: s.md),
-                      SizedBox(
-                        height: s.buttonSecondary,
-                        child: OutlinedButton.icon(
-                          onPressed: controller.delete,
-                          icon: Icon(AppIcons.trash, size: s.iconSm, color: p.error),
-                          label: Text(
-                            AppStrings.commonDelete.tr,
-                            style: context.textStyles.labelLg.copyWith(
-                              color: p.error,
+                      SizedBox(width: s.sm),
+                      Expanded(
+                        child: SizedBox(
+                          height: s.buttonSecondary,
+                          child: OutlinedButton.icon(
+                            onPressed: controller.delete,
+                            icon: Icon(AppIcons.trash, size: s.iconSm, color: p.error),
+                            label: Text(
+                              AppStrings.commonDelete.tr,
+                              style: context.textStyles.labelLg.copyWith(
+                                color: p.error,
+                              ),
                             ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: p.border),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(s.radiusMd),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: p.border),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(s.radiusMd),
+                              ),
                             ),
                           ),
                         ),

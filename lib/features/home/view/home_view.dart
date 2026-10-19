@@ -62,110 +62,109 @@ class HomeView extends GetView<HomeController> {
         final hasHistory = controller.hasHistory;
         final hasTray = hasHistory && controller.history.length > 1;
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(s.screenPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // 1. The demo as a HORIZONTAL card — wide and short band across screen
-              const SizedBox(height: 250, child: InteractiveDemoCard()),
+        return Column(
+          children: <Widget>[
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(s.screenPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // 1. The demo as a HORIZONTAL card — wide and short band across screen
+                    const SizedBox(height: 250, child: InteractiveDemoCard()),
 
-              if (activeJob != null) ...<Widget>[
-                SizedBox(height: s.md),
-                HomeJobBanner(job: activeJob),
-              ],
-
-              if (hasHistory) ...<Widget>[
-                SizedBox(height: s.sm),
-                _HomeHistoryBlockFade(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      // SectionHeader(
-                      //   titleKey: AppStrings.homeHistory,
-                      //   actionLabelKey: AppStrings.homeSeeAll,
-                      //   onAction: controller.openHistory,
-                      // ),
-                      Row(
-                        children: [
-                          Text(
-                            AppStrings.homeHistory.tr,
-                            style: context.textStyles.titleMd,
-                          ),
-                          Spacer(),
-                          TextButton(
-                            onPressed: controller.openHistory,
-                            child: Text(
-                              AppStrings.homeSeeAll.tr,
-                              style: context.textStyles.labelMd.copyWith(
-                                color: p.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // SizedBox(height: s.sm),
-                      // SizedBox(
-                      //   height: 240,
-                      //   child: FeaturedCleanCard(
-                      //     entry: controller.history.first,
-                      //     onTap: () => controller.openHistoryDetail(
-                      //       controller.history.first,
-                      //     ),
-                      //   ),
-                      // ),
-                      if (hasTray) ...<Widget>[
-                        EarlierCleansTray(
-                          entries: controller.history.take(10).toList(),
-                          onTap: controller.openHistoryDetail,
-                        ),
-                      ],
+                    if (activeJob != null) ...<Widget>[
+                      SizedBox(height: s.md),
+                      HomeJobBanner(job: activeJob),
                     ],
-                  ),
+
+                    if (hasHistory) ...<Widget>[
+                      SizedBox(height: s.sm),
+                      _HomeHistoryBlockFade(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Row(
+                              children: [
+                                Text(
+                                  AppStrings.homeHistory.tr,
+                                  style: context.textStyles.titleMd,
+                                ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: controller.openHistory,
+                                  child: Text(
+                                    AppStrings.homeSeeAll.tr,
+                                    style: context.textStyles.labelMd.copyWith(
+                                      color: p.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // SizedBox(height: s.sm),
+                            // SizedBox(
+                            //   height: 240,
+                            //   child: FeaturedCleanCard(
+                            //     entry: controller.history.first,
+                            //     onTap: () => controller.openHistoryDetail(
+                            //       controller.history.first,
+                            //     ),
+                            //   ),
+                            // ),
+                            if (hasTray) ...<Widget>[
+                              EarlierCleansTray(
+                                entries: controller.history.take(10).toList(),
+                                onTap: controller.openHistoryDetail,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-
-              SizedBox(height: s.lg),
-
-              // 2. The "Pick a photo" button
-              PrimaryButton(
-                labelKey: AppStrings.homePickPhoto,
-                icon: AppIcons.camera,
-                height: 48,
-                borderRadius: 28,
-                isLoading: controller.isPicking,
-                onPressed: controller.onPickPhoto,
               ),
-
-              // Existing text underneath the button kept as-is
-              // if (!hasHistory) ...<Widget>[
-              //   SizedBox(height: s.xs),
-              //   Text(
-              //     AppStrings.homeEmptyLine.tr,
-              //     style: context.textStyles.bodySm.copyWith(
-              //       color: p.textSecondary,
-              //     ),
-              //   ),
-              // ],
-              SizedBox(height: s.sm),
-
-              // 3. Remaining Home items: saves line, job banner, history
-              SavesIndicator(
-                savesLeft: controller.savesLeft.value,
-                of: HomeController.freeSavesPerMonth,
-                resetDate: controller.resetDate.value,
-                onTap:
-                    // controller.savesLeft.value == 0
-                    //     ?
-                    controller.openPaywall,
-                // :
-                // null,
+            ),
+            // Bottom thumb-zone dock for Pick + saves line (G3.1)
+            Container(
+              padding: EdgeInsets.fromLTRB(
+                s.screenPadding,
+                s.xs,
+                s.screenPadding,
+                s.screenPadding,
               ),
-
-              SizedBox(height: s.sm),
-            ],
-          ),
+              decoration: BoxDecoration(
+                color: p.background,
+                border: Border(
+                  top: BorderSide(color: p.border.withValues(alpha: 0.5)),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  PrimaryButton(
+                    labelKey: AppStrings.homePickPhoto,
+                    icon: AppIcons.camera,
+                    height: 48,
+                    borderRadius: 28,
+                    isLoading: controller.isPicking,
+                    onPressed: controller.onPickPhoto,
+                  ),
+                  SizedBox(height: s.xs),
+                  SavesIndicator(
+                    savesLeft: controller.savesLeft.value,
+                    of: HomeController.freeSavesPerMonth,
+                    resetDate: controller.resetDate.value,
+                    onTap: controller.savesLeft.value == 0
+                        ? controller.openPaywall
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       }),
     );

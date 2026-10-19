@@ -66,6 +66,8 @@ class BrushView extends GetView<BrushController> {
   }
 
   Widget _photoArea(BuildContext context) {
+    final s = context.sizes;
+    final p = context.palette;
     return Obx(() {
       final loadError = controller.loadError.value;
       if (loadError != null) {
@@ -74,27 +76,127 @@ class BrushView extends GetView<BrushController> {
           onRetry: controller.loadImageSize,
         );
       }
-      return BrushCanvas(
-        imagePath: controller.args.imagePath,
-        imageSize: controller.imageSize.value,
-        strokes: controller.strokes
-            .map((stroke) => List<Offset>.of(stroke))
-            .toList(),
-        strokeDiameterImagePx: controller.brushDiameterImagePx,
-        onStrokeStart: controller.startStroke,
-        onStrokePoint: controller.addStrokePoint,
-        onStrokeEnd: controller.endStroke,
-        onScaleResolved: controller.setFittedScale,
-        hintVisible: !controller.hintDismissed.value,
-        suggestedRegion: controller.args.suggestedRegion,
+      final hasStrokes = controller.hasStrokes;
+      final busy = controller.isBusy.value;
+      final adjustingSize = controller.isAdjustingSize.value;
+      final displayDiameter = controller.brushSizeDisplay.value;
+
+      return Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          BrushCanvas(
+            imagePath: controller.args.imagePath,
+            imageSize: controller.imageSize.value,
+            strokes: controller.strokes
+                .map((stroke) => List<Offset>.of(stroke))
+                .toList(),
+            strokeDiameterImagePx: controller.brushDiameterImagePx,
+            onStrokeStart: controller.startStroke,
+            onStrokePoint: controller.addStrokePoint,
+            onStrokeEnd: controller.endStroke,
+            onScaleResolved: controller.setFittedScale,
+            hintVisible: !controller.hintDismissed.value,
+            suggestedRegion: controller.args.suggestedRegion,
+          ),
+          // Live brush-size circle preview in centre of photo (G3.4)
+          if (adjustingSize)
+            Center(
+              child: IgnorePointer(
+                child: Container(
+                  width: displayDiameter,
+                  height: displayDiameter,
+                  decoration: BoxDecoration(
+                    color: p.overlayRemoved.withValues(alpha: 0.45),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // Floating Undo/Clear pills on the canvas (G3.4)
+          if (hasStrokes)
+            Positioned(
+              left: s.screenPadding,
+              bottom: s.sm,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  _floatingCanvasButton(
+                    context,
+                    icon: AppIcons.arrowCounterClockwise,
+                    labelKey: AppStrings.brushUndo,
+                    onTap: busy ? null : controller.undoStroke,
+                  ),
+                  SizedBox(width: s.xs),
+                  _floatingCanvasButton(
+                    context,
+                    icon: AppIcons.close,
+                    labelKey: AppStrings.brushClear,
+                    onTap: busy ? null : controller.clearStrokes,
+                  ),
+                ],
+              ),
+            ),
+        ],
       );
     });
+  }
+
+  Widget _floatingCanvasButton(
+    BuildContext context, {
+    required IconData icon,
+    required String labelKey,
+    required VoidCallback? onTap,
+  }) {
+    final p = context.palette;
+    final s = context.sizes;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(s.radiusPill),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: s.md, vertical: s.xs),
+          decoration: BoxDecoration(
+            color: p.photoChromeBg,
+            borderRadius: BorderRadius.circular(s.radiusPill),
+            border: Border.all(color: p.border.withValues(alpha: 0.5)),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: p.scrim.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: s.iconSm, color: p.photoChromeFg),
+              SizedBox(width: s.xs),
+              Text(
+                labelKey.tr,
+                style: context.textStyles.labelMd.copyWith(
+                  color: p.photoChromeFg,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _dock(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
-    final hasStrokes = controller.hasStrokes;
     final busy = controller.isBusy.value;
     final fraction = controller.uploadFraction.value;
     final uploading = busy && fraction > 0 && fraction < 1;
@@ -132,6 +234,10 @@ class BrushView extends GetView<BrushController> {
                       min: 8,
                       max: 64,
                       activeColor: p.primary,
+                      onChangeStart: (_) =>
+                          controller.isAdjustingSize.value = true,
+                      onChangeEnd: (_) =>
+                          controller.isAdjustingSize.value = false,
                       onChanged: busy ? null : controller.setBrushSize,
                     ),
                   ),
@@ -166,20 +272,6 @@ class BrushView extends GetView<BrushController> {
               ),
               Row(
                 children: <Widget>[
-                  TextButton.icon(
-                    onPressed: hasStrokes && !busy
-                        ? controller.undoStroke
-                        : null,
-                    icon: Icon(AppIcons.arrowCounterClockwise, size: s.iconSm),
-                    label: Text(AppStrings.brushUndo.tr),
-                  ),
-                  TextButton.icon(
-                    onPressed: hasStrokes && !busy
-                        ? controller.clearStrokes
-                        : null,
-                    icon: Icon(AppIcons.close, size: s.iconSm),
-                    label: Text(AppStrings.brushClear.tr),
-                  ),
                   const Spacer(),
                   // The exit never disables (D15) — cancelling a fix
                   // in flight simply drops its result.
