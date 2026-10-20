@@ -1,65 +1,24 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../controller/history_detail_controller.dart';
 
-/// The save button on History Detail: loading state and green receipt state on save,
-/// matching Result screen behavior.
-class HistorySaveReceiptButton extends StatefulWidget {
+/// The save button on History Detail: shows loading while saving, then
+/// turns immediately into the disabled grey "Saved" state upon success.
+class HistorySaveReceiptButton extends StatelessWidget {
   const HistorySaveReceiptButton({super.key, required this.controller});
   final HistoryDetailController controller;
 
   @override
-  State<HistorySaveReceiptButton> createState() =>
-      _HistorySaveReceiptButtonState();
-}
-
-class _HistorySaveReceiptButtonState extends State<HistorySaveReceiptButton> {
-  bool _holdingReceipt = false;
-  Timer? _timer;
-  Worker? _worker;
-
-  @override
-  void initState() {
-    super.initState();
-    _worker = ever<bool>(widget.controller.saved, (saved) {
-      if (!mounted) return;
-      if (saved) {
-        final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-        if (disable) {
-          setState(() => _holdingReceipt = false);
-        } else {
-          setState(() => _holdingReceipt = true);
-          _timer?.cancel();
-          _timer = Timer(AppMotion.saveHold, () {
-            if (mounted) setState(() => _holdingReceipt = false);
-          });
-        }
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _worker?.dispose();
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final savedNow = widget.controller.saved.value;
+      final savedNow = controller.saved.value;
       return PrimaryButton(
         labelKey: savedNow ? AppStrings.resultSaved : AppStrings.resultSave,
-        isSuccess: savedNow && _holdingReceipt,
-        isLoading: widget.controller.isSaving.value,
-        onPressed: savedNow ? null : widget.controller.saveToGallery,
+        isLoading: controller.isSaving.value,
+        onPressed: savedNow ? null : controller.saveToGallery,
       );
     });
   }
