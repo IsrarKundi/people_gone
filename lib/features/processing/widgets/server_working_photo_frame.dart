@@ -24,6 +24,8 @@ import 'matte_light_glide_painter.dart';
 /// 5. Dynamic Ambient Canvas Bloom (Idea 3): multi-layer ambilight halo
 ///    radiating outward beyond frame borders, breathing and blooming in sync
 ///    with the light glide and shifting in 3D parallax on touch.
+/// 6. Floating Sunlight Particle Motes (Idea 4): microscopic luminescent specks
+///    drifting in the matte glass that illuminate in the sunbeam and part on touch.
 class ServerWorkingPhotoFrame extends StatefulWidget {
   const ServerWorkingPhotoFrame({
     super.key,
