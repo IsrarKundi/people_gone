@@ -47,8 +47,12 @@ class HistoryDetailController extends GetxController {
   Future<void> saveToGallery() async {
     if (isSaving.value || saved.value) return;
     isSaving.value = true;
+    final stopwatch = Stopwatch()..start();
     final result = await localStore.saveToGallery(entry.localPath);
-    isSaving.value = false;
+    final elapsed = stopwatch.elapsedMilliseconds;
+    if (elapsed < 400) {
+      await Future<void>.delayed(Duration(milliseconds: 400 - elapsed));
+    }
     switch (result) {
       case Success<void>():
         saved.value = true;
@@ -58,6 +62,7 @@ class HistoryDetailController extends GetxController {
         AppHaptics.error();
         AppSnackbar.error(failure.userMessageKey);
     }
+    isSaving.value = false;
   }
 
   Future<void> share() async {
