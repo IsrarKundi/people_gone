@@ -42,14 +42,16 @@ class HistoryDetailController extends GetxController {
   }
 
   final isSaving = false.obs;
+  final saved = false.obs;
 
   Future<void> saveToGallery() async {
-    if (isSaving.value) return;
+    if (isSaving.value || saved.value) return;
     isSaving.value = true;
     final result = await localStore.saveToGallery(entry.localPath);
     isSaving.value = false;
     switch (result) {
       case Success<void>():
+        saved.value = true;
         AppHaptics.success();
         AppSnackbar.success(AppStrings.resultSavedSnackbar);
       case Failure<void>(:final failure):

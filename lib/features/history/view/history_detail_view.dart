@@ -9,10 +9,10 @@ import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/photo_surface.dart';
-import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../../result/widgets/compare_slider.dart';
 import '../controller/history_detail_controller.dart';
+import '../widgets/history_save_receipt_button.dart';
 
 /// A saved clean at full quality, with before/after comparison (when the
 /// original photo is present), saved date, Share, and Delete.
@@ -49,11 +49,7 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                     ),
                   ),
                   SizedBox(height: s.md),
-                  PrimaryButton(
-                    labelKey: AppStrings.resultSave,
-                    // icon: AppIcons.checkFill,
-                    onPressed: controller.saveToGallery,
-                  ),
+                  HistorySaveReceiptButton(controller: controller),
                   SizedBox(height: s.sm),
                   Row(
                     children: <Widget>[
