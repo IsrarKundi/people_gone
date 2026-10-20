@@ -10,6 +10,43 @@ Handles:
 from typing import List, Dict, Any, Tuple
 import numpy as np
 
+# Keeper protection (overlap fix, 2026-10-20): pixels belonging to a
+# keeper — plus this small guard band around the keeper — must never
+# enter a removal mask. When a removed person stands behind the
+# keeper, their SAM mask + hole-filling + dilation otherwise swallow
+# thin keeper structures (fingers) that hang in front of them
+# (owner's photo, docs: OVERLAP-RESEARCH-AG.md + Muse trace).
+KEEPER_GUARD_PX = 2
+
+
+def keeper_guard_mask(
+    persons: List[Dict[str, Any]],
+    instance_masks: List[np.ndarray],
+    remove_ids: set,
+    guard_px: int = KEEPER_GUARD_PX,
+) -> np.ndarray:
+    """Boolean guard = union of every NON-removed person's mask,
+    dilated by guard_px. Empty (all-False) when there are no
+    keepers. Shared by the legacy prep below and
+    shadow_growth.prepare_masks_v1 so both paths protect identically.
+    """
+    shape = None
+    union = None
+    for p, m in zip(persons, instance_masks):
+        if p["id"] in remove_ids:
+            continue
+        b = np.asarray(m) > 0
+        if union is None:
+            union = np.zeros(b.shape, dtype=bool)
+            shape = b.shape
+        union |= b
+    if union is None:
+        return np.zeros(shape or (0, 0), dtype=bool)
+    if guard_px > 0 and union.any():
+        dilated = dilate_mask((union * 255).astype(np.uint8), guard_px)
+        return dilated > 0
+    return union
+
 def fill_mask_holes(binary_mask: np.ndarray) -> np.ndarray:
     """Fills interior holes in a binary mask (uint8 0 or 255)."""
     try:
@@ -131,14 +168,24 @@ def prepare_individual_removal_masks(
         )
     if shadow_mode != "legacy":
         raise ValueError(f"unknown shadow_mode: {shadow_mode!r}")
+    # Keeper protection: carve the keeper (+ guard) out of each raw
+    # mask BEFORE hole filling — the notch a keeper's hand cuts into
+    # a removed person's mask must never be "filled" as an interior
+    # hole — and subtract it again from the finished mask.
+    guard = keeper_guard_mask(persons, instance_masks, remove_ids)
     results = []
     for p, inst_mask in zip(persons, instance_masks):
         if p["id"] in remove_ids:
-            filled = fill_mask_holes(inst_mask)
+            base = inst_mask.copy()
+            if guard.any():
+                base[guard] = 0
+            filled = fill_mask_holes(base)
             bh = max(1, p["box"][3] - p["box"][1])
             dilation_px = max(8, int(bh * dilation_factor))
             dilated = dilate_mask(filled, dilation_px)
             shadow_exp = expand_shadows(image_rgb, dilated, p["box"])
+            if guard.any():
+                shadow_exp[guard] = 0
             results.append({
                 "person_id": p["id"],
                 "box": p["box"],

@@ -43,7 +43,12 @@ from typing import Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
-from .mask_prep import dilate_mask, expand_shadows, fill_mask_holes
+from .mask_prep import (
+    dilate_mask,
+    expand_shadows,
+    fill_mask_holes,
+    keeper_guard_mask,
+)
 
 # Production thresholds (mask_prep.expand_shadows) — kept identical.
 SHADOW_V_MAX = 130
@@ -432,11 +437,25 @@ def prepare_masks_v1(
                     est_pool, mask_by_id[p["id"]], p["box"], persons_union
                 )
 
+    # Keeper protection (overlap fix, 2026-10-20): the protected set
+    # above vetoes only the shadow GROWTH. The base mask itself —
+    # raw SAM mask, hole fill, dilation, floor shadow — was never
+    # clipped against the keeper, so a removed person standing
+    # behind the keeper swallowed thin keeper structures (fingers)
+    # that hang in front of them. Carve the keeper (+ guard) out of
+    # the raw mask BEFORE hole filling (the notch the keeper cuts
+    # into the removed person's mask is not an interior hole) and
+    # subtract it again from the finished mask.
+    guard = keeper_guard_mask(persons, instance_masks, remove_set)
+
     results = []
     for p, m in zip(persons, masks_bool):
         if p["id"] not in remove_set:
             continue
-        filled = fill_mask_holes((m * 255).astype(np.uint8))
+        base = (m * 255).astype(np.uint8)
+        if guard.any():
+            base[guard] = 0
+        filled = fill_mask_holes(base)
         bh = max(1, int(p["box"][3]) - int(p["box"][1]))
         dpx = max(8, int(bh * dilation_factor))
         dilated = dilate_mask(filled, dpx)
@@ -450,6 +469,8 @@ def prepare_masks_v1(
             )
             new_px = adds & ~(floor > 0)
             final[new_px] = 255
+        if guard.any():
+            final[guard] = 0
         results.append(
             {"person_id": p["id"], "box": p["box"], "mask": final, "height": bh}
         )

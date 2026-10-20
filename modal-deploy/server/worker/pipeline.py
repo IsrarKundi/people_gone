@@ -19,7 +19,8 @@ from .keeper import classify_keepers_and_removals
 from .mask_prep import (
     prepare_individual_removal_masks,
     prepare_combined_removal_mask,
-    dilate_mask
+    dilate_mask,
+    keeper_guard_mask
 )
 from .belongings import (
     merge_duplicate_items,
@@ -560,6 +561,30 @@ class PeopleGonePipeline:
         )
         timings["mask_prep_ms"] = (time.perf_counter() - t0) * 1000.0
 
+        # Keeper protection regions (overlap fix, 2026-10-20):
+        # keeper_union = the keepers' own masks + their attached
+        # belongings' masks — restored verbatim by the safety lock
+        # below; keeper_guard = keeper persons + guard band — the
+        # ghost retry must not re-enter it (persons get the clipping
+        # the distraction path always had, X11).
+        keeper_union = np.zeros((h, w), dtype=bool)
+        person_index = {p["id"]: i for i, p in enumerate(persons)}
+        for pid in keeper_ids:
+            if pid in person_index:
+                keeper_union |= analysis["person_masks"][person_index[pid]] > 0
+        item_mask_by_id = {
+            it["id"]: m
+            for it, m in zip(analysis["items"], analysis["item_masks"])
+        }
+        for t in tiered:
+            if t["tier"] == "attached" and t["person_id"] in keeper_ids:
+                im = item_mask_by_id.get(t["id"])
+                if im is not None:
+                    keeper_union |= im > 0
+        keeper_guard = keeper_guard_mask(
+            persons, analysis["person_masks"], remove_ids
+        )
+
         # 6. Inpainting on Native-Resolution Crops per removal unit
         t0 = time.perf_counter()
         composited = orig_rgb.copy()
@@ -640,6 +665,11 @@ class PeopleGonePipeline:
                     dilated_retry_mask = clip_mask(
                         dilated_retry_mask, item["protected_union"]
                     )
+                # Person retries get the same discipline against the
+                # keeper guard (overlap fix): the 5% retry dilation
+                # must not buy back keeper pixels either.
+                if item["kind"] == "person" and keeper_guard.any():
+                    dilated_retry_mask[keeper_guard] = 0
 
                 image_crop = composited[cy1:cy2, cx1:cx2]
                 mask_crop_retry = dilated_retry_mask[cy1:cy2, cx1:cx2]
@@ -650,6 +680,11 @@ class PeopleGonePipeline:
                 )
 
         timings["ghost_check_ms"] = (time.perf_counter() - t0) * 1000.0
+
+        # 7b. Keeper safety lock — the invariant the overlap fix
+        # adds: whatever any fill, feather, or retry computed, the
+        # delivered keeper pixels are the original pixels.
+        composited = self._apply_keeper_lock(composited, orig_rgb, keeper_union)
 
         # 8. Final Delivery Encode
         total_time_s = time.perf_counter() - t_start
@@ -663,6 +698,23 @@ class PeopleGonePipeline:
             belongings_removed_ids, items_removed, total_time_s,
             distractions_removed_ids=distractions_removed_ids,
         )
+
+    @staticmethod
+    def _apply_keeper_lock(
+        composited: np.ndarray,
+        orig_rgb: np.ndarray,
+        keeper_union: Optional[np.ndarray],
+    ) -> np.ndarray:
+        """Final invariant of the overlap fix (2026-10-20): keeper
+        pixels in the delivered image are the ORIGINAL pixels,
+        unconditionally. Mask prep and the retry now also subtract
+        the keeper, but this lock is the guarantee that survives
+        every upstream failure mode (SAM claiming keeper pixels,
+        hole filling, dilation, feather bleed). Restores in place.
+        """
+        if keeper_union is not None and np.any(keeper_union):
+            composited[keeper_union] = orig_rgb[keeper_union]
+        return composited
 
     def touchup(
         self,
