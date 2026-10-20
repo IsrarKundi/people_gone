@@ -442,20 +442,22 @@ def prepare_masks_v1(
     # raw SAM mask, hole fill, dilation, floor shadow — was never
     # clipped against the keeper, so a removed person standing
     # behind the keeper swallowed thin keeper structures (fingers)
-    # that hang in front of them. Carve the keeper (+ guard) out of
-    # the raw mask BEFORE hole filling (the notch the keeper cuts
-    # into the removed person's mask is not an interior hole) and
-    # subtract it again from the finished mask.
+    # that hang in front of them. Fill holes on the RAW mask first
+    # (hole filling also completes an under-segmented removed
+    # person whose SAM mask encloses their own torso — carving
+    # before filling opened that enclosure on the owner's photo and
+    # left a survivor torso, Phase 2 diagnostic), then carve the
+    # keeper (+ guard) out of the filled mask and subtract it
+    # again from the finished mask.
     guard = keeper_guard_mask(persons, instance_masks, remove_set)
 
     results = []
     for p, m in zip(persons, masks_bool):
         if p["id"] not in remove_set:
             continue
-        base = (m * 255).astype(np.uint8)
+        filled = fill_mask_holes((m * 255).astype(np.uint8))
         if guard.any():
-            base[guard] = 0
-        filled = fill_mask_holes(base)
+            filled[guard] = 0
         bh = max(1, int(p["box"][3]) - int(p["box"][1]))
         dpx = max(8, int(bh * dilation_factor))
         dilated = dilate_mask(filled, dpx)

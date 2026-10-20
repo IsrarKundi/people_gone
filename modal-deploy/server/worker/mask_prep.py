@@ -168,18 +168,22 @@ def prepare_individual_removal_masks(
         )
     if shadow_mode != "legacy":
         raise ValueError(f"unknown shadow_mode: {shadow_mode!r}")
-    # Keeper protection: carve the keeper (+ guard) out of each raw
-    # mask BEFORE hole filling — the notch a keeper's hand cuts into
-    # a removed person's mask must never be "filled" as an interior
-    # hole — and subtract it again from the finished mask.
+    # Keeper protection (overlap fix): fill holes on the RAW mask
+    # FIRST — hole filling is also what completes an under-segmented
+    # removed person whose SAM mask encloses their own torso — and
+    # carve the keeper (+ guard) out of the FILLED mask, then
+    # subtract it again from the finished mask. (Phase 2 ordering,
+    # 2026-10-20: carving before filling opened enclosures along
+    # the keeper edge and left a survivor torso on the owner's
+    # photo; the keeper stays protected by the post-fill carve,
+    # the final subtraction, and the pipeline safety lock.)
     guard = keeper_guard_mask(persons, instance_masks, remove_ids)
     results = []
     for p, inst_mask in zip(persons, instance_masks):
         if p["id"] in remove_ids:
-            base = inst_mask.copy()
+            filled = fill_mask_holes(inst_mask)
             if guard.any():
-                base[guard] = 0
-            filled = fill_mask_holes(base)
+                filled[guard] = 0
             bh = max(1, p["box"][3] - p["box"][1])
             dilation_px = max(8, int(bh * dilation_factor))
             dilated = dilate_mask(filled, dilation_px)

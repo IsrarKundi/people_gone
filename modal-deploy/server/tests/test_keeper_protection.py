@@ -120,6 +120,131 @@ class TestPrepNeverEntersKeeper(unittest.TestCase):
         self._assert_protected(prepared)
 
 
+class TestPrepFillsEnclosures(unittest.TestCase):
+    """Phase 2 ordering: hole filling runs on the RAW mask first.
+    An under-segmented removed person whose SAM mask only outlines
+    them (enclosing their own torso) must still be fully removed —
+    Phase 1 carved before filling, opened the enclosure along the
+    keeper edge, and left a survivor torso on the owner's photo.
+    The keeper stays protected by the post-fill carve + final
+    subtraction, proven by the finger assertion below."""
+
+    def _scene(self, with_finger):
+        keeper = np.zeros((H, W), dtype=np.uint8)
+        keeper[100:280, 90:150] = 255
+        if with_finger:
+            keeper[150:158, 150:164] = 255  # touches the outline
+        removed = np.zeros((H, W), dtype=np.uint8)
+        removed[90:250, 160:290] = 255
+        removed[98:242, 168:282] = 0  # hollow interior: outline only
+        persons = [
+            {"id": 0, "box": [90, 100, 165, 280]},
+            {"id": 1, "box": [150, 80, 300, 260]},
+        ]
+        return persons, [keeper, removed]
+
+    def _assert_enclosure_filled(self, prepared, with_finger):
+        final = prepared[0]["mask"]
+        self.assertEqual(final[170, 225], 255, "enclosed interior must be filled and removed")
+        if with_finger:
+            self.assertFalse(
+                final[150:158, 150:164].any(),
+                "keeper finger touching the outline must stay out of the mask",
+            )
+
+    def test_v1_fills_enclosure(self):
+        persons, masks = self._scene(with_finger=True)
+        prepared = prepare_masks_v1(blank_image(), persons, masks, remove_ids={1})
+        self._assert_enclosure_filled(prepared, with_finger=True)
+
+    def test_legacy_fills_enclosure(self):
+        persons, masks = self._scene(with_finger=True)
+        prepared = prepare_individual_removal_masks(
+            blank_image(), persons, masks, remove_ids={1}, shadow_mode="legacy"
+        )
+        self._assert_enclosure_filled(prepared, with_finger=True)
+
+
+class _FakePredictor:
+    """Deterministic SAM stand-in: pass 1 returns the box shrunk
+    10%; a refinement call (point_coords present) returns it shrunk
+    20% — or an empty mask in degenerate mode."""
+
+    def __init__(self, degenerate=False):
+        self.calls = []
+        self.degenerate = degenerate
+        self._shape = None
+
+    def set_image(self, image_np):
+        self._shape = image_np.shape[:2]
+
+    def predict(self, box=None, point_coords=None, point_labels=None,
+                multimask_output=False):
+        h, w = self._shape
+        x1, y1, x2, y2 = [float(v) for v in box[0]]
+        refining = point_coords is not None
+        self.calls.append({
+            "box": (x1, y1, x2, y2),
+            "refining": refining,
+            "points": None if point_coords is None else np.array(point_coords),
+        })
+        mask = np.zeros((1, h, w), dtype=np.float32)
+        if not (refining and self.degenerate):
+            f = 0.20 if refining else 0.10
+            ix1, iy1 = int(x1 + (x2 - x1) * f / 2), int(y1 + (y2 - y1) * f / 2)
+            ix2, iy2 = int(x2 - (x2 - x1) * f / 2), int(y2 - (y2 - y1) * f / 2)
+            mask[0, iy1:iy2, ix1:ix2] = 1.0
+        return mask, np.array([0.9], dtype=np.float32), None
+
+
+def _segmentor_with(fake):
+    from worker.segmentor import SamSegmentor
+
+    seg = SamSegmentor()
+    seg._predictor = fake
+    seg._initialized = True  # skip real model load
+    return seg
+
+
+class TestNegativePointRefinement(unittest.TestCase):
+    def _boxes(self):
+        return [
+            {"id": 0, "box": [50, 50, 150, 250]},    # overlaps 1
+            {"id": 1, "box": [120, 50, 220, 250]},   # overlaps 0
+            {"id": 2, "box": [280, 50, 380, 250]},   # overlaps nobody; same size as box 0
+        ]
+
+    def test_refines_only_overlapped_boxes_with_foreign_points(self):
+        fake = _FakePredictor()
+        seg = _segmentor_with(fake)
+        img = np.zeros((300, 400, 3), dtype=np.uint8)
+        masks = seg.segment_boxes(img, self._boxes())
+        refine_calls = [c for c in fake.calls if c["refining"]]
+        refined_boxes = {c["box"] for c in refine_calls}
+        self.assertEqual(refined_boxes, {(50.0, 50.0, 150.0, 250.0), (120.0, 50.0, 220.0, 250.0)})
+        # Negative points for box A must sit inside B's territory
+        # (x > 120) and inside A's box (x < 150); labels all zero is
+        # asserted by construction in the segmentor call contract.
+        for c in refine_calls:
+            pts = c["points"]
+            self.assertGreaterEqual(len(pts), 2)
+            if c["box"][0] == 50.0:
+                self.assertTrue((pts[:, 0] > 120).all() and (pts[:, 0] < 150).all())
+        # Refined mask (20% shrink) adopted for A: smaller than C's
+        # pass-1 mask (10% shrink, same box size class).
+        self.assertEqual(len(masks), 3)
+        self.assertLess(int((masks[0] > 0).sum()), int((masks[2] > 0).sum()))
+
+    def test_degenerate_refinement_keeps_pass1(self):
+        fake = _FakePredictor(degenerate=True)
+        seg = _segmentor_with(fake)
+        img = np.zeros((300, 400, 3), dtype=np.uint8)
+        masks = seg.segment_boxes(img, self._boxes())
+        # Empty refined mask rejected: A keeps its pass-1 area, which
+        # equals C's pass-1 area (identical box dimensions).
+        self.assertEqual(int((masks[0] > 0).sum()), int((masks[2] > 0).sum()))
+
+
 class TestKeeperLock(unittest.TestCase):
     def test_lock_restores_keeper_pixels_unconditionally(self):
         rng = np.random.default_rng(7)
