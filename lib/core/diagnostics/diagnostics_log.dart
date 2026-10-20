@@ -35,7 +35,7 @@ class DiagnosticsLog {
   /// are logged at app start) plus every buffered entry, oldest first.
   String export() {
     final header =
-        'Framora diagnostics — exported ${_now().toIso8601String()}\n'
+        'uncrowd diagnostics — exported ${_now().toIso8601String()}\n'
         'Platform: ${Platform.operatingSystem}\n'
         'Entries: ${_entries.length}\n'
         '----------------------------------------';

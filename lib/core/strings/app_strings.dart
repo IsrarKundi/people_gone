@@ -272,7 +272,7 @@ class AppTranslations extends Translations {
   @override
   Map<String, Map<String, String>> get keys => <String, Map<String, String>>{
     'en_US': <String, String>{
-      AppStrings.appName: 'Framora',
+      AppStrings.appName: 'Uncrowd',
       AppStrings.splashTagline: 'Clear the crowd. Keep your moment.',
       AppStrings.splashFooter: 'POWERED BY ARTIVO',
       AppStrings.commonRetry: 'Retry',
@@ -280,7 +280,7 @@ class AppTranslations extends Translations {
       AppStrings.commonContinue: 'Continue',
       AppStrings.commonClose: 'Close',
       AppStrings.commonDelete: 'Delete',
-      AppStrings.homeTitle: 'Framora',
+      AppStrings.homeTitle: 'Uncrowd',
       AppStrings.homePickPhoto: 'Pick a photo',
       AppStrings.homeEmptyLine:
           'Remove background people from a photo. Your subject stays untouched.',
@@ -296,9 +296,9 @@ class AppTranslations extends Translations {
           'Demo photo. Drag to compare the original and cleaned photo.',
       AppStrings.consentTitle: 'Before your photo is uploaded',
       AppStrings.consentBody:
-          'To remove people, Framora sends the photo you choose to '
+          'To remove people, uncrowd sends the photo you choose to '
           '@provider over an encrypted connection. Only that one photo is '
-          'sent — Framora does not access the rest of your library.\n\n'
+          'sent — uncrowd does not access the rest of your library.\n\n'
           'Your photo is used only to create your cleaned photo. It is '
           'never used to train AI models and is deleted from our servers '
           'when processing finishes, and in all cases within 24 hours.',
@@ -306,7 +306,7 @@ class AppTranslations extends Translations {
       AppStrings.consentTrustEncryptedTitle: 'Encrypted single-photo transfer',
       AppStrings.consentTrustEncryptedDesc:
           'Sent to @provider over an encrypted connection. Only this photo '
-          'is sent \u2014 Framora never accesses the rest of your photo library.',
+          'is sent \u2014 uncrowd never accesses the rest of your photo library.',
       AppStrings.consentTrustNoTrainTitle: 'Never used to train AI',
       AppStrings.consentTrustNoTrainDesc:
           'Your photo is used solely to remove background people. It is '
@@ -315,7 +315,7 @@ class AppTranslations extends Translations {
       AppStrings.consentTrustDeleteDesc:
           'Permanently deleted from our servers when processing finishes, '
           'and in all cases within 24 hours.',
-      AppStrings.consentProviderFallback: "Framora's processing servers",
+      AppStrings.consentProviderFallback: "uncrowd's processing servers",
       AppStrings.consentPrivacyLink: 'Full details: Privacy Policy',
       AppStrings.processingUploading: 'Uploading your photo…',
       AppStrings.processingFindingRemoving: 'Finding people and removing them…',
@@ -461,7 +461,7 @@ class AppTranslations extends Translations {
       AppStrings.brushClear: 'Clear',
       AppStrings.brushSize: 'Brush size',
       AppStrings.brushFixing: 'Fixing…',
-      AppStrings.paywallTitle: 'Framora Pro',
+      AppStrings.paywallTitle: 'uncrowd Pro',
       AppStrings.paywallHeadline: '10 saves a month becomes 300',
       AppStrings.paywallSubhead:
           'Every save is full resolution, with no watermark — free or Pro.',
@@ -486,8 +486,7 @@ class AppTranslations extends Translations {
           'One-time payment. Full access forever on all your Android devices.',
       AppStrings.paywallRestore: 'Restore Purchases',
       AppStrings.paywallNotNow: 'Not now',
-      AppStrings.paywallNotNowNote:
-          'This photo stays available for 24 hours.',
+      AppStrings.paywallNotNowNote: 'This photo stays available for 24 hours.',
       AppStrings.paywallPricesUnavailable:
           "Prices couldn't load. Check your connection.",
       AppStrings.paywallPurchaseUnavailable:
@@ -522,7 +521,7 @@ class AppTranslations extends Translations {
           'You are offline. Your photo stays on this phone.',
       AppStrings.errorNotImplemented: 'This part is not ready yet.',
       AppStrings.errorPhotoTooLarge:
-          'This photo is larger than Framora can process.',
+          'This photo is larger than uncrowd can process.',
       AppStrings.errorUploadFailed:
           "The upload didn't finish. Check your connection and try again.",
       AppStrings.errorProcessingFailed:

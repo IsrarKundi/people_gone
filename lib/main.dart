@@ -41,7 +41,7 @@ class PeopleGoneApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Framora',
+      title: 'uncrowd',
       debugShowCheckedModeBanner: false,
       translations: AppTranslations(),
       locale: const Locale('en', 'US'),

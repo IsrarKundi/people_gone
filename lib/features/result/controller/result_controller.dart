@@ -348,7 +348,7 @@ class ResultController extends GetxController {
   /// attached only if the user adds it themselves. The in-app report
   /// endpoint replaces this when the gateway lands (Phase 2).
   Future<void> report() async {
-    final subject = Uri.encodeComponent('Framora result report');
+    final subject = Uri.encodeComponent('uncrowd result report');
     final body = Uri.encodeComponent(
       'People detected: ${outcome.personsDetected}\n'
       'People removed: ${outcome.removedIds.length}\n'
