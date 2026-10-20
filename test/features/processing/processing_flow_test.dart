@@ -12,7 +12,9 @@ import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
+import 'package:people_gone/features/processing/controller/processing_controller.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
+import 'package:people_gone/services/processing/job_tracker.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
 
@@ -324,5 +326,34 @@ void main() {
       find.text("There's nobody in the background to remove."),
       findsOneWidget,
     );
+  });
+
+  testWidgets('foreground completion clears JobTracker so activeJob is null on Result and Home', (
+    tester,
+  ) async {
+    api.next = Success<ProcessedPhoto>(photo(removed: <int>[1], detected: 2));
+    await pumpFlow(tester);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(JobTracker.instance.activeJob.value, isNull);
+  });
+
+  testWidgets('workInBackground keeps job in JobTracker and marks done on completion', (
+    tester,
+  ) async {
+    api.gate = Completer<void>();
+    api.next = Success<ProcessedPhoto>(photo(removed: <int>[1], detected: 2));
+    await pumpFlow(tester);
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final controller = Get.find<ProcessingController>();
+    controller.workInBackground();
+    await tester.pumpAndSettle();
+    expect(JobTracker.instance.activeJob.value?.status, ActiveJobStatus.processing);
+
+    api.gate!.complete();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(JobTracker.instance.activeJob.value?.status, ActiveJobStatus.done);
+    JobTracker.instance.clear();
   });
 }

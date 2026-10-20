@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-
 import '../../../config/app_config.dart';
 import '../../../core/haptics/app_haptics.dart';
 import '../../../core/routes/app_routes.dart';
@@ -14,6 +13,7 @@ import '../../../core/strings/app_strings.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/widgets/app_sheet.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../../../services/processing/job_tracker.dart';
 import '../../../services/processing/processing_api.dart';
 import '../../../services/storage/local_store.dart';
 import '../../brush/model/brush_args.dart';
@@ -66,6 +66,7 @@ class ResultController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    JobTracker.instance.clear();
     outcome = Get.arguments as ProcessingOutcome;
     resultPath = outcome.resultPath.obs;
     _initRemovedCenters();
@@ -389,7 +390,10 @@ class ResultController extends GetxController {
 
   void toggleCompare() => compareMode.value = !compareMode.value;
 
-  void goHome() => Get.offAllNamed<void>(Routes.home);
+  void goHome() {
+    JobTracker.instance.clear();
+    Get.offAllNamed<void>(Routes.home);
+  }
 
-  void pickAnother() => Get.offAllNamed<void>(Routes.home);
+  void pickAnother() => goHome();
 }

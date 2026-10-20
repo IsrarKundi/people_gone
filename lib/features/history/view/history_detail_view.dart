@@ -51,7 +51,7 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                   SizedBox(height: s.md),
                   PrimaryButton(
                     labelKey: AppStrings.resultSave,
-                    icon: AppIcons.checkFill,
+                    // icon: AppIcons.checkFill,
                     onPressed: controller.saveToGallery,
                   ),
                   SizedBox(height: s.sm),
@@ -69,7 +69,11 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
                           height: s.buttonSecondary,
                           child: OutlinedButton.icon(
                             onPressed: controller.delete,
-                            icon: Icon(AppIcons.trash, size: s.iconSm, color: p.error),
+                            icon: Icon(
+                              AppIcons.trash,
+                              size: s.iconSm,
+                              color: p.error,
+                            ),
                             label: Text(
                               AppStrings.commonDelete.tr,
                               style: context.textStyles.labelLg.copyWith(
@@ -103,26 +107,28 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
 
     final disableAnimations =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final heroTag =
-        disableAnimations ? 'disabled_${entry.id}' : 'history_photo_${entry.id}';
+    final heroTag = disableAnimations
+        ? 'disabled_${entry.id}'
+        : 'history_photo_${entry.id}';
 
     Widget wrapHero(Widget child) {
       return Hero(
         tag: heroTag,
-        flightShuttleBuilder: (
-          flightContext,
-          animation,
-          flightDirection,
-          fromHeroContext,
-          toHeroContext,
-        ) {
-          return Image.file(
-            File(entry.localPath),
-            fit: BoxFit.contain,
-            cacheWidth: MediaQuery.sizeOf(flightContext).width.toInt(),
-            errorBuilder: (_, _, _) => const SizedBox.shrink(),
-          );
-        },
+        flightShuttleBuilder:
+            (
+              flightContext,
+              animation,
+              flightDirection,
+              fromHeroContext,
+              toHeroContext,
+            ) {
+              return Image.file(
+                File(entry.localPath),
+                fit: BoxFit.contain,
+                cacheWidth: MediaQuery.sizeOf(flightContext).width.toInt(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              );
+            },
         child: child,
       );
     }
@@ -141,8 +147,9 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
     return Obx(() {
       final comparing = controller.compareMode.value;
       final holding = controller.showOriginal.value;
-      final shownPath =
-          holding && !comparing ? entry.originalPath! : entry.localPath;
+      final shownPath = holding && !comparing
+          ? entry.originalPath!
+          : entry.localPath;
 
       return PhotoSurface(
         imageProvider: ResizeImage(

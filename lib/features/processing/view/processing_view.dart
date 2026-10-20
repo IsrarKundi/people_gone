@@ -33,22 +33,29 @@ class ProcessingView extends GetView<ProcessingController> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return AppScaffold(
-      body: Obx(() {
-        final error = controller.errorMessage.value;
-        if (error != null) {
-          return ErrorView(
-            messageKey: error,
-            onRetry: controller.start,
-            onShareDiagnostics: () =>
-                Share.share(DiagnosticsLog.instance.export()),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        controller.workInBackground();
+      },
+      child: AppScaffold(
+        body: Obx(() {
+          final error = controller.errorMessage.value;
+          if (error != null) {
+            return ErrorView(
+              messageKey: error,
+              onRetry: controller.start,
+              onShareDiagnostics: () =>
+                  Share.share(DiagnosticsLog.instance.export()),
+            );
+          }
+          return Container(
+            color: p.background,
+            child: SafeArea(child: _ProcessingContent(controller: controller)),
           );
-        }
-        return Container(
-          color: p.background,
-          child: SafeArea(child: _ProcessingContent(controller: controller)),
-        );
-      }),
+        }),
+      ),
     );
   }
 }

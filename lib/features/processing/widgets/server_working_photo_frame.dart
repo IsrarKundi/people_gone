@@ -24,8 +24,6 @@ import 'matte_light_glide_painter.dart';
 /// 5. Dynamic Ambient Canvas Bloom (Idea 3): multi-layer ambilight halo
 ///    radiating outward beyond frame borders, breathing and blooming in sync
 ///    with the light glide and shifting in 3D parallax on touch.
-/// 6. Floating Sunlight Particle Motes (Idea 4): microscopic luminescent specks
-///    drifting in the matte glass that illuminate in the sunbeam and part on touch.
 class ServerWorkingPhotoFrame extends StatefulWidget {
   const ServerWorkingPhotoFrame({
     super.key,
@@ -302,82 +300,81 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
                       ]
                     : null,
               ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(1.25),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      // Photo layer: isolated in RepaintBoundary so ImageFilter is
-                      // not re-rasterized on every tick of the light glide or breathe loop.
-                      RepaintBoundary(
-                        child: blurSigma > 0.05
-                            ? ImageFiltered(
-                                imageFilter: ui.ImageFilter.blur(
-                                  sigmaX: blurSigma,
-                                  sigmaY: blurSigma,
-                                  tileMode: TileMode.clamp,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(1.25),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    // Photo layer: isolated in RepaintBoundary so ImageFilter is
+                    // not re-rasterized on every tick of the light glide or breathe loop.
+                    RepaintBoundary(
+                      child: blurSigma > 0.05
+                          ? ImageFiltered(
+                              imageFilter: ui.ImageFilter.blur(
+                                sigmaX: blurSigma,
+                                sigmaY: blurSigma,
+                                tileMode: TileMode.clamp,
+                              ),
+                              child: photoWidget,
+                            )
+                          : photoWidget,
+                    ),
+
+                    // Organic breathing frosted scrim overlay
+                    if (progress > 0)
+                      Positioned.fill(
+                        child: AnimatedBuilder(
+                          animation: _breatheController,
+                          builder: (context, _) {
+                            final breatheFactor = disable
+                                ? 0.0
+                                : Curves.easeInOut.transform(
+                                    _breatheController.value,
+                                  );
+                            final frostedAlpha =
+                                (0.025 + (0.015 * breatheFactor)) * progress;
+                            return DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(
+                                  alpha: frostedAlpha,
                                 ),
-                                child: photoWidget,
-                              )
-                            : photoWidget,
+                              ),
+                            );
+                          },
+                        ),
                       ),
 
-                      // Organic breathing frosted scrim overlay
-                      if (progress > 0)
-                        Positioned.fill(
+                    // Diagonal light glide band: dual-density soft caustic + touch tracking
+                    if (widget.isWorking && !disable && progress > 0)
+                      Positioned.fill(
+                        child: RepaintBoundary(
                           child: AnimatedBuilder(
-                            animation: _breatheController,
+                            animation: Listenable.merge(<Listenable>[
+                              _glideController,
+                              _touchController,
+                            ]),
                             builder: (context, _) {
-                              final breatheFactor = disable
-                                  ? 0.0
-                                  : Curves.easeInOut.transform(
-                                      _breatheController.value,
-                                    );
-                              final frostedAlpha =
-                                  (0.025 + (0.015 * breatheFactor)) * progress;
-                              return DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(
-                                    alpha: frostedAlpha,
+                              return CustomPaint(
+                                painter: MatteLightGlidePainter(
+                                  progress: _glideController.value,
+                                  opacity: progress,
+                                  touchOffset: _touchOffset,
+                                  touchWeight: Curves.easeOutCubic.transform(
+                                    _touchController.value,
                                   ),
                                 ),
                               );
                             },
                           ),
                         ),
-
-                      // Diagonal light glide band: dual-density soft caustic + touch tracking
-                      if (widget.isWorking && !disable && progress > 0)
-                        Positioned.fill(
-                          child: RepaintBoundary(
-                            child: AnimatedBuilder(
-                              animation: Listenable.merge(<Listenable>[
-                                _glideController,
-                                _touchController,
-                              ]),
-                              builder: (context, _) {
-                                return CustomPaint(
-                                  painter: MatteLightGlidePainter(
-                                    progress: _glideController.value,
-                                    opacity: progress,
-                                    touchOffset: _touchOffset,
-                                    touchWeight: Curves.easeOutCubic.transform(
-                                      _touchController.value,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ),
-          );
-        },
-      );
+          ),
+        );
+      },
+    );
   }
 }
-

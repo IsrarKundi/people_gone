@@ -127,8 +127,10 @@ class ProcessingController extends GetxController {
           JobTracker.instance.clear();
           _goHome();
         } else {
-          JobTracker.instance.trackFailed(failure.userMessageKey);
-          if (!_left) {
+          if (_left) {
+            JobTracker.instance.trackFailed(failure.userMessageKey);
+          } else {
+            JobTracker.instance.clear();
             errorMessage.value = failure.userMessageKey;
           }
         }
@@ -153,12 +155,18 @@ class ProcessingController extends GetxController {
           reflectionWarning: photo.reflectionWarning,
           reflectionRegions: photo.reflectionRegions,
         );
-        JobTracker.instance.trackDone(outcome);
-        if (_left) return;
+        if (_left) {
+          JobTracker.instance.trackDone(outcome);
+          return;
+        }
+        JobTracker.instance.clear();
         Get.offNamed<void>(Routes.result, arguments: outcome);
       case Failure<String>():
-        JobTracker.instance.trackFailed(AppStrings.errorGeneric);
-        if (_left) return;
+        if (_left) {
+          JobTracker.instance.trackFailed(AppStrings.errorGeneric);
+          return;
+        }
+        JobTracker.instance.clear();
         errorMessage.value = AppStrings.errorGeneric;
     }
   }

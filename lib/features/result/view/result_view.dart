@@ -199,4 +199,3 @@ class ResultView extends GetView<ResultController> {
     );
   }
 }
-

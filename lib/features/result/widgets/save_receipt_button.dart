@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -56,7 +55,7 @@ class _SaveReceiptButtonState extends State<SaveReceiptButton> {
       final savedNow = widget.controller.saved.value;
       return PrimaryButton(
         labelKey: savedNow ? AppStrings.resultSaved : AppStrings.resultSave,
-        icon: savedNow ? AppIcons.checkFill : null,
+        // icon: savedNow ? AppIcons.checkFill : null,
         isSuccess: savedNow && _holdingReceipt,
         isLoading: widget.controller.isSaving.value,
         onPressed: savedNow ? null : widget.controller.save,
