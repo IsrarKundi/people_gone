@@ -3,12 +3,9 @@
 Engine policy (from the 2026-10-12/13 patch tests):
   default fill = MAT   (best texture fills, never invents objects, fast)
   fallback     = LaMa  (selectable via engine="lama"; original pipeline engine)
-  engine="auto"        = RacingInpainter: MAT vs the generative leg raced
-                         on large patches only, ghost-check residual picks
-                         the winner (see racing_inpainter.py /
-                         RACING_NOTES.md). Generative leg = SDXL inpainting
-                         since Phase E2; PowerPaint stays in the image
-                         unwired (one-line rollback).
+  engine="auto"        = RacingInpainter: MAT vs PowerPaint raced on large
+                         patches only, ghost-check residual picks the winner
+                         (see racing_inpainter.py / RACING_NOTES.md).
 
 Run (from this folder, after `modal token new`):
     modal deploy modal_app.py
@@ -65,8 +62,6 @@ image = (
             "PP_REPO": "/app/PowerPaint-repo",
             "PP_CKPT_DIR": "/models/powerpaint",
             "PP_STEPS": "30",
-            "SDXL_CKPT_DIR": "/models/sdxl-inpaint",
-            "XL_STEPS": "28",
         }
     )
     # Bake model weights into the image so cold starts don't download GBs.
@@ -88,15 +83,6 @@ image = (
         "local_dir='/models/powerpaint'); "
         "hf_hub_download('JunhaoZhuang/PowerPaint-v1', "
         "'text_encoder/text_encoder.safetensors', local_dir='/models/powerpaint')\"",
-        # SDXL inpainting weights (Phase E2 racing leg): fp16 files only
-        # (~7.3 GB — the repo also carries fp32 duplicates we never fetch);
-        # the VAE weights are upcast to fp32 at load (see sdxl_inpainter.py).
-        "python -c \""
-        "from huggingface_hub import snapshot_download; "
-        "snapshot_download('diffusers/stable-diffusion-xl-1.0-inpainting-0.1', "
-        "allow_patterns=['*.json', '**/*.json', '*.txt', '**/*.txt', "
-        "'*.model', '**/*.fp16.safetensors'], "
-        "local_dir='/models/sdxl-inpaint')\"",
     )
     # PowerPaint runtime code, pinned to the exact commit the Phase 0
     # harness ran with (open-mmlab/PowerPaint @ 5b4c3d5, 2024-08-29).
@@ -123,24 +109,21 @@ image = (
     .add_local_dir("server", remote_path="/app/server")
     .add_local_file("mat_inpainter.py", remote_path="/app/mat_inpainter.py")
     .add_local_file("pp_inpainter.py", remote_path="/app/pp_inpainter.py")
-    .add_local_file("sdxl_inpainter.py", remote_path="/app/sdxl_inpainter.py")
     .add_local_file("racing_inpainter.py", remote_path="/app/racing_inpainter.py")
 )
 
 app = modal.App(APP_NAME, image=image)
 
 
-# GPU (Phase E, 2026-10-22, owner-commissioned): T4 attached so the racing
-# inpainter's PowerPaint leg is viable — on CPU it took ~180 s/crop and
-# engine="auto" was rejected for speed alone (RACING_NOTES.md). Every model
-# in the pipeline auto-resolves cuda-when-available (MAT/detector/segmentor
-# always did; PowerPaint since the Phase E CUDA patch), so the code still
-# runs CPU-only elsewhere unchanged. The payment method the old CPU-era
-# note waited for is on the account; the owner's spend/usage caps apply.
-# timeout=1800 (raised from 900 on 2026-10-14): a 29 MP photo on the old
-# 4-core CPU container took longer than 900 s end-to-end, and the web
+# NOTE: GPU ("T4") requires a payment method on the Modal account (the free
+# $30/mo credits still apply after it's added). Until then we deploy CPU-only
+# (4 cores / 8 GB) — slower (~1-3 min/photo) but it proves the full
+# endpoint + pipeline + app contract end to end. To upgrade: add the card in
+# Modal billing, change this decorator to gpu="T4" (drop cpu/memory), redeploy.
+# timeout=1800 (raised from 900 on 2026-10-14): a 29 MP photo on this
+# 4-core CPU container takes longer than 900 s end-to-end, and the web
 # function below timed out at Modal's 300 s default while waiting.
-@app.cls(cpu=4.0, memory=16384, gpu="T4", timeout=1800, scaledown_window=180)
+@app.cls(cpu=4.0, memory=8192, timeout=1800, scaledown_window=180)
 class Processor:
     @modal.enter()
     def load(self):
@@ -150,20 +133,17 @@ class Processor:
         sys.path.insert(0, "/app")
         from worker.pipeline import PeopleGonePipeline
         from mat_inpainter import MatInpainter
-        from sdxl_inpainter import XLInpainter
+        from pp_inpainter import PowerPaintInpainter
         from racing_inpainter import RacingInpainter
 
         self.pipeline = PeopleGonePipeline()
         self._lama = self.pipeline.inpainter  # pipeline's own LaMa inpainter
         self._mat = MatInpainter()
         # Racing inpainter for engine="auto": constructed here, but the
-        # SDXL weights load LAZILY on its first raced crop — building
-        # this object costs nothing and never loads XL at startup.
-        # Phase E2: XLInpainter is the generative leg; PowerPaint's class
-        # and weights stay in the image unwired (rollback = swap this
-        # constructor argument back to PowerPaintInpainter()).
+        # PowerPaint weights load LAZILY on its first raced crop — building
+        # this object costs nothing and never loads PP at startup.
         self._racing = RacingInpainter(
-            self._mat, XLInpainter(), self.pipeline.detector
+            self._mat, PowerPaintInpainter(), self.pipeline.detector
         )
 
     @modal.method()
