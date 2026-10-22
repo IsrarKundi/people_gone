@@ -1,11 +1,25 @@
 """PeopleGone worker on Modal (serverless GPU, free-tier friendly).
 
-Engine policy (from the 2026-10-12/13 patch tests):
+Engine policy:
   default fill = MAT   (best texture fills, never invents objects, fast)
   fallback     = LaMa  (selectable via engine="lama"; original pipeline engine)
-  engine="auto"        = RacingInpainter: MAT vs PowerPaint raced on large
-                         patches only, ghost-check residual picks the winner
-                         (see racing_inpainter.py / RACING_NOTES.md).
+  engine="rorem"       = RORem fills every crop (explicit force; the
+                         removal-fine-tuned SDXL inpainter integrated
+                         2026-10-23 — see rorem_inpainter.py).
+  engine="auto"        = the OWNER'S ROUTING RULE (2026-10-23,
+                         server/worker/routing.py): removals < 3 ->
+                         RORem; a removal touching a keeper's guard
+                         zone AND removals < 8 -> RORem; else MAT.
+                         One engine per photo; a RORem failure under
+                         "auto" completes the job with MAT and the
+                         meta says so (routing_reason=
+                         "rorem_failed_fallback"). Meta always
+                         carries engine_used / routing_reason /
+                         removal_count / overlap_detected.
+  (The 2026-10-22 PowerPaint racing meaning of "auto" was reverted
+  the same day — ff64281 — and is NOT what "auto" means now.
+  pp_inpainter.py / racing_inpainter.py remain in the image,
+  unwired.)
 
 Run (from this folder, after `modal token new`):
     modal deploy modal_app.py
@@ -62,6 +76,7 @@ image = (
             "PP_REPO": "/app/PowerPaint-repo",
             "PP_CKPT_DIR": "/models/powerpaint",
             "PP_STEPS": "30",
+            "ROREM_DIR": "/models/rorem",
         }
     )
     # Bake model weights into the image so cold starts don't download GBs.
@@ -83,6 +98,20 @@ image = (
         "local_dir='/models/powerpaint'); "
         "hf_hub_download('JunhaoZhuang/PowerPaint-v1', "
         "'text_encoder/text_encoder.safetensors', local_dir='/models/powerpaint')\"",
+        # RORem weights (2026-10-23 integration): full SDXL-inpaint
+        # pipeline, baked like every other model.
+        "python -c \""
+        "from huggingface_hub import snapshot_download; "
+        "snapshot_download('LetsThink/RORem', local_dir='/models/rorem')\"",
+        # Verify the RORem UNet against the SHA-256 published in the
+        # HF API listing (read 2026-10-23) — build aborts on mismatch.
+        "python -c \""
+        "import hashlib; "
+        "h = hashlib.sha256(); "
+        "f = open('/models/rorem/unet/diffusion_pytorch_model.safetensors', 'rb'); "
+        "[h.update(c) for c in iter(lambda: f.read(1 << 22), b'')]; "
+        "d = h.hexdigest(); print('rorem unet sha256:', d); "
+        "assert d == 'ed10552914ce17189e9544071b2b3d1cbd467834e0e5a7b79469dc32800b8b4e', d\"",
     )
     # PowerPaint runtime code, pinned to the exact commit the Phase 0
     # harness ran with (open-mmlab/PowerPaint @ 5b4c3d5, 2024-08-29).
@@ -110,20 +139,25 @@ image = (
     .add_local_file("mat_inpainter.py", remote_path="/app/mat_inpainter.py")
     .add_local_file("pp_inpainter.py", remote_path="/app/pp_inpainter.py")
     .add_local_file("racing_inpainter.py", remote_path="/app/racing_inpainter.py")
+    .add_local_file("rorem_inpainter.py", remote_path="/app/rorem_inpainter.py")
 )
 
 app = modal.App(APP_NAME, image=image)
 
 
-# NOTE: GPU ("T4") requires a payment method on the Modal account (the free
-# $30/mo credits still apply after it's added). Until then we deploy CPU-only
-# (4 cores / 8 GB) — slower (~1-3 min/photo) but it proves the full
-# endpoint + pipeline + app contract end to end. To upgrade: add the card in
-# Modal billing, change this decorator to gpu="T4" (drop cpu/memory), redeploy.
-# timeout=1800 (raised from 900 on 2026-10-14): a 29 MP photo on this
-# 4-core CPU container takes longer than 900 s end-to-end, and the web
-# function below timed out at Modal's 300 s default while waiting.
-@app.cls(cpu=4.0, memory=8192, timeout=1800, scaledown_window=180)
+# GPU (owner's order, 2026-10-23): the whole worker runs on a T4 —
+# MAT included ("put mat on gpu too"). RORem cannot run usefully on
+# CPU (~6 s/fill on T4 vs minutes on CPU), and Phase E (2026-10-22)
+# proved this exact GPU configuration for MAT before its model work
+# was reverted. A payment method is on the account (added
+# 2026-10-15); the free $30/mo credits still apply first.
+# scaledown_window=180 (unchanged from the CPU era): a burst of the
+# owner's testing reuses one warm container, and the idle tail is
+# ~3 min of T4 time (~$0.03) per cold start.
+# timeout=1800 (raised from 900 on 2026-10-14): a 29 MP photo takes
+# longer than 900 s end-to-end, and the web function below timed out
+# at Modal's 300 s default while waiting.
+@app.cls(gpu="T4", timeout=1800, scaledown_window=180)
 class Processor:
     @modal.enter()
     def load(self):
@@ -133,33 +167,35 @@ class Processor:
         sys.path.insert(0, "/app")
         from worker.pipeline import PeopleGonePipeline
         from mat_inpainter import MatInpainter
-        from pp_inpainter import PowerPaintInpainter
-        from racing_inpainter import RacingInpainter
+        from rorem_inpainter import RORemInpainter
 
         self.pipeline = PeopleGonePipeline()
         self._lama = self.pipeline.inpainter  # pipeline's own LaMa inpainter
         self._mat = MatInpainter()
-        # Racing inpainter for engine="auto": constructed here, but the
-        # PowerPaint weights load LAZILY on its first raced crop — building
-        # this object costs nothing and never loads PP at startup.
-        self._racing = RacingInpainter(
-            self._mat, PowerPaintInpainter(), self.pipeline.detector
-        )
+        # RORem: constructed here, weights load LAZILY on its first
+        # crop — a MAT-only job never pays the RORem load or VRAM.
+        self._rorem = RORemInpainter()
+        # Engine routing registry (worker/routing.py): the pipeline
+        # picks per job from engine_request — forced engines and the
+        # owner's "auto" rule both resolve through this dict.
+        self.pipeline.inpainters = {
+            "mat": self._mat,
+            "lama": self._lama,
+            "rorem": self._rorem,
+        }
 
     @modal.method()
     def process(self, image_bytes: bytes, engine: str = "mat", keep_ids: list = None,
                 remove_item_ids: list = None, detached_belonging_ids: list = None):
-        # Engine swap: the pipeline only calls inpainter.inpaint_crop(...)
-        if engine == "lama":
-            self.pipeline.inpainter = self._lama
-            engine_used = "lama"
-        elif engine == "auto":
-            self._racing.records = []  # reset per call
-            self.pipeline.inpainter = self._racing
-            engine_used = "auto"
-        else:  # "mat" (default)
-            self.pipeline.inpainter = self._mat
-            engine_used = "mat"
+        # The pipeline resolves the engine per job (routing rule for
+        # "auto", forced otherwise) and stamps the meta itself:
+        # engine_used / routing_reason / removal_count /
+        # overlap_detected all come back in meta.
+        if engine not in ("mat", "lama", "rorem", "auto"):
+            engine = "mat"
+        self.pipeline.engine_request = engine
+        if engine in ("auto", "rorem"):
+            self._rorem.reset()  # per-job deterministic fill seeds
         jpeg, meta = self.pipeline.process(
             image_bytes, keep=keep_ids,
             remove_item_ids=remove_item_ids,
@@ -167,9 +203,8 @@ class Processor:
         )
         meta = dict(meta)
         meta["engine_requested"] = engine
-        meta["engine_used"] = engine_used
-        if engine == "auto":
-            meta["crop_engines"] = list(self._racing.records)
+        if not meta.get("engine_used"):
+            meta["engine_used"] = engine if engine != "auto" else "mat"
         return jpeg, meta
 
     @modal.method()
