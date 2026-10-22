@@ -115,15 +115,17 @@ image = (
 app = modal.App(APP_NAME, image=image)
 
 
-# NOTE: GPU ("T4") requires a payment method on the Modal account (the free
-# $30/mo credits still apply after it's added). Until then we deploy CPU-only
-# (4 cores / 8 GB) — slower (~1-3 min/photo) but it proves the full
-# endpoint + pipeline + app contract end to end. To upgrade: add the card in
-# Modal billing, change this decorator to gpu="T4" (drop cpu/memory), redeploy.
-# timeout=1800 (raised from 900 on 2026-10-14): a 29 MP photo on this
-# 4-core CPU container takes longer than 900 s end-to-end, and the web
+# GPU (Phase E, 2026-10-22, owner-commissioned): T4 attached so the racing
+# inpainter's PowerPaint leg is viable — on CPU it took ~180 s/crop and
+# engine="auto" was rejected for speed alone (RACING_NOTES.md). Every model
+# in the pipeline auto-resolves cuda-when-available (MAT/detector/segmentor
+# always did; PowerPaint since the Phase E CUDA patch), so the code still
+# runs CPU-only elsewhere unchanged. The payment method the old CPU-era
+# note waited for is on the account; the owner's spend/usage caps apply.
+# timeout=1800 (raised from 900 on 2026-10-14): a 29 MP photo on the old
+# 4-core CPU container took longer than 900 s end-to-end, and the web
 # function below timed out at Modal's 300 s default while waiting.
-@app.cls(cpu=4.0, memory=8192, timeout=1800, scaledown_window=180)
+@app.cls(cpu=4.0, memory=16384, gpu="T4", timeout=1800, scaledown_window=180)
 class Processor:
     @modal.enter()
     def load(self):
