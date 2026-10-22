@@ -10,13 +10,18 @@ Every call appends a record to self.records so the caller can surface
 exactly which engine filled which crop, with timings and residuals.
 Fails loudly: any engine or scoring error propagates — no fallback.
 
-Winner rule (Phase E revision): the ghost residual detects leftover
-person-shapes only; it cannot judge fill realism. On a raced (large)
-hole MAT's smear is a proven failure (Phase 0 + the 2026-10-22 wedding
-photo, where the metric's MAT picks visibly melted the background),
-while PowerPaint's failure mode is invention, which the pipeline-level
-ghost retry still guards against. So PowerPaint wins a raced crop
-unless its residual is worse than MAT's by a clear margin.
+Winner rule (Phase E revision 2): the ghost residual detects leftover
+person-shapes only; it cannot judge fill realism — and it is noisy
+(identical MAT candidates scored 1.63 and 2.53 in consecutive live
+runs). But its absolute level carries one vital signal: a HIGH
+PowerPaint residual can mean PP invented a person. On the 2026-10-22
+wedding photo, an all-PP composite re-drew a whole phantom woman into
+the person-shaped hole (PP residuals 1.87–2.42), while PP's clean
+winning fills scored 0.91–0.93; MAT never invents people, its worst
+case is smear. Failure costs are asymmetric (phantom person =
+product-fatal, smear = ugly), so PP wins a raced crop only when its
+residual is BOTH under an absolute cleanliness bar AND not worse than
+MAT's by more than the margin.
 """
 import os
 import time
@@ -31,8 +36,10 @@ LARGE_PATCH_MIN_AREA_PX = 40000
 
 GHOST_CONFIDENCE_THRESH = 0.30
 
-# PowerPaint wins a raced crop when pp_residual <= mat_residual + margin.
+# PowerPaint wins a raced crop when pp_residual <= mat_residual + margin
+# AND pp_residual <= PP_CLEAN_MAX (absolute bar — see docstring).
 PP_WIN_MARGIN = float(os.environ.get("PG_PP_WIN_MARGIN", "0.5"))
+PP_CLEAN_MAX = float(os.environ.get("PG_PP_CLEAN_MAX", "1.0"))
 
 
 class RacingInpainter:
@@ -91,9 +98,9 @@ class RacingInpainter:
         mat_residual = self._residual_score(mat_candidate)
         pp_residual = self._residual_score(pp_candidate)
 
-        # PowerPaint wins unless its residual is worse by > PP_WIN_MARGIN
-        # (see module docstring — the residual cannot judge fill realism).
-        if pp_residual <= mat_residual + PP_WIN_MARGIN:
+        # PowerPaint wins only under the absolute cleanliness bar AND
+        # within the margin vs MAT (see module docstring, revision 2).
+        if pp_residual <= PP_CLEAN_MAX and pp_residual <= mat_residual + PP_WIN_MARGIN:
             winner, result = "powerpaint", pp_candidate
         else:
             winner, result = "mat", mat_candidate
@@ -107,6 +114,7 @@ class RacingInpainter:
                 "mat_residual": mat_residual,
                 "pp_residual": pp_residual,
                 "pp_win_margin": PP_WIN_MARGIN,
+                "pp_clean_max": PP_CLEAN_MAX,
                 "mat_ms": round(mat_ms, 1),
                 "pp_ms": round(pp_ms, 1),
             }
