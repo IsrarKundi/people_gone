@@ -168,10 +168,23 @@ Fields:
 - `engine` — optional, default `"mat"`. One of:
   - `"mat"` — MAT fill (default; best texture fills, never invents objects)
   - `"lama"` — LaMa fill (original pipeline engine)
-  - `"auto"` — RacingInpainter: MAT vs PowerPaint raced on large patches
-    only (mask ratio >= 0.15 of crop AND >= 40,000 px), ghost-check
-    residual picks the winner; `meta.crop_engines` records every crop.
-    See RACING_NOTES.md for live verification results.
+  - `"rorem"` — RORem fill on every crop (explicit force; integrated
+    2026-10-23). A RORem failure under this explicit engine RAISES —
+    no fallback, as everywhere in this worker.
+  - `"auto"` — the OWNER'S ROUTING RULE (2026-10-23, supersedes the
+    2026-10-22 PowerPaint-racing meaning of "auto", which was
+    reverted the same day): with R = persons being removed,
+    R < 3 → RORem; a removal's raw mask touching a keeper's guard
+    zone (keeper mask + KEEPER_GUARD_PX) AND R < 8 → RORem; else
+    MAT. One engine fills the whole photo. A RORem failure under
+    "auto" completes the job with MAT. `/process` meta ALWAYS
+    carries the additive fields `engine_used`, `routing_reason`
+    (`forced` | `r<3` | `overlap+r<8` | `default_mat` |
+    `rorem_failed_fallback`), `removal_count` and
+    `overlap_detected`. The app and the gateway default to "auto".
+    Also additive (2026-10-23): the bystander guard — every
+    detected non-removed person's pixels (mask + guard band) are
+    restored verbatim in the delivered photo, in both engines.
 - `keep` — optional, comma-separated person ids to keep, e.g. `"0,3"`.
   Empty = automatic keeper choice (largest / most central subject).
 - `remove_items` — optional (v3), comma-separated AMBIGUOUS belonging
