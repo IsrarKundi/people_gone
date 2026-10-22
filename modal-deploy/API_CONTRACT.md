@@ -174,12 +174,14 @@ Fields:
   - `"auto"` — the OWNER'S ROUTING RULE (2026-10-23, supersedes the
     2026-10-22 PowerPaint-racing meaning of "auto", which was
     reverted the same day): with R = persons being removed,
-    R < 3 → RORem; a removal's raw mask touching a keeper's guard
-    zone (keeper mask + KEEPER_GUARD_PX) AND R < 8 → RORem; else
-    MAT. One engine fills the whole photo. A RORem failure under
-    "auto" completes the job with MAT. `/process` meta ALWAYS
-    carries the additive fields `engine_used`, `routing_reason`
-    (`forced` | `r<3` | `overlap+r<8` | `default_mat` |
+    R < 6 → RORem; a removal's raw mask touching a keeper's guard
+    zone (keeper mask + KEEPER_GUARD_PX) AND R < 11 → RORem; else
+    MAT. (Thresholds widened by the owner later on 2026-10-23 —
+    originally R < 3 / AND R < 8.) One engine fills the whole
+    photo. A RORem failure under "auto" completes the job with
+    MAT. `/process` meta ALWAYS carries the additive fields
+    `engine_used`, `routing_reason`
+    (`forced` | `r<6` | `overlap+r<11` | `default_mat` |
     `rorem_failed_fallback`), `removal_count` and
     `overlap_detected`. The app and the gateway default to "auto".
     Also additive (2026-10-23): the bystander guard — every

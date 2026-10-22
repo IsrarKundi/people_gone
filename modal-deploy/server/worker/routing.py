@@ -5,10 +5,13 @@ Applied per PHOTO when the client asks for engine="auto" (explicit
 "mat" / "lama" / "rorem" requests are forced and never routed):
 
     R = number of persons being removed in the job
-    R < 3                                          -> RORem
+    R < 6                                          -> RORem
     a removal touches a keeper's guard zone
-        AND R < 8                                  -> RORem
+        AND R < 11                                 -> RORem
     otherwise                                      -> MAT
+
+(Thresholds widened by the owner later on 2026-10-23 — originally
+R < 3 / overlap AND R < 8.)
 
 One engine fills the whole photo — never a mix per crop. "Touches
 the guard zone" = the removed person's RAW SAM mask intersects the
@@ -56,10 +59,10 @@ def removal_touches_keeper(
 
 def decide_engine(removal_count: int, overlap: bool) -> Tuple[str, str]:
     """The owner's rule. Returns (engine, routing_reason)."""
-    if removal_count < 3:
-        return "rorem", "r<3"
-    if overlap and removal_count < 8:
-        return "rorem", "overlap+r<8"
+    if removal_count < 6:
+        return "rorem", "r<6"
+    if overlap and removal_count < 11:
+        return "rorem", "overlap+r<11"
     return "mat", "default_mat"
 
 

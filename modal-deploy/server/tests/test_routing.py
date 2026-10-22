@@ -2,9 +2,11 @@
 Engine routing + bystander guard — the owner's rule (2026-10-23).
 
 Pins:
-  1. decide_engine: R<3 -> RORem; overlap AND R<8 -> RORem;
-     else MAT. (The wedding case — exactly 3 removals, men touching
-     the groom — reaches RORem via the overlap clause.)
+  1. decide_engine: R<6 -> RORem; overlap AND R<11 -> RORem;
+     else MAT. (Thresholds widened by the owner later on
+     2026-10-23 — originally R<3 / overlap AND R<8. The wedding
+     case — exactly 3 removals — now reaches RORem via the count
+     clause.)
   2. removal_touches_keeper geometry against the keeper guard zone
      (mask_prep.keeper_guard_mask — keeper + KEEPER_GUARD_PX).
   3. FallbackInpainter: a RORem failure under "auto" completes the
@@ -47,22 +49,25 @@ def mask_of(*rects):
 
 
 class TestDecideEngine(unittest.TestCase):
-    def test_fewer_than_three_removals_is_rorem(self):
-        self.assertEqual(decide_engine(1, False), ("rorem", "r<3"))
-        self.assertEqual(decide_engine(2, False), ("rorem", "r<3"))
+    def test_fewer_than_six_removals_is_rorem(self):
+        self.assertEqual(decide_engine(1, False), ("rorem", "r<6"))
+        self.assertEqual(decide_engine(2, False), ("rorem", "r<6"))
+        # Boundary: 5 removals is still the count clause.
+        self.assertEqual(decide_engine(5, False), ("rorem", "r<6"))
         # The count clause wins even when there is also overlap.
-        self.assertEqual(decide_engine(2, True), ("rorem", "r<3"))
+        self.assertEqual(decide_engine(5, True), ("rorem", "r<6"))
 
     def test_overlap_clause(self):
-        # The wedding shape: exactly 3 removals, touching the keeper.
-        self.assertEqual(decide_engine(3, True), ("rorem", "overlap+r<8"))
-        self.assertEqual(decide_engine(7, True), ("rorem", "overlap+r<8"))
+        # Boundary: 6 removals reaches RORem only via overlap.
+        self.assertEqual(decide_engine(6, True), ("rorem", "overlap+r<11"))
+        self.assertEqual(decide_engine(10, True), ("rorem", "overlap+r<11"))
 
     def test_default_mat(self):
-        self.assertEqual(decide_engine(3, False), ("mat", "default_mat"))
+        # Boundary: 6 removals without overlap is MAT.
+        self.assertEqual(decide_engine(6, False), ("mat", "default_mat"))
         self.assertEqual(decide_engine(7, False), ("mat", "default_mat"))
-        # 8+ removals is MAT even with overlap.
-        self.assertEqual(decide_engine(8, True), ("mat", "default_mat"))
+        # 11+ removals is MAT even with overlap.
+        self.assertEqual(decide_engine(11, True), ("mat", "default_mat"))
         self.assertEqual(decide_engine(13, True), ("mat", "default_mat"))
 
 
@@ -227,7 +232,7 @@ class TestPipelineRouting(unittest.TestCase):
         pipe = make_pipeline(rorem)
         meta, out = run_capturing(pipe, keep=[0])
         self.assertEqual(meta["engine_used"], "rorem")
-        self.assertEqual(meta["routing_reason"], "r<3")
+        self.assertEqual(meta["routing_reason"], "r<6")
         self.assertEqual(meta["removal_count"], 1)
         self.assertFalse(meta["overlap_detected"])
         self.assertEqual(int(out[200, 170, 0]), ROREM_FILL)

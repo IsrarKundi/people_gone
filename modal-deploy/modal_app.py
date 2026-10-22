@@ -7,9 +7,11 @@ Engine policy:
                          removal-fine-tuned SDXL inpainter integrated
                          2026-10-23 — see rorem_inpainter.py).
   engine="auto"        = the OWNER'S ROUTING RULE (2026-10-23,
-                         server/worker/routing.py): removals < 3 ->
+                         server/worker/routing.py): removals < 6 ->
                          RORem; a removal touching a keeper's guard
-                         zone AND removals < 8 -> RORem; else MAT.
+                         zone AND removals < 11 -> RORem; else MAT.
+                         (Thresholds widened by the owner later on
+                         2026-10-23 — originally < 3 / < 8.)
                          One engine per photo; a RORem failure under
                          "auto" completes the job with MAT and the
                          meta says so (routing_reason=
