@@ -110,3 +110,23 @@ Caveats that matter for interpreting this:
   clean. Seeded PP retries under the veto were weighed and deferred:
   measure the veto fire-rate first; a retry can still invent
   non-person objects, which no person-veto catches.
+
+## Phase E2 addendum (2026-10-22) — SDXL leg
+- The generative leg is now XLInpainter (sdxl_inpainter.py):
+  diffusers/stable-diffusion-xl-1.0-inpainting-0.1, fp16 (+ fp32 VAE
+  with force_upcast=True), 1024 px short side / ~1.6M px cap, strength
+  1.0, guidance 7.5, UniPC, seed 42, XL_STEPS default 28. PowerPaint's
+  class and weights stay in the image unwired — rollback is swapping
+  the RacingInpainter constructor argument in modal_app.py.
+- The record fields (pp_residual, pp_ms, win_reason=pp_*) now describe
+  the XL leg; the rule itself is unchanged (veto first, then the bar).
+- Wedding gate, 4 runs across 3 prompt variants: XL re-dreamed people
+  into first-pass crops repeatedly (veto fired in runs 1, 3, 4 — hits
+  up to 0.95) and, when it won the tighter ghost-retry crops, invented
+  sizeable objects instead (floral stage arrangement in one run,
+  armchairs + wall + floor in another). No run passed the wedding bar;
+  piazza/lawn-wide did not regress (composites within JPEG noise of
+  Phase E's). Production default remains engine="mat"; see
+  ~/workspace/peoplegone/phase-e2/GATE-REPORT.md for the full gate.
+- XL leg cost when it races: ~50–80 s/crop on the T4 (vs PP's ~15 s) —
+  a wedding-class photo under "auto" takes ~4–5 min end-to-end.
