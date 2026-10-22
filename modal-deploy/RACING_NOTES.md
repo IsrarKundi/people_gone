@@ -71,3 +71,31 @@ Caveats that matter for interpreting this:
   comparison is still apples-to-apples (same crop, both candidates).
 - One raced crop is a sample of one. PowerPaint may still win on other
   large patches; it did not win the only one this testset produced.
+
+## Phase E addendum (2026-10-22) — GPU era
+- Processor now runs on a T4; PowerPaint is CUDA-patched (device +
+  generator auto-resolve; it previously hardcoded CPU) and its removal
+  negatives were extended with person/text/sign terms. MAT crop ~0.29 s,
+  PP crop ~15 s (fp32, 30 steps).
+- Winner rule v2: PP wins a raced crop only if its ghost residual is
+  <= 1.0 (absolute bar) AND within 0.5 of MAT's. Why: with PP effectively
+  winning everything, a wedding-photo composite invented a phantom woman
+  in the person-shaped hole (PP residuals 1.87–2.42 vs 0.91–0.93 for its
+  clean fills); in another run PP invented a fake text sign, which the
+  person-residual cannot see at all. MAT's worst case is smear; PP's is
+  invention — the bar encodes that asymmetry.
+- The residual is also NOISY run-to-run on GPU (identical MAT candidate
+  scored 1.63 / 2.53 / 1.72 in three runs), and — per the caveat above —
+  it counts real context people inside the crop bounds, so absolute
+  values are contaminated. Treat the bar as a coarse safety gate, not a
+  quality metric.
+- PP output is not reproducible run-to-run on GPU: the same wedding
+  photo produced invented stools, a phantom woman, a text sign, and a
+  white sofa across four runs. On the gate set (wedding / piazza /
+  lawn-wide), racing with the bar was safe but did not beat MAT-only on
+  the wedding class; piazza and lawn-wide passed (lawn-wide never
+  raced). Production default remains engine="mat"; see
+  ~/workspace/peoplegone/phase-e/GATE-REPORT.md for the full gate.
+- Known next-step candidates (not done): measure the race ratio against
+  the mask bbox instead of the context crop; score residuals inside the
+  filled mask only; an SDXL-class inpainter behind this same harness.
