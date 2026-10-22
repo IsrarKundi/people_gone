@@ -99,3 +99,14 @@ Caveats that matter for interpreting this:
 - Known next-step candidates (not done): measure the race ratio against
   the mask bbox instead of the context crop; score residuals inside the
   filled mask only; an SDXL-class inpainter behind this same harness.
+- WINNER RULE REVISION 3 (later the same day — PERSON VETO, product
+  law): a fill containing a newly invented PERSON is an automatic
+  reject regardless of scores. Before any residual comparison, each
+  candidate gets a detector pass; a detection >= 0.30 whose box is
+  >= 35% covered by filled-mask pixels disqualifies PP for that crop
+  (MAT fills; win_reason + hits recorded in the crop meta). Verified
+  live the same day: PP's big-crop wedding candidate carried a person
+  at score 0.92, 53.6% box-in-mask — vetoed, MAT filled, composite
+  clean. Seeded PP retries under the veto were weighed and deferred:
+  measure the veto fire-rate first; a retry can still invent
+  non-person objects, which no person-veto catches.
