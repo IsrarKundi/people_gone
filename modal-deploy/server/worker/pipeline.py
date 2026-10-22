@@ -38,6 +38,7 @@ from .distractions import (
     union_of,
 )
 from .inpainter import LamaInpainter, get_crop_bounds, composite_with_feather
+from .routing import FallbackInpainter, decide_engine, removal_touches_keeper
 from .reflections import (
     REFLECTION_PROMPTS,
     SURFACE_PROMPTS,
@@ -81,6 +82,15 @@ class PeopleGonePipeline:
         self.segmentor = SamSegmentor(checkpoint=self.config.sam_checkpoint)
         self.inpainter = LamaInpainter(checkpoint_path=self.config.lama_checkpoint)
         self._omdet_detector: Optional[OmDetDetector] = None
+        # Engine routing (owner's rule, 2026-10-23 — worker/routing.py).
+        # The host (modal_app) registers the available inpainters here
+        # and sets engine_request per job; when engine_request is None
+        # (unit tests, direct embedding) routing stays inactive and
+        # self.inpainter is used exactly as the caller set it.
+        self.engine_request: Optional[str] = None
+        self.inpainters: Dict[str, Any] = {}
+        self.last_routing: Dict[str, Any] = {}
+        self._auto_fallback: Optional[FallbackInpainter] = None
 
     def _get_omdet(self) -> Optional[OmDetDetector]:
         """Lazy OmDet handle (weights load on first analysis, not at
@@ -409,6 +419,61 @@ class PeopleGonePipeline:
             for d in distractions
         ]
 
+    def _select_engine(
+        self,
+        persons: List[Dict[str, Any]],
+        analysis: Dict[str, Any],
+        remove_ids,
+    ) -> Dict[str, Any]:
+        """Engine routing (owner's rule, 2026-10-23; worker/routing.py).
+
+        Runs once per job, right after analysis — the decision needs
+        only the removal count and the raw masks. Explicit engine
+        requests are forced; "auto" applies the rule (one engine for
+        the whole photo); under "auto" the chosen RORem is wrapped
+        so a RORem failure completes the job with MAT instead of
+        failing the user's clean (the stamp is fixed up by
+        _resolve_routing once the fills are done).
+        """
+        requested = getattr(self, "engine_request", None)
+        inpainters = getattr(self, "inpainters", None) or {}
+        overlap = removal_touches_keeper(
+            persons, analysis.get("person_masks") or [], set(remove_ids)
+        )
+        info: Dict[str, Any] = {
+            "removal_count": len(remove_ids),
+            "overlap_detected": bool(overlap),
+            "engine_used": None,
+            "routing_reason": None,
+        }
+        self._auto_fallback = None
+        if requested in ("mat", "lama", "rorem") and requested in inpainters:
+            self.inpainter = inpainters[requested]
+            info["engine_used"] = requested
+            info["routing_reason"] = "forced"
+        elif requested == "auto" and "rorem" in inpainters and "mat" in inpainters:
+            engine, reason = decide_engine(len(remove_ids), overlap)
+            if engine == "rorem":
+                self._auto_fallback = FallbackInpainter(
+                    inpainters["rorem"], inpainters["mat"]
+                )
+                self.inpainter = self._auto_fallback
+            else:
+                self.inpainter = inpainters["mat"]
+            info["engine_used"] = engine
+            info["routing_reason"] = reason
+        self.last_routing = info
+        return info
+
+    def _resolve_routing(self) -> None:
+        """Fix up the routing stamp after the fills: if the "auto"
+        RORem wrapper fell back to MAT mid-job, the delivered photo
+        is a MAT photo and the meta must say so."""
+        fb = getattr(self, "_auto_fallback", None)
+        if fb is not None and fb.fell_back:
+            self.last_routing["engine_used"] = "mat"
+            self.last_routing["routing_reason"] = "rorem_failed_fallback"
+
     def _get_fallbacks_used(self) -> List[str]:
         fallbacks = []
         if getattr(self.detector, "fallback_used", False):
@@ -460,6 +525,10 @@ class PeopleGonePipeline:
         keeper_ids = analysis["keeper_ids"]
         remove_ids = analysis["remove_ids"]
         tiered = analysis["tiered"]
+
+        # Engine routing (owner's rule, 2026-10-23): pick the one
+        # fill engine for this photo before any mask work begins.
+        self._select_engine(persons, analysis, remove_ids)
 
         remove_item_ids = set(remove_item_ids or [])
         detached_ids = set(detached_belonging_ids or [])
@@ -527,6 +596,18 @@ class PeopleGonePipeline:
                 "reflection_warning": bool(reflection_regions),
                 "reflection_regions": reflection_regions,
                 "crops_inpainted": crops_inpainted,
+                # Engine routing (additive, 2026-10-23): the one
+                # engine that filled this photo, why, and the two
+                # inputs to the owner's rule. engine_used is None
+                # only when routing was inactive (direct embedding).
+                "engine_used": self.last_routing.get("engine_used"),
+                "routing_reason": self.last_routing.get("routing_reason"),
+                "removal_count": self.last_routing.get(
+                    "removal_count", len(remove_ids)
+                ),
+                "overlap_detected": bool(
+                    self.last_routing.get("overlap_detected", False)
+                ),
                 "timings_ms": timings,
                 "total_seconds": round(total_time_s, 4),
                 "total_gpu_seconds": round(total_time_s, 4),
@@ -681,10 +762,25 @@ class PeopleGonePipeline:
 
         timings["ghost_check_ms"] = (time.perf_counter() - t0) * 1000.0
 
-        # 7b. Keeper safety lock — the invariant the overlap fix
-        # adds: whatever any fill, feather, or retry computed, the
-        # delivered keeper pixels are the original pixels.
-        composited = self._apply_keeper_lock(composited, orig_rgb, keeper_union)
+        # 7b. Keeper safety lock + BYSTANDER GUARD (owner, 2026-10-23):
+        # whatever any fill, feather, or retry computed, the pixels
+        # of EVERY detected person who is not being removed are the
+        # original pixels. keeper_union covers the keepers + their
+        # attached belongings; keeper_guard adds every non-removed
+        # person's mask plus the KEEPER_GUARD_PX band around them —
+        # the band is where the composite feather (4-6 px) can bleed
+        # a fill into a bystander the mask itself never touched
+        # (the RORem whole-window repaint in the 2026-10-23 forced
+        # A/B half-dissolved an undetected woman inside a crop
+        # window; detected bystanders are protected here, undetected
+        # ones cannot be — no mask, nothing to restore).
+        self._resolve_routing()
+        protected_union = keeper_union
+        if keeper_guard is not None and keeper_guard.any():
+            protected_union = keeper_union | keeper_guard
+        composited = self._apply_keeper_lock(
+            composited, orig_rgb, protected_union
+        )
 
         # 8. Final Delivery Encode
         total_time_s = time.perf_counter() - t_start
