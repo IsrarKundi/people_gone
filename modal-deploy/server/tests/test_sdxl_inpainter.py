@@ -81,9 +81,12 @@ class PromptConstantTests(unittest.TestCase):
         self.assertNotIn("P_obj", NEGATIVE_PROMPT)
         self.assertNotIn("P_ctxt", NEGATIVE_PROMPT)
 
-    def test_positive_prompt_is_generic_background(self):
+    def test_positive_prompt_names_the_background(self):
+        # v2 (after v1's generic prompt let XL re-dream people into the
+        # wedding holes): the prompt names the scene's actual backdrop.
         self.assertIn("no people", PROMPT_POSITIVE)
-        self.assertIn("background", PROMPT_POSITIVE)
+        self.assertIn("backdrop", PROMPT_POSITIVE)
+        self.assertIn("curtains", PROMPT_POSITIVE)
 
     def test_recipe_constants(self):
         self.assertEqual(STRENGTH, 1.0)
