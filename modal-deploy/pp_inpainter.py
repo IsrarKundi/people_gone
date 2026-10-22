@@ -2,7 +2,9 @@
 (same inpaint_crop API), recipe taken verbatim from the Phase 0 harness
 (phase0-run/pp_apply.py):
 
-  base model  runwayml/stable-diffusion-inpainting (fp32, CPU)
+  base model  runwayml/stable-diffusion-inpainting (fp32; device
+              auto-resolves CUDA-when-available since Phase E, mirroring
+              MatInpainter — CPU-only was the Phase A racing blocker)
   tokenizer   TokenizerWrapper + add_tokens for P_ctxt/P_shape/P_obj,
               num_vectors_per_token parsed from the official repo's app.py
   weights     JunhaoZhuang/PowerPaint-v1 unet + text_encoder safetensors,
@@ -13,7 +15,7 @@
   removal     promptA = promptB = "empty scene blur  P_ctxt",
               negatives " P_obj", guidance 10, seed 42,
               crops resized to 640px short side (multiples of 8),
-              steps from env PP_STEPS (default 30 on CPU)
+              steps from env PP_STEPS (default 30)
 
 Weights load LAZILY on the first inpaint_crop call, never at import or
 construction. Any load/inference error raises — no fallback inside.
@@ -38,7 +40,9 @@ class PowerPaintInpainter:
     ):
         self.repo_dir = repo_dir or os.environ.get("PP_REPO", "/app/PowerPaint-repo")
         self.ckpt_dir = ckpt_dir or os.environ.get("PP_CKPT_DIR", "/models/powerpaint")
-        self.device = device or "cpu"
+        # None = auto-resolve in _lazy_init (cuda if available, else cpu),
+        # the same pattern MatInpainter uses. An explicit value wins.
+        self.device = device
         self._pipe = None
         self._initialized = False
         self.fallback_used: bool = False
@@ -47,6 +51,9 @@ class PowerPaintInpainter:
         if self._initialized:
             return
         import torch
+
+        if self.device is None:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         torch.set_num_threads(4)
         if self.repo_dir not in sys.path:
@@ -125,7 +132,7 @@ class PowerPaintInpainter:
         th = max(64, int(h * scale) // 8 * 8)
         img_pil = Image.fromarray(image_crop).resize((tw, th), Image.LANCZOS)
         msk_pil = Image.fromarray(mask_crop).resize((tw, th), Image.NEAREST)
-        gen = torch.Generator("cpu").manual_seed(42)
+        gen = torch.Generator(device=self.device).manual_seed(42)
         out = self._pipe(
             promptA=PROMPT_REMOVAL,
             promptB=PROMPT_REMOVAL,
