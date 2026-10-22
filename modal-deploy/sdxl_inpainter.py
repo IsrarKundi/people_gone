@@ -105,6 +105,12 @@ class XLInpainter:
                 variant="fp16",
                 local_files_only=True,
             )
+            # This repo's VAE config ships force_upcast=False, but the
+            # fp16 pipeline feeds fp16 tensors into the fp32 VAE and the
+            # encode dies on the dtype mismatch. force_upcast is the
+            # pipeline's own switch for exactly this pairing: it makes
+            # _encode_vae_image upcast its input to fp32 (third smoke).
+            vae.config.force_upcast = True
             pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
                 self.ckpt_dir,
                 torch_dtype=torch.float16,
