@@ -100,6 +100,9 @@ class XLInpainter:
                 self.ckpt_dir,
                 subfolder="vae",
                 torch_dtype=torch.float32,
+                # Only fp16 weight files are baked into the image; without
+                # the variant the loader looks for the plain filename.
+                variant="fp16",
                 local_files_only=True,
             )
             pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
