@@ -9,7 +9,16 @@ PowerPaint's cost: they always use MAT only.
 Every call appends a record to self.records so the caller can surface
 exactly which engine filled which crop, with timings and residuals.
 Fails loudly: any engine or scoring error propagates — no fallback.
+
+Winner rule (Phase E revision): the ghost residual detects leftover
+person-shapes only; it cannot judge fill realism. On a raced (large)
+hole MAT's smear is a proven failure (Phase 0 + the 2026-10-22 wedding
+photo, where the metric's MAT picks visibly melted the background),
+while PowerPaint's failure mode is invention, which the pipeline-level
+ghost retry still guards against. So PowerPaint wins a raced crop
+unless its residual is worse than MAT's by a clear margin.
 """
+import os
 import time
 from typing import Any, Dict, List
 
@@ -21,6 +30,9 @@ LARGE_PATCH_MASK_RATIO = 0.15
 LARGE_PATCH_MIN_AREA_PX = 40000
 
 GHOST_CONFIDENCE_THRESH = 0.30
+
+# PowerPaint wins a raced crop when pp_residual <= mat_residual + margin.
+PP_WIN_MARGIN = float(os.environ.get("PG_PP_WIN_MARGIN", "0.5"))
 
 
 class RacingInpainter:
@@ -79,8 +91,9 @@ class RacingInpainter:
         mat_residual = self._residual_score(mat_candidate)
         pp_residual = self._residual_score(pp_candidate)
 
-        # Lower residual wins; tie goes to MAT.
-        if pp_residual < mat_residual:
+        # PowerPaint wins unless its residual is worse by > PP_WIN_MARGIN
+        # (see module docstring — the residual cannot judge fill realism).
+        if pp_residual <= mat_residual + PP_WIN_MARGIN:
             winner, result = "powerpaint", pp_candidate
         else:
             winner, result = "mat", mat_candidate
@@ -93,6 +106,7 @@ class RacingInpainter:
                 "winner": winner,
                 "mat_residual": mat_residual,
                 "pp_residual": pp_residual,
+                "pp_win_margin": PP_WIN_MARGIN,
                 "mat_ms": round(mat_ms, 1),
                 "pp_ms": round(pp_ms, 1),
             }
