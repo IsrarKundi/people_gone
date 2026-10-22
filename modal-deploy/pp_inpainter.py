@@ -80,7 +80,10 @@ class PowerPaintInpainter:
                 revision=None,
                 local_files_only=True,
             )
-            app_src = open(os.path.join(self.repo_dir, "app.py")).read()
+            # encoding pinned: the Modal image's default locale is ASCII
+            # and PowerPaint's app.py carries UTF-8 bytes — a bare open()
+            # dies here (first PP load inside the container, Phase E).
+            app_src = open(os.path.join(self.repo_dir, "app.py"), encoding="utf-8").read()
             nvec = int(re.search(r"num_vectors_per_token=(\d+)", app_src).group(1))
             add_tokens(
                 tokenizer=pipe.tokenizer,
