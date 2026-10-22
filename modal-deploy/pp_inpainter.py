@@ -32,7 +32,7 @@ PROMPT_REMOVAL = "empty scene blur  P_ctxt"
 # invent a phantom person and a fake text sign into large wedding-photo
 # holes (2026-10-22) — plain-language negatives are the standard guard.
 NEGATIVE_REMOVAL = (
-    "person, people, man, woman, face, head, body, crowd, "
+    "person, people, man, woman, face, head, hands, body, crowd, "
     "text, letters, words, sign, logo, watermark  P_obj"
 )
 
