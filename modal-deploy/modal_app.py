@@ -94,8 +94,9 @@ image = (
         "python -c \""
         "from huggingface_hub import snapshot_download; "
         "snapshot_download('diffusers/stable-diffusion-xl-1.0-inpainting-0.1', "
-        "allow_patterns=['**/*.json', '**/*.txt', '**/*.model', "
-        "'**/*.fp16.safetensors'], local_dir='/models/sdxl-inpaint')\"",
+        "allow_patterns=['*.json', '**/*.json', '*.txt', '**/*.txt', "
+        "'*.model', '**/*.fp16.safetensors'], "
+        "local_dir='/models/sdxl-inpaint')\"",
     )
     # PowerPaint runtime code, pinned to the exact commit the Phase 0
     # harness ran with (open-mmlab/PowerPaint @ 5b4c3d5, 2024-08-29).
