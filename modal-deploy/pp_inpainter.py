@@ -28,7 +28,13 @@ from typing import Optional
 import numpy as np
 
 PROMPT_REMOVAL = "empty scene blur  P_ctxt"
-NEGATIVE_REMOVAL = " P_obj"
+# Negative extended in Phase E: the stock " P_obj" alone let the model
+# invent a phantom person and a fake text sign into large wedding-photo
+# holes (2026-10-22) — plain-language negatives are the standard guard.
+NEGATIVE_REMOVAL = (
+    "person, people, man, woman, face, head, body, crowd, "
+    "text, letters, words, sign, logo, watermark  P_obj"
+)
 
 
 class PowerPaintInpainter:
