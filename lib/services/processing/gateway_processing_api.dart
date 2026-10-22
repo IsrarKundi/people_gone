@@ -328,7 +328,7 @@ class GatewayProcessingApi implements ProcessingApi {
       'keep_ids': ?keepIds,
       'remove_item_ids': ?removeItemIds,
       'detached_belonging_ids': ?detachedBelongingIds,
-      'engine': 'mat',
+      'engine': 'auto',
     },
     headers,
     token,
@@ -361,7 +361,7 @@ class GatewayProcessingApi implements ProcessingApi {
     CancelToken token,
   ) => _postMap(
     path,
-    <String, dynamic>{'client_job_id': fingerprint, 'engine': 'mat'},
+    <String, dynamic>{'client_job_id': fingerprint, 'engine': 'auto'},
     headers,
     token,
   );

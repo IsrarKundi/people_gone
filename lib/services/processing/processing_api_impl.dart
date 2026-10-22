@@ -147,7 +147,7 @@ class ProcessingApiImpl implements ProcessingApi {
             localPath,
             filename: localPath.split('/').last,
           ),
-          'engine': 'mat',
+          'engine': 'auto',
           if (keepIds != null && keepIds.isNotEmpty) 'keep': keepIds.join(','),
           if (removeItemIds != null && removeItemIds.isNotEmpty)
             'remove_items': removeItemIds.join(','),
@@ -223,7 +223,7 @@ class ProcessingApiImpl implements ProcessingApi {
             maskPng,
             filename: 'mask.png',
           ),
-          'engine': 'mat',
+          'engine': 'auto',
         });
         final response = await _dio.post<dynamic>(
           '/touchup',

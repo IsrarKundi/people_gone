@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       .insert({
         install_id: user.id,
         client_job_id: clientJobId,
-        engine: (body.engine as string) ?? "mat",
+        engine: (body.engine as string) ?? "auto",
         status: "created",
       })
       .select("*")

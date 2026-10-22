@@ -57,7 +57,7 @@ class GatewayTouchupCredits {
           filename: localPath.split('/').last,
         ),
         'mask_png': MultipartFile.fromBytes(maskPng, filename: 'mask.png'),
-        'engine': 'mat',
+        'engine': 'auto',
       });
       final response = await _dio.post<dynamic>(
         '/touchup',
