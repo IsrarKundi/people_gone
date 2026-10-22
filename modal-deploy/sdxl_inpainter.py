@@ -31,13 +31,15 @@ import numpy as np
 
 MODEL_ID = "diffusers/stable-diffusion-xl-1.0-inpainting-0.1"
 
-# v1 was the generic "empty background scenery, no people, no objects":
-# on the wedding gate photo the XL leg re-dreamed a person into every
-# raced crop (veto fired 4/4, detector scores 0.76–0.95). v2 names the
-# actual background so the prior has something concrete to build.
+# Prompt history (wedding gate photo, SCOPE allows 2–3 variants):
+# v1 generic "empty background scenery, no people, no objects" — XL
+#   re-dreamed a person into every raced crop (veto fired 4/4).
+# v2 named the backdrop but said "decorations" — no people, but XL
+#   invented a floral stage arrangement that does not exist.
+# v3 names ONLY what is actually behind the subjects: plain drapes.
 PROMPT_POSITIVE = (
-    "empty wedding stage backdrop with draped curtains and fabric "
-    "decorations, no people"
+    "plain draped fabric curtain backdrop, red gold and yellow drapes, "
+    "empty stage, no people"
 )
 # Phase E's extended plain-language negatives (pp_inpainter.py
 # NEGATIVE_REMOVAL) minus the PowerPaint-only " P_obj" task token: the
