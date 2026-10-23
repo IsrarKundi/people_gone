@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <!-- Cam — vector master (ADR docs/architecture/cam-mascot.md).
+       Neutral frame of the character rig in lib/core/widgets/cam_painter.dart;
+       both forms share this exact 240x240 geometry so they cannot drift.
+       Colours are the LIGHT AppPalette mascot tokens:
+       body #2563EB, shade #1D4ED8, belly #BFDBFE, deep #172554, shine #FFFFFF.
+       Named groups are the separable rig parts. Lids are animation state
+       (invisible at neutral); the peek paw only exists in peek mode. -->
+  <g id="tail">
+    <path d="M 68.3,171.9 L 73.1,175.9 L 76.9,180.8 L 79.3,186.4 L 80.3,192.2 L 79.9,197.9 L 78.2,203.2 L 75.4,207.9 L 71.7,211.7 L 67.3,214.4 L 62.5,215.9 L 57.6,216.3 L 52.9,215.5 L 48.7,213.7 L 45.1,211.0 L 42.4,207.6 L 40.6,203.8 L 39.8,199.9 L 39.9,196.0 L 41.0,192.4 L 42.8,189.3 L 45.2,186.7 L 48.0,185.0 L 51.0,184.0 L 54.1,183.7 L 56.9,184.2 L 59.5,185.3 L 61.5,187.0 L 63.1,188.9"
+      fill="none" stroke="#172554" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 68.3,171.9 L 73.1,175.9 L 76.9,180.8 L 79.3,186.4 L 80.3,192.2 L 79.9,197.9 L 78.2,203.2 L 75.4,207.9 L 71.7,211.7 L 67.3,214.4 L 62.5,215.9 L 57.6,216.3 L 52.9,215.5 L 48.7,213.7 L 45.1,211.0 L 42.4,207.6 L 40.6,203.8 L 39.8,199.9 L 39.9,196.0 L 41.0,192.4 L 42.8,189.3 L 45.2,186.7 L 48.0,185.0 L 51.0,184.0 L 54.1,183.7 L 56.9,184.2 L 59.5,185.3 L 61.5,187.0 L 63.1,188.9"
+      fill="none" stroke="#2563EB" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="feet" fill="#2563EB">
+    <ellipse cx="96" cy="226" rx="17" ry="8"/>
+    <ellipse cx="144" cy="226" rx="17" ry="8"/>
+  </g>
+  <ellipse id="body" cx="120" cy="186" rx="57" ry="44" fill="#2563EB"/>
+  <g id="arms" fill="#2563EB">
+    <ellipse cx="64" cy="188" rx="11" ry="20" transform="rotate(-20 64 188)"/>
+    <ellipse cx="176" cy="188" rx="11" ry="20" transform="rotate(20 176 188)"/>
+  </g>
+  <ellipse id="belly" cx="120" cy="194" rx="35" ry="31" fill="#BFDBFE"/>
+  <ellipse id="neck-shade" cx="120" cy="152" rx="38" ry="12" fill="#1D4ED8" opacity="0.45"/>
+  <g id="head">
+    <g id="crest" fill="#2563EB">
+      <circle cx="86" cy="45" r="14"/>
+      <circle cx="120" cy="37" r="16"/>
+      <circle cx="154" cy="45" r="14"/>
+    </g>
+    <ellipse id="head-base" cx="120" cy="94" rx="63" ry="55" fill="#2563EB"/>
+    <clipPath id="head-clip"><ellipse cx="120" cy="94" rx="63" ry="55"/></clipPath>
+    <ellipse id="head-shade" cx="120" cy="126" rx="50" ry="28" fill="#1D4ED8" opacity="0.25" clip-path="url(#head-clip)"/>
+    <ellipse id="muzzle" cx="120" cy="120" rx="35" ry="21" fill="#BFDBFE"/>
+    <g id="nostrils" fill="#172554" opacity="0.3">
+      <circle cx="111" cy="110" r="1.8"/>
+      <circle cx="129" cy="110" r="1.8"/>
+    </g>
+    <path id="smile" d="M 133.6,120.3 A 15,15 0 0 1 106.4,120.3" fill="none" stroke="#172554" stroke-width="3.4" stroke-linecap="round"/>
+    <g id="turret-left">
+      <circle cx="90" cy="72" r="24" fill="#2563EB"/>
+      <circle id="eyeball-left" cx="90" cy="72" r="18.5" fill="#FFFFFF"/>
+      <circle id="pupil-left" cx="90" cy="72" r="9" fill="#172554"/>
+      <circle id="glint-left" cx="86.8" cy="68.8" r="2.8" fill="#FFFFFF"/>
+    </g>
+    <g id="turret-right">
+      <circle cx="150" cy="72" r="24" fill="#2563EB"/>
+      <circle id="eyeball-right" cx="150" cy="72" r="18.5" fill="#FFFFFF"/>
+      <circle id="pupil-right" cx="150" cy="72" r="9" fill="#172554"/>
+      <circle id="glint-right" cx="146.8" cy="68.8" r="2.8" fill="#FFFFFF"/>
+    </g>
+    <g id="lids" fill="#2563EB" opacity="0">
+      <circle cx="90" cy="72" r="19.5"/>
+      <circle cx="150" cy="72" r="19.5"/>
+    </g>
+  </g>
+  <g id="peek-paw">
+    <ellipse cx="117" cy="168" rx="9" ry="14" fill="#2563EB"/>
+    <path d="M 113,161 L 113,170 M 121,161 L 121,170" stroke="#172554" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+  </g>
+</svg>

@@ -30,6 +30,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.overlayKept,
     required this.photoChromeBg,
     required this.photoChromeFg,
+    required this.mascotBody,
+    required this.mascotShade,
+    required this.mascotBelly,
+    required this.mascotDeep,
+    required this.mascotShine,
   });
 
   final Color primary;
@@ -54,6 +59,17 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color overlayKept;
   final Color photoChromeBg;
   final Color photoChromeFg;
+
+  // Cam mascot tones (ADR docs/architecture/cam-mascot.md): the blue
+  // family of `primary`, given semantic character roles. body = the
+  // chameleon's main blue, shade = its soft shadow tone, belly = the
+  // light muzzle/belly tone, deep = pupils/smile near-black navy,
+  // shine = eye whites and glints.
+  final Color mascotBody;
+  final Color mascotShade;
+  final Color mascotBelly;
+  final Color mascotDeep;
+  final Color mascotShine;
 
   static const Color emerald = Color(0xFF10B981);
   static const Color crimson = Color(0xFFEF4444);
@@ -81,6 +97,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     overlayKept: Color(0x9910B981),
     photoChromeBg: Color(0x990F172A),
     photoChromeFg: Color(0xFFFFFFFF),
+    mascotBody: Color(0xFF2563EB),
+    mascotShade: Color(0xFF1D4ED8),
+    mascotBelly: Color(0xFFBFDBFE),
+    mascotDeep: Color(0xFF172554),
+    mascotShine: Color(0xFFFFFFFF),
   );
 
   static const AppPalette dark = AppPalette(
@@ -106,6 +127,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     overlayKept: Color(0x9910B981),
     photoChromeBg: Color(0xB30B0D11),
     photoChromeFg: Color(0xFFFFFFFF),
+    mascotBody: Color(0xFF60A5FA),
+    mascotShade: Color(0xFF2563EB),
+    mascotBelly: Color(0xFFDBEAFE),
+    mascotDeep: Color(0xFF172554),
+    mascotShine: Color(0xFFFFFFFF),
   );
 
   @override
@@ -132,6 +158,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? overlayKept,
     Color? photoChromeBg,
     Color? photoChromeFg,
+    Color? mascotBody,
+    Color? mascotShade,
+    Color? mascotBelly,
+    Color? mascotDeep,
+    Color? mascotShine,
   }) {
     return AppPalette(
       primary: primary ?? this.primary,
@@ -156,6 +187,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
       overlayKept: overlayKept ?? this.overlayKept,
       photoChromeBg: photoChromeBg ?? this.photoChromeBg,
       photoChromeFg: photoChromeFg ?? this.photoChromeFg,
+      mascotBody: mascotBody ?? this.mascotBody,
+      mascotShade: mascotShade ?? this.mascotShade,
+      mascotBelly: mascotBelly ?? this.mascotBelly,
+      mascotDeep: mascotDeep ?? this.mascotDeep,
+      mascotShine: mascotShine ?? this.mascotShine,
     );
   }
 
@@ -186,6 +222,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
       overlayKept: mix(overlayKept, other.overlayKept),
       photoChromeBg: mix(photoChromeBg, other.photoChromeBg),
       photoChromeFg: mix(photoChromeFg, other.photoChromeFg),
+      mascotBody: mix(mascotBody, other.mascotBody),
+      mascotShade: mix(mascotShade, other.mascotShade),
+      mascotBelly: mix(mascotBelly, other.mascotBelly),
+      mascotDeep: mix(mascotDeep, other.mascotDeep),
+      mascotShine: mix(mascotShine, other.mascotShine),
     );
   }
 }
