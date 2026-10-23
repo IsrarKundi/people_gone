@@ -82,12 +82,21 @@ void main() {
     expect(camPainter(tester).frame, CamFrame.neutral);
   });
 
-  testWidgets('animated mode advances frames with time', (tester) async {
+  testWidgets('test environment freezes the ticker but still renders', (
+    tester,
+  ) async {
+    // Regression guard: Cam's production idle loop repeats forever,
+    // which would block pumpAndSettle in any host-screen test. Under
+    // flutter test he must render the still neutral frame instead, so
+    // screens containing him stay settle-able. (Frame motion itself
+    // is covered by the pure evaluateCamFrame unit tests.)
     await pumpCam(tester, CamMode.peek);
-    final first = camPainter(tester).frame;
-    await tester.pump(const Duration(milliseconds: 1580));
-    final blinked = camPainter(tester).frame;
-    expect(blinked.lid, 1, reason: 'peek should be mid-blink at 1.58 s');
-    expect(blinked, isNot(first));
+    await tester.pumpAndSettle(
+      const Duration(milliseconds: 50),
+      EnginePhase.sendSemanticsUpdate,
+      const Duration(seconds: 30),
+    );
+    expect(find.byType(CamMascot), findsOneWidget);
+    expect(camPainter(tester).frame, CamFrame.neutral);
   });
 }

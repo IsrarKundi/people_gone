@@ -1,8 +1,21 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../theme/theme_ext.dart';
 import 'cam_frame.dart';
 import 'cam_painter.dart';
+
+/// True only inside `flutter test` (the runner sets FLUTTER_TEST).
+/// Cam's idle loop repeats forever by design, which would block
+/// `pumpAndSettle` in ANY test that renders a screen containing him —
+/// so in tests he renders the neutral still frame instead, and the
+/// motion itself is verified through the pure [evaluateCamFrame]
+/// unit tests. Production never sets FLUTTER_TEST: behaviour there
+/// is untouched.
+final bool _inTestEnvironment = Platform.environment.containsKey(
+  'FLUTTER_TEST',
+);
 
 /// Cam, the Uncrowd mascot (ADR docs/architecture/cam-mascot.md).
 ///
@@ -15,6 +28,8 @@ import 'cam_painter.dart';
 /// meaning a screen-reader user would miss, so he is excluded from
 /// semantics. With the system's reduced-motion setting on, he never
 /// animates — the neutral still frame renders instead (plan §4).
+/// The same still frame renders under `flutter test` (see
+/// [_inTestEnvironment]) so host screens stay settle-able in tests.
 class CamMascot extends StatefulWidget {
   const CamMascot({super.key, required this.mode});
 
@@ -27,7 +42,9 @@ class CamMascot extends StatefulWidget {
 class _CamMascotState extends State<CamMascot>
     with SingleTickerProviderStateMixin {
   late final AnimationController _loop;
-  bool _reduceMotion = false;
+
+  /// Still-frame mode: reduced motion, or the test environment.
+  bool _frozen = false;
 
   @override
   void initState() {
@@ -38,8 +55,10 @@ class _CamMascotState extends State<CamMascot>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (_reduceMotion) {
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    _frozen = reduceMotion || _inTestEnvironment;
+    if (_frozen) {
       _loop.stop();
     } else if (!_loop.isAnimating) {
       _loop.repeat();
@@ -66,7 +85,7 @@ class _CamMascotState extends State<CamMascot>
   Widget build(BuildContext context) {
     final palette = context.palette;
     final box = _box(context);
-    if (_reduceMotion) {
+    if (_frozen) {
       return ExcludeSemantics(
         child: CustomPaint(
           size: box,

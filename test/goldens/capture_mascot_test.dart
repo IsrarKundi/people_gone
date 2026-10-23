@@ -21,7 +21,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:people_gone/config/app_config.dart';
 import 'package:people_gone/core/constants/app_colors.dart';
 import 'package:people_gone/core/routes/app_pages.dart';
 import 'package:people_gone/core/routes/app_routes.dart';
@@ -225,6 +224,19 @@ void main() {
     expect(avatarRect.overlaps(pickRect), isFalse);
   });
 
+  testWidgets('S1 regression: Home settles under pumpAndSettle with '
+      'Cam present', (tester) async {
+    // Cam's production idle loop repeats forever; in tests he renders
+    // a still frame (see CamMascot), so Home must settle completely.
+    await pumpApp(tester);
+    await tester.pumpAndSettle(
+      const Duration(milliseconds: 50),
+      EnginePhase.sendSemanticsUpdate,
+      const Duration(seconds: 30),
+    );
+    expect(find.byType(CamMascot), findsOneWidget);
+  });
+
   testWidgets('S6: peek is the visible half, flush right, centred on '
       'the photo, clear of the tray', (tester) async {
     await openProcessing(tester);
@@ -308,9 +320,7 @@ void main() {
     await snap(tester, 's1_home_mascot_dark.png');
   });
 
-  testWidgets('capture S6 Processing with Cam, light + dark', (
-    tester,
-  ) async {
+  testWidgets('capture S6 Processing with Cam, light + dark', (tester) async {
     if (!_capture) return;
     await openProcessing(tester);
     await snap(tester, 's6_processing_mascot_light.png');
