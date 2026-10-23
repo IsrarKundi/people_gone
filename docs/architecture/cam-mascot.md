@@ -1,0 +1,50 @@
+# Architecture Decision Record: Cam Mascot — Native Vector Rig
+
+- **Document:** `docs/architecture/cam-mascot.md`
+- **Status:** DECIDED — native Flutter vector rig (CustomPainter + code-driven state machine)
+- **Date:** 2026-10-24
+- **Decided by:** Lead agent, under the owner's standing instruction (2026-10-24) to execute the mascot build without further approvals and to take and log final decisions. Owner-commissioned feature; placements and expression set locked by the owner in `~/workspace/peoplegone/MASCOT_EXECUTION_PLAN.md`.
+- **Governing Specification:** `PEOPLEGONE_REQUIREMENTS.md` §4 (S1 Home, S6 Processing, S8 Paywall) — the mascot itself is an owner addition not specified in the Requirements; per AGENTS.md, unspecified choices resolve (a) simpler, (b) cheaper, (c) more private, and are recorded here.
+
+---
+
+## 1. Context
+
+The owner commissioned a living mascot ("Cam", a blue chameleon in the F3 design) for three placements only:
+
+- **Home (S1):** circular avatar, 44dp, top-right on the wordmark row — face only, idle expressions.
+- **Processing (S6):** half-peek from the right screen edge over the photo — 50% of the character's width visible, expressions while processing runs.
+- **Paywall (S8):** full sitting presenter centred below the "Restore Purchases · Not now" row, ≥24dp gap.
+
+Result screen: no mascot. Analyzing/Review: out of scope. Expression set is closed (neutral, blink, soft smile, curious glance, calm wait) — gentle, never exaggerated. Motion must obey the app's calm law (180/300ms tokens, transform+opacity, no overshoot; system reduced-motion renders a still frame). Total mascot asset weight ≤150KB. One character definition must serve all three modes (consistency by construction).
+
+## 2. Decision
+
+**Cam is a native Flutter vector rig:**
+
+- The character is hand-authored once as vector geometry (named parts: body, belly, tail, crest, head, turrets, eyeballs, pupils, eyelids, muzzle, smile, paw) in a single Dart rig file, rendered by a `CustomPainter`.
+- Expressions and idle behaviour are a **pure Dart state machine** (`evaluateCamFrame(elapsed, mode)`) implementing the three idle states named in the plan — `avatarIdle`, `peekIdle`, `presenterIdle` — over one shared timeline design. It is deterministic and unit-testable; the widget only supplies elapsed time.
+- A hand-authored SVG master (`assets/icons/ic_cam.svg`, same geometry, named groups) ships as the artwork record and static fallback. Runtime rendering is the painter (flutter_svg cannot animate sub-parts); both forms are the same drawing, so they cannot drift in design, only in medium.
+- **No new dependencies.** `rive` and `lottie` packages are NOT added.
+
+## 3. Alternatives considered and rejected
+
+- **Rive (.riv + `rive` package)** — the execution plan's nominal route. Rejected on evidence: a `.riv` binary cannot be authored in this environment — Rive state machines and artboards are built in the Rive Editor GUI, and no headless/CLI authoring path exists (Rive docs/community tooling are read/export only). The runtime also adds ≈935KB (GitHub API size for rive-flutter) against a 150KB total mascot budget. Choosing Rive would ship either nothing or an unverifiable binary — both fail the contract's "fully built and verified here" requirement.
+- **Lottie (`lottie` package, hand-authored JSON)** — viable but inferior here: JSON supports transform animation and path morphs only with matched vertex counts; production character practice is baked segments/state swapping, and hand-authoring a multi-part character rig as raw JSON keyframes is error-prone and hard to golden-test per expression. Segment control from Dart (frame ranges) is workable, but expression correctness would rest on frame bookkeeping instead of one evaluable function.
+- **Raster sprites / generated images** — rejected by the plan itself (§2): AI renders demonstrably drift between generations (the mockup rounds changed the character's face twice), and raster frames cannot hold one consistent definition across three modes and two themes.
+
+## 4. Design decisions inside the rig
+
+- **Sizes are fixed dp tokens, not percentages** (Conventions §6.4 forbids percentage sizing): avatar 44, peek height 110 (the plan's 96–128 clamp nominal), presenter 120 — added to `AppSizes` as mascot tokens. Position guarantees in the plan (§3/§6) then hold exactly, and measurement tests can assert them numerically.
+- **Colours are palette tokens:** Cam's tones (body/shade/belly/deep/shine) join `AppPalette` in light + dark, derived from the existing blue family (primary `#2563EB` lineage). `app_colors.dart` remains the only file with colour literals.
+- **Idle timing (research-informed):** blink roughly every 3.6s (industry range 3–5s), blink duration ~160ms (Duolingo-class 120–180ms), glance held ~1s with 300ms ease transitions, breathing scale amplitude ~1.2% on a ~3.6s cycle. Timing is FIXED per mode (slight phase offsets between modes) rather than randomised — determinism is what makes the rig golden-testable, and fixed gentle timing serves the calm law. Easing: `easeInOut` for blink, `easeOutCubic` returns — the app's `AppMotion` curves; no overshoot anywhere.
+- **Reduced motion:** with `MediaQuery.disableAnimations` set, the widget never starts its ticker and renders the neutral still frame.
+- **No rock prop** (present in the F3 art and v2 mockup): set dressing, not character; the sitting pose reads without it.
+- **Decorative semantics:** the mascot carries no information and no action in v1 → wrapped in `ExcludeSemantics`; no strings are added (`app_strings` untouched), no analytics, no data behaviour change (`docs/compliance/store-forms.md` therefore unchanged).
+
+## 5. Verification commitments (plan §6)
+
+- `flutter analyze` clean; `flutter test` green (any pre-existing cross-machine golden pixel failures identified as such, with evidence).
+- New goldens for Home / Processing / Paywall with Cam, plus numeric measurement tests: avatar centre vs wordmark centre within ±2dp; peek visible fraction 50% ±3%; presenter gap ≥24dp; zero overlap with interactive elements.
+- Consistency: a single rig definition renders all three modes in code (same painter + same frame evaluator) — stated in the change and covered by widget tests pumping all three modes.
+- Asset weight: the SVG master is the only shipped mascot asset; its byte size is measured and reported (runtime adds no asset bytes).
