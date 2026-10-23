@@ -232,4 +232,3 @@ class AppPalette extends ThemeExtension<AppPalette> {
 }
 
 typedef AppColors = AppPalette;
-
