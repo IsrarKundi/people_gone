@@ -8,6 +8,8 @@ import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/cam_frame.dart';
+import '../../../core/widgets/cam_mascot.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/primary_button.dart';
 // import '../../../core/widgets/section_header.dart';
@@ -42,6 +44,13 @@ class HomeView extends GetView<HomeController> {
         theme: SvgTheme(currentColor: p.textPrimary),
       ),
       actions: <Widget>[
+        // Cam avatar (ADR docs/architecture/cam-mascot.md): face only,
+        // centred on the wordmark row by the AppBar; display only in
+        // v1 — no tap action. Header end-padding from the screen edge.
+        Padding(
+          padding: EdgeInsets.only(right: s.screenPadding),
+          child: const CamMascot(mode: CamMode.avatar),
+        ),
         // IconButton(
         //   icon: const Icon(AppIcons.gear),
         //   tooltip: AppStrings.settingsTitle.tr,
