@@ -42,7 +42,14 @@ Result screen: no mascot. Analyzing/Review: out of scope. Expression set is clos
 - **No rock prop** (present in the F3 art and v2 mockup): set dressing, not character; the sitting pose reads without it.
 - **Decorative semantics:** the mascot carries no information and no action in v1 → wrapped in `ExcludeSemantics`; no strings are added (`app_strings` untouched), no analytics, no data behaviour change (`docs/compliance/store-forms.md` therefore unchanged).
 
-## 5. Verification commitments (plan §6)
+## 5. Evidence addendum (post-decision research, same day)
+
+Two corrections/completions to the research record, neither of which changes the decision:
+
+- Duolingo's stack is mixed: lesson-character animation is Lottie-based, while the Lily video-call character is a Rive state machine ("modular actor", per Rive's case study). What this project borrows is the *pattern* — one rig, layered expression states, calm idle variation — not either tool.
+- A Rive CLI exists in technical preview that can build a `.riv` headlessly from a text scene format. It does not rescue the Rive option here: a clean file requires `--publish` signing bound to a Rive account on a paid plan (unsigned output may carry a watermark), the character would have to be hand-written in that text format with no visual feedback loop, and the current Flutter runtime is ~2.4MB (Rive's published runtime sizes) against a 150KB mascot budget. The rejection stands, strengthened.
+
+## 6. Verification commitments (plan §6)
 
 - `flutter analyze` clean; `flutter test` green (any pre-existing cross-machine golden pixel failures identified as such, with evidence).
 - New goldens for Home / Processing / Paywall with Cam, plus numeric measurement tests: avatar centre vs wordmark centre within ±2dp; peek visible fraction 50% ±3%; presenter gap ≥24dp; zero overlap with interactive elements.
