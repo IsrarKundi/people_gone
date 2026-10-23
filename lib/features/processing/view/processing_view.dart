@@ -10,6 +10,8 @@ import '../../../core/diagnostics/diagnostics_log.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/cam_frame.dart';
+import '../../../core/widgets/cam_mascot.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/photo_surface.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -262,6 +264,7 @@ class _FittedPhotoFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final file = File(photoPath);
+    final s = context.sizes;
     return PhotoSurface(
       imageProvider: ResizeImage(
         FileImage(file),
@@ -289,6 +292,17 @@ class _FittedPhotoFrame extends StatelessWidget {
                 imageFile: file,
                 isWorking: true,
               ),
+            ),
+            // Cam peek (ADR docs/architecture/cam-mascot.md): anchored
+            // to the right screen edge — the widget IS the visible
+            // half of the character (50% by construction) — with its
+            // vertical centre on the photo band's centre. He sits over
+            // the photo area only, clear of the tray below. Display
+            // only; present for the whole working state.
+            Positioned(
+              right: 0,
+              top: band.top + band.height / 2 - s.mascotPeekHeight / 2,
+              child: const CamMascot(mode: CamMode.peek),
             ),
           ],
         );
