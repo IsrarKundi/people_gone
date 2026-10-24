@@ -30,20 +30,31 @@ class ProposalView extends GetView<ProposalController> {
             _topBar(context),
             Expanded(
               child: Obx(
-                () => ProposalPhotoCanvas(
-                  photoPath: controller.photoPath,
-                  persons: controller.persons.toList(),
-                  imageSize: controller.imageSize,
-                  onTogglePerson: controller.togglePerson,
-                  belongings: controller.belongings.toList(),
-                  detachedIds: controller.detachedBelongingIds.toSet(),
-                  includedItemIds: controller.includedItemIds.toSet(),
-                  onToggleBelonging: controller.toggleBelonging,
-                  distractions: controller.distractions.toList(),
-                  includedDistractionIds: controller.includedDistractionIds
-                      .toSet(),
-                  onToggleDistraction: controller.toggleDistractionIncluded,
-                ),
+                () => controller.isAnalyzing.value
+                    // Analyzing: Cam in the middle of the screen, on
+                    // a clean background. The image widget below is
+                    // commented out for this state only (owner,
+                    // 2026-10-24) — it comes back automatically once
+                    // analyzing finishes and the results panel shows.
+                    ? const Center(
+                        child: CamMascot(mode: CamMode.analyzing),
+                      )
+                    : ProposalPhotoCanvas(
+                        photoPath: controller.photoPath,
+                        persons: controller.persons.toList(),
+                        imageSize: controller.imageSize,
+                        onTogglePerson: controller.togglePerson,
+                        belongings: controller.belongings.toList(),
+                        detachedIds: controller.detachedBelongingIds.toSet(),
+                        includedItemIds: controller.includedItemIds.toSet(),
+                        onToggleBelonging: controller.toggleBelonging,
+                        distractions: controller.distractions.toList(),
+                        includedDistractionIds: controller
+                            .includedDistractionIds
+                            .toSet(),
+                        onToggleDistraction:
+                            controller.toggleDistractionIncluded,
+                      ),
               ),
             ),
             _bottomPanel(context),
@@ -283,15 +294,12 @@ class ProposalView extends GetView<ProposalController> {
         color: p.surface,
         border: Border(top: BorderSide(color: p.border)),
       ),
-      // Cam, centred and whole (owner journey): the magnifier drawing
-      // in the middle of the panel on its clean surface background —
-      // never cropped, never a small header avatar, never over the
-      // photo. Display only; the status text sits below him.
+      // Cam now lives in the middle of the screen (see build above),
+      // so the panel carries only the status text — no second
+      // mascot here, and no image widget above him during analyzing.
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const CamMascot(mode: CamMode.analyzing),
-          SizedBox(height: s.md),
           Text(
             AppStrings.proposalAnalyzing.tr,
             style: context.textStyles.bodyMd,

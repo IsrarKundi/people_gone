@@ -113,22 +113,18 @@ class _ProcessingContentState extends State<_ProcessingContent>
 
     final content = Column(
       children: <Widget>[
-        // Photographic canvas: fitted to the photo's aspect in
-        // the space above the tray, consistent with Proposal and Result.
-        Expanded(
-          child: _FittedPhotoFrame(
-            photoPath: widget.controller.photoPath,
-            controller: widget.controller,
-          ),
+        // Cam, in the middle of the screen on a clean background.
+        // The blurred working photo frame that used to fill this
+        // space is commented out below (owner, 2026-10-24) —
+        // restore it by swapping this Center back for the
+        // _FittedPhotoFrame call. Display only.
+        const Expanded(
+          child: Center(child: CamMascot(mode: CamMode.processing)),
         ),
-        // Cam, centred and whole (owner journey): the at-computer
-        // drawing in the middle of the screen on the clean screen
-        // background — never cropped, never peeking half-visible
-        // from the edge, never over the photo. Display only.
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: s.md),
-          child: const Center(child: CamMascot(mode: CamMode.processing)),
-        ),
+        // _FittedPhotoFrame(
+        //   photoPath: widget.controller.photoPath,
+        //   controller: widget.controller,
+        // ),
         // Bottom tray — in flow, anchored to the screen bottom.
         Padding(
           padding: EdgeInsets.fromLTRB(
@@ -260,6 +256,10 @@ class _ProcessingContentState extends State<_ProcessingContent>
 /// The photo's frame, fitted to the photo's own aspect ratio (resolved
 /// The photo's fitted canvas, consistent with Proposal and Result:
 /// hugs the photo aspect ratio with no rounded borders or inset snapping.
+///
+/// Currently commented out of the screen above (owner, 2026-10-24),
+/// kept here so the blurred working frame can be restored intact.
+// ignore: unused_element
 class _FittedPhotoFrame extends StatelessWidget {
   const _FittedPhotoFrame({
     required this.photoPath,

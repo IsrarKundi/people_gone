@@ -41,6 +41,7 @@ import 'package:people_gone/features/picker/controller/picker_controller.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
 import 'package:people_gone/features/processing/widgets/server_working_photo_frame.dart';
 import 'package:people_gone/features/proposal/model/proposal_args.dart';
+import 'package:people_gone/features/proposal/widgets/proposal_photo_canvas.dart';
 import 'package:people_gone/features/result/widgets/save_receipt_button.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
@@ -401,7 +402,7 @@ void main() {
   });
 
   testWidgets('S6: processing mascot is whole, centred, clear of '
-      'the photo and the tray', (tester) async {
+      'the tray, blur frame commented out', (tester) async {
     await openProcessing(tester);
     final cam = find.byType(CamMascot);
     expect(cam, findsOneWidget);
@@ -414,8 +415,9 @@ void main() {
       reason: 'processing mascot must be centred horizontally',
     );
 
-    final frameRect = tester.getRect(find.byType(ServerWorkingPhotoFrame));
-    expect(camRect.overlaps(frameRect), isFalse);
+    // The blurred working photo frame is commented out of the
+    // screen, so it must not be built at all while processing.
+    expect(find.byType(ServerWorkingPhotoFrame), findsNothing);
 
     final buttonRect = tester.getRect(find.byType(PrimaryButton));
     expect(camRect.overlaps(buttonRect), isFalse);
@@ -425,8 +427,8 @@ void main() {
     await closeProcessing(tester);
   });
 
-  testWidgets('Analyzing: mascot is whole, centred in the panel, '
-      'clear of the photo', (tester) async {
+  testWidgets('Analyzing: mascot is whole, centred in the middle '
+      'of the screen, image commented out', (tester) async {
     await openAnalyzing(tester);
     final cam = find.byType(CamMascot);
     expect(cam, findsOneWidget);
@@ -439,6 +441,10 @@ void main() {
       lessThanOrEqualTo(1),
       reason: 'analyzing mascot must be centred horizontally',
     );
+
+    // The image widget is commented out during analyzing, so no
+    // photo canvas is built while Cam is in the middle.
+    expect(find.byType(ProposalPhotoCanvas), findsNothing);
 
     await closeAnalyzing(tester);
   });
