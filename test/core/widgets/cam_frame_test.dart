@@ -2,12 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:people_gone/core/widgets/cam_frame.dart';
 
 /// The mascot's motion is pure logic, so its contract — calm
-/// breathing only, identical in every mode, deterministic and
-/// looping — is pinned here without a single pixel.
-///
-/// Sheet-art note: each state is a complete sheet drawing with its
-/// own face, so there is no blink / glance / tilt rig any more.
-/// The frame carries breathing scale only.
+/// breathing, one blink per loop, and a gentle lean-and-glance,
+/// identical in every mode, deterministic and looping — is pinned
+/// here without a single pixel.
 void main() {
   group('evaluateCamFrame', () {
     test('resting state at t=0 in every mode', () {
@@ -40,6 +37,43 @@ void main() {
         for (final mode in CamMode.values) {
           expect(evaluateCamFrame(at, mode), first, reason: '$mode @$ms');
         }
+      }
+    });
+
+    test('blinks once per loop, 160 ms, fully closed at the peak', () {
+      for (final mode in CamMode.values) {
+        final peak = evaluateCamFrame(
+          const Duration(milliseconds: 1880),
+          mode,
+        );
+        expect(peak.blink, closeTo(1, 0.001), reason: '$mode peak');
+        for (final ms in <int>[0, 1000, 1700, 2000, 3000]) {
+          expect(
+            evaluateCamFrame(Duration(milliseconds: ms), mode).blink,
+            0,
+            reason: '$mode @$ms must not blink',
+          );
+        }
+      }
+    });
+
+    test('lean and glance stay gentle and return to rest at t=0', () {
+      for (final mode in CamMode.values) {
+        for (int ms = 0; ms < 4000; ms += 100) {
+          final frame = evaluateCamFrame(Duration(milliseconds: ms), mode);
+          expect(frame.tilt.abs(), lessThanOrEqualTo(0.027));
+          expect(frame.shift.abs(), lessThanOrEqualTo(2.001));
+        }
+        expect(
+          evaluateCamFrame(Duration.zero, mode).tilt,
+          0,
+          reason: '$mode tilt at rest',
+        );
+        expect(
+          evaluateCamFrame(Duration.zero, mode).shift,
+          0,
+          reason: '$mode shift at rest',
+        );
       }
     });
 

@@ -33,6 +33,14 @@ class CamMascotArt extends StatelessWidget {
     final palette = context.palette;
     final s = context.sizes;
 
+    // Blinking: while the frame's blink value is high, show the
+    // matching blink asset — the same sheet drawing with its eyes
+    // painted closed — instead of the open-eyes drawing. The swap
+    // is the blink; nothing else about the drawing changes.
+    final bool blinking = frame.blink > 0.3;
+    String assetFor(String base) =>
+        blinking ? base.replaceFirst('.webp', '_blink.webp') : base;
+
     final Widget image = switch (mode) {
       // Code-drawn circle: ring + surface fill are code, the image
       // inside carries no ring of its own.
@@ -46,7 +54,7 @@ class CamMascotArt extends StatelessWidget {
         ),
         child: ClipOval(
           child: Image.asset(
-            'assets/icons/ic_cam_avatar.webp',
+            assetFor('assets/icons/ic_cam_avatar.webp'),
             fit: BoxFit.cover,
             excludeFromSemantics: true,
           ),
@@ -62,7 +70,7 @@ class CamMascotArt extends StatelessWidget {
         ),
         child: ClipOval(
           child: Image.asset(
-            'assets/icons/ic_cam_avatar.webp',
+            assetFor('assets/icons/ic_cam_avatar.webp'),
             fit: BoxFit.cover,
             excludeFromSemantics: true,
           ),
@@ -79,7 +87,7 @@ class CamMascotArt extends StatelessWidget {
         ),
         child: ClipOval(
           child: Image.asset(
-            'assets/icons/ic_cam_results.webp',
+            assetFor('assets/icons/ic_cam_results.webp'),
             fit: BoxFit.cover,
             excludeFromSemantics: true,
           ),
@@ -95,7 +103,7 @@ class CamMascotArt extends StatelessWidget {
         width: s.mascotAnalyzingWidth,
         height: s.mascotAnalyzingWidth * 670 / 569,
         child: Image.asset(
-          'assets/icons/ic_cam_analyzing.webp',
+          assetFor('assets/icons/ic_cam_analyzing.webp'),
           fit: BoxFit.contain,
           excludeFromSemantics: true,
         ),
@@ -104,19 +112,28 @@ class CamMascotArt extends StatelessWidget {
         width: s.mascotProcessingWidth,
         height: s.mascotProcessingWidth * 706 / 804,
         child: Image.asset(
-          'assets/icons/ic_cam_processing.webp',
+          assetFor('assets/icons/ic_cam_processing.webp'),
           fit: BoxFit.contain,
           excludeFromSemantics: true,
         ),
       ),
     };
 
-    // Calm alive motion only: the breathing scale from the frame,
-    // around the ground line. No bounce, no sparkles, no overshoot.
-    final moved = Transform.scale(
-      scale: frame.breath,
-      alignment: Alignment.bottomCenter,
-      child: image,
+    // Calm alive motion only: breathing scale around the ground
+    // line, a gentle lean, and a small sideways glance shift — all
+    // from the frame, transform-only. No bounce, no sparkles,
+    // no overshoot.
+    final moved = Transform.translate(
+      offset: Offset(frame.shift, 0),
+      child: Transform.rotate(
+        angle: frame.tilt,
+        alignment: Alignment.bottomCenter,
+        child: Transform.scale(
+          scale: frame.breath,
+          alignment: Alignment.bottomCenter,
+          child: image,
+        ),
+      ),
     );
 
     return ExcludeSemantics(child: moved);
