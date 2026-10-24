@@ -83,6 +83,23 @@ class ProposalView extends GetView<ProposalController> {
               style: context.textStyles.titleMd,
             ),
           ),
+          // Cam, small header avatar on Review only (not while
+          // analyzing, when he is already in the middle of the
+          // screen). He nods when you toggle someone: the key
+          // below changes on every keep / remove / item toggle.
+          Obx(
+            () => controller.isAnalyzing.value
+                ? const SizedBox.shrink()
+                : CamMascot(
+                    mode: CamMode.avatarSmall,
+                    reactionKey:
+                        controller.persons
+                            .where((p) => p.isKeeper)
+                            .length +
+                        controller.includedItemIds.length +
+                        controller.includedDistractionIds.length,
+                  ),
+          ),
         ],
       ),
     );

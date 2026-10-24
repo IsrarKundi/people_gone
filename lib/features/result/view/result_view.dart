@@ -39,7 +39,9 @@ class ResultView extends GetView<ResultController> {
             child: Row(
               children: const <Widget>[
                 Spacer(),
-                CamMascot(mode: CamMode.resultsReady),
+                // Arrive pulse: one slow happy pulse the moment the
+                // result appears, then the calm welcome loop.
+                CamMascot(mode: CamMode.resultsReady, arrive: true),
               ],
             ),
           ),

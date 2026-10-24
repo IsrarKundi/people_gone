@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -22,39 +23,81 @@ final bool _inTestEnvironment = Platform.environment.containsKey(
 /// for the Home header, [CamMode.analyzing] centred whole on the
 /// Analyzing screen, [CamMode.processing] centred whole on the
 /// Processing screen, [CamMode.resultsReady] back in the top-right
-/// circle on Result, and [CamMode.avatarSmall] for Brush / History
-/// headers — all rendering the owner's sheet drawings
+/// circle on Result, and [CamMode.avatarSmall] for Review / Brush /
+/// History headers — all rendering the owner's sheet drawings
 /// ([CamMascotArt] + [evaluateCamFrame]), so the character is
 /// identical on every screen by construction. The circle is drawn
 /// in code, never baked into the art; Analyzing and Processing are
 /// never cropped.
 ///
+/// Motion is scene-matched (see [evaluateCamFrame]): Home sways
+/// like waving hello, Analyzing scans, Processing types and
+/// glances up, small headers stay quiet. Two one-shot reactions
+/// sit on top of the idle loop, both calm and both over in under
+/// a second:
+///
+/// * [arrive]: the Result arrival pulse — a slow scale pulse and a
+///   small tilt, played once when the widget first appears.
+/// * [reactionKey]: Review's nod — changing the key (for example
+///   when the user toggles a person) plays a tiny downward nod.
+///
+/// [concerned] renders the sorry, drooped idle loop for failure
+/// screens.
+///
 /// Cam is decoration, not information: he carries no action and no
 /// meaning a screen-reader user would miss, so he is excluded from
 /// semantics. With the system's reduced-motion setting on, he never
-/// animates — the neutral still frame renders instead (plan §4).
-/// The same still frame renders under `flutter test` (see
-/// [_inTestEnvironment]) so host screens stay settle-able in tests.
+/// animates — the still frame renders instead (plan §4). The same
+/// still frame renders under `flutter test` (see [_inTestEnvironment])
+/// so host screens stay settle-able in tests.
 class CamMascot extends StatefulWidget {
-  const CamMascot({super.key, required this.mode});
+  const CamMascot({
+    super.key,
+    required this.mode,
+    this.concerned = false,
+    this.arrive = false,
+    this.reactionKey,
+  });
 
   final CamMode mode;
+
+  /// Sorry, drooped idle loop for failure screens.
+  final bool concerned;
+
+  /// Play the one-shot arrival pulse on first appearance.
+  final bool arrive;
+
+  /// Changing this value plays the one-shot nod.
+  final int? reactionKey;
 
   @override
   State<CamMascot> createState() => _CamMascotState();
 }
 
 class _CamMascotState extends State<CamMascot>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _loop;
+  late final AnimationController _reaction;
+  late final AnimationController _arrive;
 
   /// Still-frame mode: reduced motion, or the test environment.
   bool _frozen = false;
+  bool _arriveStarted = false;
+  int? _lastReactionKey;
 
   @override
   void initState() {
     super.initState();
     _loop = AnimationController(vsync: this, duration: camLoopDuration);
+    _reaction = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _arrive = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _lastReactionKey = widget.reactionKey;
   }
 
   @override
@@ -65,31 +108,72 @@ class _CamMascotState extends State<CamMascot>
     _frozen = reduceMotion || _inTestEnvironment;
     if (_frozen) {
       _loop.stop();
-    } else if (!_loop.isAnimating) {
-      _loop.repeat();
+      _reaction.stop();
+      _arrive.stop();
+    } else {
+      if (!_loop.isAnimating) _loop.repeat();
+      if (widget.arrive && !_arriveStarted) {
+        _arriveStarted = true;
+        _arrive.forward();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(CamMascot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.reactionKey != _lastReactionKey) {
+      _lastReactionKey = widget.reactionKey;
+      if (!_frozen) _reaction.forward(from: 0);
     }
   }
 
   @override
   void dispose() {
     _loop.dispose();
+    _reaction.dispose();
+    _arrive.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_frozen) {
-      return CamMascotArt(frame: CamFrame.neutral, mode: widget.mode);
+      return CamMascotArt(
+        frame: evaluateCamFrame(
+          Duration.zero,
+          widget.mode,
+          concerned: widget.concerned,
+        ),
+        mode: widget.mode,
+      );
     }
     return AnimatedBuilder(
-      animation: _loop,
+      animation: Listenable.merge(<Listenable>[_loop, _reaction, _arrive]),
       builder: (context, _) {
         final elapsed = Duration(
           milliseconds: (_loop.value * camLoopDuration.inMilliseconds)
               .round(),
         );
+        final idle = evaluateCamFrame(
+          elapsed,
+          widget.mode,
+          concerned: widget.concerned,
+        );
+        // Nod: a 2 dp dip and back, over 300 ms. After it finishes
+        // the sine returns to 0, so no reset is needed.
+        final double nod = 2 * math.sin(math.pi * _reaction.value);
+        // Arrival pulse: a slow 3 % scale pulse and a small tilt,
+        // once, over 600 ms.
+        final double pulse = math.sin(math.pi * _arrive.value);
         return CamMascotArt(
-          frame: evaluateCamFrame(elapsed, widget.mode),
+          frame: CamFrame(
+            breath: idle.breath * (1 + 0.03 * pulse),
+            blink: idle.blink,
+            tilt: idle.tilt - 0.02 * pulse,
+            shiftX: idle.shiftX,
+            shiftY: idle.shiftY + nod,
+          ),
           mode: widget.mode,
         );
       },

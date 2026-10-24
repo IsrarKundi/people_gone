@@ -45,11 +45,26 @@ class ProcessingView extends GetView<ProcessingController> {
         body: Obx(() {
           final error = controller.errorMessage.value;
           if (error != null) {
-            return ErrorView(
-              messageKey: error,
-              onRetry: controller.start,
-              onShareDiagnostics: () =>
-                  Share.share(DiagnosticsLog.instance.export()),
+            // Cam, sorry: the drooped, slow idle loop above the
+            // error, never over the retry button.
+            return Column(
+              children: <Widget>[
+                const SizedBox(height: 48),
+                const Center(
+                  child: CamMascot(
+                    mode: CamMode.processing,
+                    concerned: true,
+                  ),
+                ),
+                Expanded(
+                  child: ErrorView(
+                    messageKey: error,
+                    onRetry: controller.start,
+                    onShareDiagnostics: () =>
+                        Share.share(DiagnosticsLog.instance.export()),
+                  ),
+                ),
+              ],
             );
           }
           return Container(

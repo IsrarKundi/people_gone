@@ -120,11 +120,11 @@ class CamMascotArt extends StatelessWidget {
     };
 
     // Calm alive motion only: breathing scale around the ground
-    // line, a gentle lean, and a small sideways glance shift — all
-    // from the frame, transform-only. No bounce, no sparkles,
-    // no overshoot.
+    // line, a gentle lean, and the scene's shifts (sway, scan,
+    // typing bob) — all from the frame, transform-only. No bounce,
+    // no sparkles, no overshoot.
     final moved = Transform.translate(
-      offset: Offset(frame.shift, 0),
+      offset: Offset(frame.shiftX, frame.shiftY),
       child: Transform.rotate(
         angle: frame.tilt,
         alignment: Alignment.bottomCenter,
