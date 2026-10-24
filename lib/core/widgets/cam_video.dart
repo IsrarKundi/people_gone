@@ -68,6 +68,9 @@ class _CamMascotVideoState extends State<CamMascotVideo> {
     _controller.initialize().then((_) {
       if (!mounted) return;
       setState(() => _ready = true);
+      // The generated videos ship with an audio track, so they
+      // are forced silent before playback starts.
+      _controller.setVolume(0);
       _controller.play();
     }, onError: (_) {
       // Loading failed: the still artwork below stays in place.
