@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../controller/splash_controller.dart';
 
-/// Framora Splash Screen.
+/// Uncrowd Splash Screen.
 /// Clean, minimal, and brand-first:
-/// 1. Prominent Framora wordmark logo with an elegant fade & scale entrance.
+/// 1. Prominent uncrowd Lottie logo animation (light/dark themed).
 /// 2. Punchy, memorable subtext: "Clear the crowd. Keep your moment."
 /// 3. Minimal footer: "POWERED BY ARTIVO"
 /// 4. Tap anywhere to skip instantly, or auto-advances to Home.
 class SplashView extends GetView<SplashController> {
   const SplashView({super.key});
+
+  /// Light theme Lottie animation asset.
+  static const String lottieLight =
+      'assets/animations/uncrowd_logo_lottie.json';
+
+  /// Dark theme Lottie animation asset.
+  static const String lottieDark =
+      'assets/animations/uncrowd_logo_lottie_white.json';
 
   @override
   Widget build(BuildContext context) {
@@ -30,10 +38,9 @@ class _SplashBody extends StatefulWidget {
 }
 
 class _SplashBodyState extends State<_SplashBody>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _animController;
-  late final Animation<double> _logoFade;
-  late final Animation<double> _logoScale;
+  late final AnimationController _lottieController;
   late final Animation<double> _taglineFade;
   late final Animation<Offset> _taglineSlide;
   late final Animation<double> _footerFade;
@@ -45,23 +52,9 @@ class _SplashBodyState extends State<_SplashBody>
       vsync: this,
       duration: AppMotion.splashChoreography,
     );
+    _lottieController = AnimationController(vsync: this);
 
-    // 1. Logo entrance (0ms -> 450ms)
-    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.0, 0.45, curve: Curves.easeOut),
-      ),
-    );
-
-    _logoScale = Tween<double>(begin: 0.94, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.0, 0.50, curve: AppMotion.enterCurve),
-      ),
-    );
-
-    // 2. Punchy tagline entrance (350ms -> 800ms)
+    // 1. Punchy tagline entrance (350ms -> 800ms)
     _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
@@ -69,17 +62,15 @@ class _SplashBodyState extends State<_SplashBody>
       ),
     );
 
-    _taglineSlide = Tween<Offset>(
-      begin: const Offset(0.0, 0.22),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.35, 0.80, curve: AppMotion.enterCurve),
-      ),
-    );
+    _taglineSlide =
+        Tween<Offset>(begin: const Offset(0.0, 0.22), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animController,
+            curve: const Interval(0.35, 0.80, curve: AppMotion.enterCurve),
+          ),
+        );
 
-    // 3. Footer fade (500ms -> 950ms)
+    // 2. Footer fade (500ms -> 950ms)
     _footerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
@@ -92,6 +83,7 @@ class _SplashBodyState extends State<_SplashBody>
 
   @override
   void dispose() {
+    _lottieController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -101,8 +93,10 @@ class _SplashBodyState extends State<_SplashBody>
     final p = context.palette;
     final s = context.sizes;
     final controller = Get.find<SplashController>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final disableAnimations =
         MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final lottieAsset = isDark ? SplashView.lottieDark : SplashView.lottieLight;
 
     return Scaffold(
       backgroundColor: p.background,
@@ -135,33 +129,30 @@ class _SplashBodyState extends State<_SplashBody>
                   children: <Widget>[
                     const Spacer(flex: 3),
 
-                    // 1. Framora Wordmark Logo
-                    AnimatedBuilder(
-                      animation: _animController,
-                      builder: (context, child) {
-                        if (disableAnimations) return child!;
-                        return FadeTransition(
-                          opacity: _logoFade,
-                          child: Transform.scale(
-                            scale: _logoScale.value,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: s.xxl,
-                          vertical: s.md,
-                        ),
-                        child: SvgPicture.asset(
-                          'assets/icons/framora_logo.svg',
-                          height: s.giant,
-                          theme: SvgTheme(currentColor: p.textPrimary),
-                        ),
+                    // 1. Uncrowd Animated Lottie Wordmark
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: s.xxl,
+                        vertical: s.md,
+                      ),
+                      child: Lottie.asset(
+                        lottieAsset,
+                        key: ValueKey<String>(lottieAsset),
+                        height: s.lottieSize,
+                        fit: BoxFit.contain,
+                        controller: _lottieController,
+                        onLoaded: (composition) {
+                          _lottieController.duration = composition.duration;
+                          if (disableAnimations) {
+                            _lottieController.value = 1.0;
+                          } else {
+                            _lottieController.forward(from: 0.0);
+                          }
+                        },
                       ),
                     ),
 
-                    SizedBox(height: s.md),
+                    // SizedBox(height: s.md),
 
                     // 2. Punchy, Clear Subtext
                     AnimatedBuilder(

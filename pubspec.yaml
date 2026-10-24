@@ -23,7 +23,8 @@ dependencies:
   gal: ^2.3.2
   flutter_svg: ^2.3.0
   phosphoricons_flutter: ^1.1.1
-  video_player: ^2.14.1
+  video_player: ^2.11.1
+  lottie: ^3.3.3
 
 dev_dependencies:
   flutter_test:

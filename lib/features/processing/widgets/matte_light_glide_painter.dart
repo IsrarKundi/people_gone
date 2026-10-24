@@ -29,6 +29,10 @@ class MatteLightGlidePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0 || opacity <= 0) return;
 
+    // Strictly ensure glare cannot exceed image boundary
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+
     // Default glide angle: ~25 degrees diagonal
     var angle = 25.0 * math.pi / 180.0;
 
@@ -59,11 +63,20 @@ class MatteLightGlidePainter extends CustomPainter {
     }
 
     // If resting and not touching, skip painting
-    if (isResting && touchWeight <= 0.001) return;
+    if (isResting && touchWeight <= 0.001) {
+      canvas.restore();
+      return;
+    }
+
+    // 2. Ultra-Wide Luminous Caustic Glare Band (doubled width):
+    // - Ambient bloom: ~100% of totalSpan (at least 440px)
+    // - Specular core glare: ~60% of totalSpan (at least 250px)
+    final bloomHalfWidth = math.max(440.0, totalSpan * 1.0);
+    final coreHalfWidth = math.max(250.0, totalSpan * 0.60);
 
     // Compute target center from finger touch or autonomous glide
-    final autoTravel = totalSpan + (totalSpan * 0.56);
-    double targetCenter = -(totalSpan * 0.28) + (easedProgress * autoTravel);
+    final autoTravel = totalSpan + (bloomHalfWidth * 2.0);
+    double targetCenter = -bloomHalfWidth + (easedProgress * autoTravel);
     if (touchOffset != null && touchWeight > 0.001) {
       final touchProjection = touchOffset!.dx * cosA + touchOffset!.dy * sinA;
       targetCenter = ui.lerpDouble(targetCenter, touchProjection, touchWeight)!;
@@ -72,9 +85,7 @@ class MatteLightGlidePainter extends CustomPainter {
     // Subtle tactile boost when touched
     final interactionBoost = 1.0 + (0.25 * touchWeight);
 
-    // 2. Dual-Density Soft Caustic:
-    // Pass 1: Wide, atmospheric ambient bloom (~56% of total span)
-    final bloomHalfWidth = math.max(110.0, totalSpan * 0.28);
+    // Pass 1: Wide, atmospheric ambient bloom
     final bloomStart = Offset(
       (targetCenter - bloomHalfWidth) * cosA,
       (targetCenter - bloomHalfWidth) * sinA,
@@ -103,8 +114,7 @@ class MatteLightGlidePainter extends CustomPainter {
 
     canvas.drawRect(Offset.zero & size, bloomPaint);
 
-    // Pass 2: Feathered specular core (~26% of span) with subtle iridescent refraction
-    final coreHalfWidth = math.max(55.0, totalSpan * 0.13);
+    // Pass 2: Wide specular core with chromatic dispersion
     final coreStart = Offset(
       (targetCenter - coreHalfWidth) * cosA,
       (targetCenter - coreHalfWidth) * sinA,
@@ -114,24 +124,28 @@ class MatteLightGlidePainter extends CustomPainter {
       (targetCenter + coreHalfWidth) * sinA,
     );
 
-    final coreAlpha = 0.09 * opacity * interactionBoost;
+    final coreAlpha = 0.10 * opacity * interactionBoost;
     final corePaint = Paint()
       ..shader = ui.Gradient.linear(
         coreStart,
         coreEnd,
         <Color>[
           const Color(0x00FFFFFF),
-          const Color(0xFFFFE082).withValues(alpha: coreAlpha * 0.30),
-          const Color(0xFFFFFDE7).withValues(alpha: coreAlpha * 0.65),
+          const Color(0xFFFFE082).withValues(alpha: coreAlpha * 0.25),
+          const Color(0xFFFFFDE7).withValues(alpha: coreAlpha * 0.60),
+          Colors.white.withValues(alpha: coreAlpha * 0.92),
           Colors.white.withValues(alpha: coreAlpha),
-          const Color(0xFFEDE7F6).withValues(alpha: coreAlpha * 0.65),
-          const Color(0xFFB388FF).withValues(alpha: coreAlpha * 0.30),
+          Colors.white.withValues(alpha: coreAlpha * 0.92),
+          const Color(0xFFEDE7F6).withValues(alpha: coreAlpha * 0.60),
+          const Color(0xFFB388FF).withValues(alpha: coreAlpha * 0.25),
           const Color(0x00FFFFFF),
         ],
-        const <double>[0.0, 0.20, 0.38, 0.50, 0.62, 0.80, 1.0],
+        const <double>[0.0, 0.18, 0.32, 0.44, 0.50, 0.56, 0.68, 0.82, 1.0],
       );
 
     canvas.drawRect(Offset.zero & size, corePaint);
+
+    canvas.restore();
   }
 
   @override

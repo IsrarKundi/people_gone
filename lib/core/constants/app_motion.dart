@@ -47,11 +47,9 @@ abstract final class AppMotion {
   /// Splash entrance choreography total (logo → tagline → footer).
   static const Duration splashChoreography = Duration(milliseconds: 1000);
 
-  /// Splash hold before advancing to Home: the choreography plus a
-  /// short settle — no dead time after the animation completes
-  /// (audit 2026-10-19: the old 2100 ms hold outlasted its own
-  /// 1000 ms animation by over a second).
-  static const Duration splashHold = Duration(milliseconds: 1200);
+  /// Splash hold before advancing to Home: the animation choreography
+  /// (≈1.67 s Lottie) plus settle before advancing to Home.
+  static const Duration splashHold = Duration(milliseconds: 1400);
 
   /// Critically damped spring (damping ratio 1.0 — NO overshoot) for
   /// touch-driven motion that animates toward a target: the calm rule

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -173,14 +172,6 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
             : null;
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final breatheFactor = disable
-            ? 0.0
-            : Curves.easeInOut.transform(_breatheController.value);
-        final glideVal = disable ? 0.0 : _glideController.value;
-        // Bell-curve intensity as light glide sweeps across (peaks around middle ~0.36 of active 0.72 span)
-        final sweepPeak = (glideVal < 0.72 && !disable)
-            ? math.sin((glideVal / 0.72) * math.pi)
-            : 0.0;
         final touchWeight = disable
             ? 0.0
             : Curves.easeOutCubic.transform(_touchController.value);
@@ -239,7 +230,7 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
                 ),
                 boxShadow: progress > 0
                     ? <BoxShadow>[
-                        // 1. Anchoring physical depth shadow
+                        // Anchoring physical depth shadow (confined cleanly beneath the frame, no light bleeding outside)
                         BoxShadow(
                           color: Colors.black.withValues(
                             alpha: (isDark ? 0.28 : 0.12) * progress,
@@ -250,53 +241,6 @@ class _ServerWorkingPhotoFrameState extends State<ServerWorkingPhotoFrame>
                             4 + (2 * touchWeight) + (touchShiftY * 0.4),
                           ),
                         ),
-                        // 2. Ambilight Bloom: Warm Amber Leading Edge Halo
-                        BoxShadow(
-                          color: const Color(0xFFFFD180).withValues(
-                            alpha:
-                                (isDark ? 0.10 : 0.045) *
-                                progress *
-                                (0.75 +
-                                    (0.45 * sweepPeak) +
-                                    (0.15 * breatheFactor)),
-                          ),
-                          blurRadius:
-                              32 + (16 * sweepPeak) + (6 * breatheFactor),
-                          spreadRadius: 1 + (3 * sweepPeak),
-                          offset: Offset(
-                            -2 - (4 * sweepPeak) + touchShiftX,
-                            -2 - (4 * sweepPeak) + touchShiftY,
-                          ),
-                        ),
-                        // 3. Ambilight Bloom: Celestial Cyan / Violet Trailing Edge Halo
-                        BoxShadow(
-                          color: const Color(0xFF80D8FF).withValues(
-                            alpha:
-                                (isDark ? 0.09 : 0.04) *
-                                progress *
-                                (0.75 +
-                                    (0.45 * sweepPeak) +
-                                    (0.15 * breatheFactor)),
-                          ),
-                          blurRadius:
-                              40 + (18 * sweepPeak) + (8 * breatheFactor),
-                          spreadRadius: 2 + (4 * sweepPeak),
-                          offset: Offset(
-                            2 + (4 * sweepPeak) + touchShiftX,
-                            2 + (4 * sweepPeak) + touchShiftY,
-                          ),
-                        ),
-                        // 4. Ambilight Bloom: Center Specular Core Radiance
-                        if (sweepPeak > 0.08)
-                          BoxShadow(
-                            color: Colors.white.withValues(
-                              alpha:
-                                  (isDark ? 0.08 : 0.03) * progress * sweepPeak,
-                            ),
-                            blurRadius: 48 + (16 * sweepPeak),
-                            spreadRadius: 1 + (2 * sweepPeak),
-                            offset: Offset(touchShiftX, touchShiftY),
-                          ),
                       ]
                     : null,
               ),

@@ -19,6 +19,7 @@ class AppSizes {
   final double xxl = 24;
   final double xxxl = 32;
   final double huge = 40;
+  final double lottieSize = 43;
   final double giant = 48;
 
   /// Screen padding at the compact breakpoint; [screenPaddingWide] at
