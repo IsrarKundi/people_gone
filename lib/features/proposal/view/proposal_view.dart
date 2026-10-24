@@ -36,8 +36,11 @@ class ProposalView extends GetView<ProposalController> {
                     // commented out for this state only (owner,
                     // 2026-10-24) — it comes back automatically once
                     // analyzing finishes and the results panel shows.
-                    ? const Center(
-                        child: CamMascot(mode: CamMode.analyzing),
+                    ? Container(
+                        color: context.palette.surface,
+                        child: const Center(
+                          child: CamMascot(mode: CamMode.analyzing),
+                        ),
                       )
                     : ProposalPhotoCanvas(
                         photoPath: controller.photoPath,

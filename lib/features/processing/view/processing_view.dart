@@ -50,10 +50,13 @@ class ProcessingView extends GetView<ProcessingController> {
             return Column(
               children: <Widget>[
                 const SizedBox(height: 48),
-                const Center(
-                  child: CamMascot(
-                    mode: CamMode.processing,
-                    concerned: true,
+                Container(
+                  color: p.surface,
+                  child: const Center(
+                    child: CamMascot(
+                      mode: CamMode.processing,
+                      concerned: true,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -129,12 +132,18 @@ class _ProcessingContentState extends State<_ProcessingContent>
     final content = Column(
       children: <Widget>[
         // Cam, in the middle of the screen on a clean background.
-        // The blurred working photo frame that used to fill this
-        // space is commented out below (owner, 2026-10-24) —
-        // restore it by swapping this Center back for the
-        // _FittedPhotoFrame call. Display only.
-        const Expanded(
-          child: Center(child: CamMascot(mode: CamMode.processing)),
+        // The video's own background is pure white, so the stage
+        // behind it is surface white — otherwise the white video
+        // square shows against the grey screen. The blurred
+        // working photo frame that used to fill this space is
+        // commented out below (owner, 2026-10-24) — restore it
+        // by swapping this Center back for the _FittedPhotoFrame
+        // call. Display only.
+        Expanded(
+          child: Container(
+            color: p.surface,
+            child: const Center(child: CamMascot(mode: CamMode.processing)),
+          ),
         ),
         // _FittedPhotoFrame(
         //   photoPath: widget.controller.photoPath,
