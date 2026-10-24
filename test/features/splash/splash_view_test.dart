@@ -78,7 +78,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('SplashController auto-completes on timer expiry', (tester) async {
+  testWidgets('SplashView completes when the logo animation finishes, not on the hold timer', (tester) async {
     var completed = false;
     final controller = SplashController(
       holdDuration: const Duration(milliseconds: 500),
@@ -97,22 +97,28 @@ void main() {
     await tester.pump();
     expect(completed, isFalse);
 
+    // The 500ms hold timer is cancelled once the logo animation starts,
+    // so completion must NOT happen at 600ms...
     await tester.pump(const Duration(milliseconds: 600));
+    expect(completed, isFalse);
+
+    // ...but must happen once the ~1670ms logo animation finishes.
+    await tester.pump(const Duration(milliseconds: 1400));
     expect(completed, isTrue);
   });
 
-  testWidgets('SplashController defaults to AppMotion.splashHold duration', (tester) async {
+  testWidgets('SplashController falls back to the hold timer when no view plays the animation', (tester) async {
     var completed = false;
     final controller = SplashController(
       onComplete: () => completed = true,
     );
     Get.put<SplashController>(controller);
 
+    // No SplashView pumped, so nothing cancels the timer: the default
+    // 1400ms hold must still complete on its own.
     await tester.pumpWidget(
-      GetMaterialApp(
-        translations: AppTranslations(),
-        locale: const Locale('en', 'US'),
-        home: const SplashView(),
+      const GetMaterialApp(
+        home: SizedBox.shrink(),
       ),
     );
 

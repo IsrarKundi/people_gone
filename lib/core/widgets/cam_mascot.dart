@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../constants/app_motion.dart';
 import 'cam_art.dart';
 import 'cam_frame.dart';
 import 'cam_video.dart';
@@ -95,7 +96,7 @@ class _CamMascotState extends State<CamMascot> with TickerProviderStateMixin {
     );
     _arrive = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: AppMotion.standard,
     );
     _lastReactionKey = widget.reactionKey;
   }
@@ -155,7 +156,7 @@ class _CamMascotState extends State<CamMascot> with TickerProviderStateMixin {
         // the sine returns to 0, so no reset is needed.
         final double nod = 2 * math.sin(math.pi * _reaction.value);
         // Arrival pulse: a slow 3 % scale pulse and a small tilt,
-        // once, over 600 ms.
+        // once, over 300 ms.
         final double pulse = math.sin(math.pi * _arrive.value);
         // The idle loop ticker still runs so the one-shots above
         // have a clock, but the video carries the idle motion

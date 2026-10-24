@@ -20,8 +20,6 @@ abstract final class AppMotion {
   /// so the eye finds the card first (first-run choreography brief §2 Beat 1).
   static const Duration firstRunSweepDelay = Duration(milliseconds: 400);
 
-  /// Result first-open Before->After dissolve (≈450 ms, once).
-  static const Duration resultDissolve = Duration(milliseconds: 450);
 
   /// Save button "Saved" receipt hold duration (≈1.2 s).
   static const Duration saveHold = Duration(milliseconds: 1200);
@@ -78,6 +76,6 @@ abstract final class AppMotion {
   /// Calm standard curves with NO visible overshoot.
   static const Curve standardCurve = Curves.easeInOutCubic;
   static const Curve enterCurve = Curves.easeOutCubic;
-  static const Curve exitCurve = Curves.easeInCubic;
+  static const Curve exitCurve = Curves.easeOutCubic;
   static const Curve spring = Curves.easeOutCubic;
 }

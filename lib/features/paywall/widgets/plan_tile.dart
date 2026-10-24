@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_icons.dart';
+import '../../../core/constants/app_motion.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/pressable_scale.dart';
 
@@ -39,8 +40,8 @@ class PlanTile extends StatelessWidget {
         onTap: onTap,
         child: PressableScale(
           child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.fast,
+          curve: AppMotion.enterCurve,
           padding: EdgeInsets.symmetric(
             horizontal: s.md,
             vertical: s.sm + 2,

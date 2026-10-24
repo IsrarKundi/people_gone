@@ -147,6 +147,12 @@ class _SplashBodyState extends State<_SplashBody>
                             _lottieController.value = 1.0;
                           } else {
                             _lottieController.forward(from: 0.0);
+                            controller.cancelHoldTimer();
+                            _lottieController.addStatusListener((status) {
+                              if (status == AnimationStatus.completed) {
+                                controller.complete();
+                              }
+                            });
                           }
                         },
                       ),

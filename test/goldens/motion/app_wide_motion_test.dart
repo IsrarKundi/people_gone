@@ -13,7 +13,6 @@ void main() {
       expect(AppMotion.fast, const Duration(milliseconds: 180));
       expect(AppMotion.standard, const Duration(milliseconds: 300));
       expect(AppMotion.demoSweep, const Duration(milliseconds: 1200));
-      expect(AppMotion.resultDissolve, const Duration(milliseconds: 450));
       expect(AppMotion.compareNudge, const Duration(milliseconds: 600));
       expect(AppMotion.saveHold, const Duration(milliseconds: 1200));
       expect(AppMotion.strokeFade, const Duration(milliseconds: 150));

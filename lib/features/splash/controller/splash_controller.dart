@@ -28,6 +28,15 @@ class SplashController extends GetxController {
     _timer = Timer(_holdDuration, complete);
   }
 
+  /// Cancels the hold timer WITHOUT navigating. Used by the splash view
+  /// once the logo animation starts playing, so navigation waits for the
+  /// animation instead of the fixed hold; the timer stays as the fallback
+  /// when the animation never loads.
+  void cancelHoldTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
   /// Proceeds immediately to Home (on tap or timer expiry).
   void complete() {
     if (_navigated) return;

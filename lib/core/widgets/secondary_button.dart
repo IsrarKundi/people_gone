@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../theme/theme_ext.dart';
+import 'pressable_scale.dart';
 
 /// Secondary action button (Conventions §6.7): token height 48, outlined.
 class SecondaryButton extends StatelessWidget {
@@ -18,20 +19,23 @@ class SecondaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final s = context.sizes;
-    return SizedBox(
-      height: s.buttonSecondary,
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: p.primary,
-          side: BorderSide(color: p.border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(s.radiusMd),
+    return PressableScale(
+      enabled: onPressed != null,
+      child: SizedBox(
+        height: s.buttonSecondary,
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: p.primary,
+            side: BorderSide(color: p.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(s.radiusMd),
+            ),
+            textStyle: context.textStyles.labelLg,
           ),
-          textStyle: context.textStyles.labelLg,
+          child: Text(labelKey.tr),
         ),
-        child: Text(labelKey.tr),
       ),
     );
   }

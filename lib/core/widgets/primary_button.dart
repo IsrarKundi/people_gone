@@ -78,7 +78,7 @@ class PrimaryButton extends StatelessWidget {
           child: AnimatedSwitcher(
             duration: AppMotion.fast,
             switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
+            switchOutCurve: AppMotion.exitCurve,
             reverseDuration: Duration.zero,
             layoutBuilder: (currentChild, previousChildren) =>
                 currentChild ?? const SizedBox.shrink(),
