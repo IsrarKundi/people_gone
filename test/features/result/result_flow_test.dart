@@ -15,6 +15,7 @@ import 'package:people_gone/core/utils/result.dart';
 import 'package:people_gone/features/brush/model/brush_args.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
 import 'package:people_gone/features/result/controller/result_controller.dart';
+import 'package:people_gone/features/result/widgets/result_photo_area.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
 import 'package:people_gone/services/storage/local_store.dart';
 
@@ -501,7 +502,11 @@ void main() {
     // band-pinned button sits far from the screen edge (the old
     // layout floated it at the area's corner: left 16, top 16).
     expect(rect.left, greaterThan(100));
-    expect(rect.top, lessThan(16));
+    // Pinned to the photo band, not to the screen top: the band now
+    // starts below the mascot header row, so the chrome's top must
+    // match the photo area's top, not sit under 16dp absolute.
+    final bandRect = tester.getRect(find.byType(ResultPhotoArea));
+    expect((rect.top - bandRect.top).abs(), lessThanOrEqualTo(16));
   });
 
   testWidgets('compare pills sit below the chrome row (F7)', (tester) async {

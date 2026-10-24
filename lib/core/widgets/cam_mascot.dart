@@ -2,9 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../theme/theme_ext.dart';
+import 'cam_art.dart';
 import 'cam_frame.dart';
-import 'cam_painter.dart';
 
 /// True only inside `flutter test` (the runner sets FLUTTER_TEST).
 /// Cam's idle loop repeats forever by design, which would block
@@ -17,12 +16,18 @@ final bool _inTestEnvironment = Platform.environment.containsKey(
   'FLUTTER_TEST',
 );
 
-/// Cam, the Uncrowd mascot (ADR docs/architecture/cam-mascot.md).
+/// Cam, the Uncrowd mascot.
 ///
-/// One widget, three modes — [CamMode.avatar] for the Home header,
-/// [CamMode.peek] for Processing, [CamMode.presenter] for the Paywall —
-/// all rendering the same rig ([CamPainter] + [evaluateCamFrame]), so
-/// the character is identical on every screen by construction.
+/// One widget, five modes following the owner's journey — [CamMode.avatar]
+/// for the Home header, [CamMode.analyzing] centred whole on the
+/// Analyzing screen, [CamMode.processing] centred whole on the
+/// Processing screen, [CamMode.resultsReady] back in the top-right
+/// circle on Result, and [CamMode.avatarSmall] for Brush / History
+/// headers — all rendering the owner's sheet drawings
+/// ([CamMascotArt] + [evaluateCamFrame]), so the character is
+/// identical on every screen by construction. The circle is drawn
+/// in code, never baked into the art; Analyzing and Processing are
+/// never cropped.
 ///
 /// Cam is decoration, not information: he carries no action and no
 /// meaning a screen-reader user would miss, so he is excluded from
@@ -71,50 +76,23 @@ class _CamMascotState extends State<CamMascot>
     super.dispose();
   }
 
-  Size _box(BuildContext context) {
-    final s = context.sizes;
-    return switch (widget.mode) {
-      CamMode.avatar => Size.square(s.mascotAvatarSize),
-      // The character canvas is square; exactly half of it is visible.
-      CamMode.peek => Size(s.mascotPeekHeight / 2, s.mascotPeekHeight),
-      CamMode.presenter => Size.square(s.mascotPresenterHeight),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    final box = _box(context);
     if (_frozen) {
-      return ExcludeSemantics(
-        child: CustomPaint(
-          size: box,
-          painter: CamPainter(
-            palette: palette,
-            frame: CamFrame.neutral,
-            mode: widget.mode,
-          ),
-        ),
-      );
+      return CamMascotArt(frame: CamFrame.neutral, mode: widget.mode);
     }
-    return ExcludeSemantics(
-      child: AnimatedBuilder(
-        animation: _loop,
-        builder: (context, _) {
-          final elapsed = Duration(
-            milliseconds: (_loop.value * camLoopDuration.inMilliseconds)
-                .round(),
-          );
-          return CustomPaint(
-            size: box,
-            painter: CamPainter(
-              palette: palette,
-              frame: evaluateCamFrame(elapsed, widget.mode),
-              mode: widget.mode,
-            ),
-          );
-        },
-      ),
+    return AnimatedBuilder(
+      animation: _loop,
+      builder: (context, _) {
+        final elapsed = Duration(
+          milliseconds: (_loop.value * camLoopDuration.inMilliseconds)
+              .round(),
+        );
+        return CamMascotArt(
+          frame: evaluateCamFrame(elapsed, widget.mode),
+          mode: widget.mode,
+        );
+      },
     );
   }
 }

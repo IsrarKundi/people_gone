@@ -154,6 +154,11 @@ class CaptureStore implements LocalStore {
 class CaptureApi implements ProcessingApi {
   Completer<Result<ProcessedPhoto>>? gate;
 
+  /// When set, detectPersons waits on this gate instead of returning
+  /// immediately — the mascot harness holds the proposal screen in its
+  /// analysing state this way (v2 Analyzing placement evidence).
+  Completer<Result<DetectionProposal>>? detectGate;
+
   /// When set, touchupPhoto reports a mid-upload fraction and then
   /// waits on this gate (the S5 fixing-state evidence).
   Completer<Result<TouchupOutcome>>? touchupGate;
@@ -184,6 +189,7 @@ class CaptureApi implements ProcessingApi {
     void Function(double fraction)? onUploadProgress,
   }) {
     onUploadProgress?.call(1.0);
+    if (detectGate != null) return detectGate!.future;
     return Future<Result<DetectionProposal>>.value(
       Success<DetectionProposal>(
         DetectionProposal(

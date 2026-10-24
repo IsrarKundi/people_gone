@@ -8,6 +8,8 @@ import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/cam_frame.dart';
+import '../../../core/widgets/cam_mascot.dart';
 import '../../../core/widgets/photo_surface.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../../result/widgets/compare_slider.dart';
@@ -26,6 +28,14 @@ class HistoryDetailView extends GetView<HistoryDetailController> {
     final entry = controller.entry;
     return AppScaffold(
       titleKey: AppStrings.historyTitle,
+      // Cam, small header avatar (v2 map, Home pattern): trailing slot
+      // of the app bar. Display only.
+      actions: <Widget>[
+        Padding(
+          padding: EdgeInsets.only(right: s.screenPadding),
+          child: const CamMascot(mode: CamMode.avatarSmall),
+        ),
+      ],
       body: Column(
         children: <Widget>[
           Expanded(child: _photoArea(context)),

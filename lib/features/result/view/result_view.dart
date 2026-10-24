@@ -5,6 +5,8 @@ import '../../../core/constants/app_icons.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/cam_frame.dart';
+import '../../../core/widgets/cam_mascot.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
 import '../controller/result_controller.dart';
@@ -24,6 +26,23 @@ class ResultView extends GetView<ResultController> {
     return AppScaffold(
       body: Column(
         children: <Widget>[
+          // Cam, back in the top-right circle (owner journey): the
+          // results-ready drawing in a code-drawn green circle, in
+          // its own header row above the photo — never over the
+          // photo, never over a button. The result screen itself
+          // stays clean. Display only.
+          Padding(
+            padding: EdgeInsets.only(
+              right: s.screenPadding,
+              bottom: s.sm,
+            ),
+            child: Row(
+              children: const <Widget>[
+                Spacer(),
+                CamMascot(mode: CamMode.resultsReady),
+              ],
+            ),
+          ),
           Expanded(child: ResultPhotoArea(controller: controller)),
           Container(
             width: double.infinity,

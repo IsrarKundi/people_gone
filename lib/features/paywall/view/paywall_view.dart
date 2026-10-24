@@ -7,8 +7,6 @@ import '../../../core/constants/app_icons.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
-import '../../../core/widgets/cam_frame.dart';
-import '../../../core/widgets/cam_mascot.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../controller/paywall_controller.dart';
 import '../widgets/plan_tile.dart';
@@ -176,13 +174,6 @@ class PaywallView extends GetView<PaywallController> {
                         ),
                       ),
                     ],
-
-                    // Cam presenter (ADR docs/architecture/cam-mascot.md):
-                    // centred in the space below the Restore · Not now
-                    // row, xxxl (32) below it — beyond the plan's ≥24dp
-                    // minimum — and clear of every control. Display only.
-                    SizedBox(height: s.xxxl),
-                    const Center(child: CamMascot(mode: CamMode.presenter)),
 
                     SizedBox(height: s.md),
                   ],

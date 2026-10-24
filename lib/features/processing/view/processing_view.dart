@@ -121,6 +121,14 @@ class _ProcessingContentState extends State<_ProcessingContent>
             controller: widget.controller,
           ),
         ),
+        // Cam, centred and whole (owner journey): the at-computer
+        // drawing in the middle of the screen on the clean screen
+        // background — never cropped, never peeking half-visible
+        // from the edge, never over the photo. Display only.
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: s.md),
+          child: const Center(child: CamMascot(mode: CamMode.processing)),
+        ),
         // Bottom tray — in flow, anchored to the screen bottom.
         Padding(
           padding: EdgeInsets.fromLTRB(
@@ -264,7 +272,6 @@ class _FittedPhotoFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final file = File(photoPath);
-    final s = context.sizes;
     return PhotoSurface(
       imageProvider: ResizeImage(
         FileImage(file),
@@ -279,6 +286,9 @@ class _FittedPhotoFrame extends StatelessWidget {
             errorBuilder: (_, _, _) => const SizedBox.shrink(),
           );
         }
+        // No mascot over the photo any more: Cam now lives centred
+        // and whole in the clean zone below the photo (see
+        // _ProcessingContent), per the owner's journey.
         return Stack(
           fit: StackFit.expand,
           clipBehavior: Clip.none,
@@ -292,17 +302,6 @@ class _FittedPhotoFrame extends StatelessWidget {
                 imageFile: file,
                 isWorking: true,
               ),
-            ),
-            // Cam peek (ADR docs/architecture/cam-mascot.md): anchored
-            // to the right screen edge — the widget IS the visible
-            // half of the character (50% by construction) — with its
-            // vertical centre on the photo band's centre. He sits over
-            // the photo area only, clear of the tray below. Display
-            // only; present for the whole working state.
-            Positioned(
-              right: 0,
-              top: band.top + band.height / 2 - s.mascotPeekHeight / 2,
-              child: const CamMascot(mode: CamMode.peek),
             ),
           ],
         );

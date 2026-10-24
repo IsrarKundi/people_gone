@@ -1,12 +1,14 @@
-/// Cam mascot verification harness (MASCOT_EXECUTION_PLAN.md §6,
+/// Cam mascot verification harness, v2 (MASCOT_EXECUTION_PLAN.md §6,
 /// ADR docs/architecture/cam-mascot.md).
 ///
 /// Two kinds of cases:
-/// 1. MEASUREMENT tests — always run. They pump the real S1/S6/S8
-///    routes with the capture fakes and assert the plan §3 numbers
-///    directly from widget rects: avatar centre vs wordmark centre,
-///    peek visible fraction and band centring, presenter gap, and a
-///    tap-target overlap audit on each screen.
+/// 1. MEASUREMENT tests — always run. They pump the real routes with
+///    the capture fakes and assert the plan §3 numbers directly from
+///    widget rects: avatar centre vs wordmark centre, peek visible
+///    fraction and band centring, avatarSmall header positions,
+///    Result bottom-right placement, and a tap-target overlap audit
+///    on each screen. Paywall asserts the OPPOSITE: no Cam anywhere
+///    (the v1 presenter was removed in v2).
 /// 2. CAPTURE cases — only with PG_CAPTURE=1, like the review02
 ///    harness: golden evidence into test/goldens/mascot/, including
 ///    the expression sheet (the plan §5 step-3 artefact).
@@ -27,21 +29,27 @@ import 'package:people_gone/core/routes/app_routes.dart';
 import 'package:people_gone/core/strings/app_strings.dart';
 import 'package:people_gone/core/theme/app_theme.dart';
 import 'package:people_gone/core/utils/result.dart';
+import 'package:people_gone/core/widgets/cam_art.dart';
 import 'package:people_gone/core/widgets/cam_frame.dart';
 import 'package:people_gone/core/widgets/cam_mascot.dart';
-import 'package:people_gone/core/widgets/cam_painter.dart';
 import 'package:people_gone/core/widgets/primary_button.dart';
+import 'package:people_gone/core/widgets/secondary_button.dart';
+import 'package:people_gone/features/brush/controller/brush_controller.dart';
+import 'package:people_gone/features/brush/model/brush_args.dart';
 import 'package:people_gone/features/paywall/model/paywall_args.dart';
 import 'package:people_gone/features/picker/controller/picker_controller.dart';
 import 'package:people_gone/features/processing/model/processing_args.dart';
 import 'package:people_gone/features/processing/widgets/server_working_photo_frame.dart';
+import 'package:people_gone/features/proposal/model/proposal_args.dart';
+import 'package:people_gone/features/result/widgets/save_receipt_button.dart';
 import 'package:people_gone/services/processing/processing_api.dart';
+import 'package:people_gone/services/storage/local_store.dart';
 
 import 'capture_review02_test.dart' as review02;
 
 /// The repo's bundled demo photo (the harness photos under /Users/mc
-/// are the owner's Mac paths; this file lives in the repo, so the S6
-/// case runs on any machine).
+/// are the owner's Mac paths; this file lives in the repo, so the
+/// cases run on any machine).
 String get _demoPath =>
     '${Directory.current.path}/assets/images/demo_original.jpg';
 
@@ -185,6 +193,161 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
+  /// The proposal screen held in its analysing state: detectPersons
+  /// waits on the fake's detectGate, so the analysing panel (with
+  /// Cam's small avatar) stays up.
+  Future<void> openAnalyzing(
+    WidgetTester tester, {
+    ThemeMode mode = ThemeMode.light,
+  }) async {
+    api.detectGate = Completer<Result<DetectionProposal>>();
+    await primeDemo(tester);
+    await pumpApp(tester, mode: mode);
+    Get.toNamed<void>(
+      Routes.proposal,
+      arguments: ProposalArgs.forPhoto(photoPath: _demoPath),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
+  Future<void> closeAnalyzing(WidgetTester tester) async {
+    api.detectGate!.complete(
+      Success<DetectionProposal>(
+        DetectionProposal(
+          photoPath: _demoPath,
+          personsDetected: 2,
+          keeperIds: const <int>[0],
+          removedIds: const <int>[1],
+          persons: const <DetectedPerson>[
+            DetectedPerson(
+              id: 0,
+              box: <int>[10, 10, 50, 90],
+              score: 0.95,
+              isKeeper: true,
+            ),
+            DetectedPerson(
+              id: 1,
+              box: <int>[60, 20, 90, 80],
+              score: 0.85,
+              isKeeper: false,
+            ),
+          ],
+          inputDimensions: const <int>[100, 100],
+        ),
+      ),
+    );
+    api.detectGate = null;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
+  Future<void> openResult(
+    WidgetTester tester, {
+    ThemeMode mode = ThemeMode.light,
+  }) async {
+    await primeDemo(tester);
+    await pumpApp(tester, mode: mode);
+    Get.toNamed<void>(
+      Routes.result,
+      arguments: ProcessingOutcome(
+        originalPath: _demoPath,
+        resultPath: _demoPath,
+        personsDetected: 2,
+        keeperIds: const <int>[0],
+        removedIds: const <int>[1],
+        totalSeconds: 14.2,
+        engineUsed: 'mat',
+        persons: const <DetectedPerson>[
+          DetectedPerson(
+            id: 0,
+            box: <int>[10, 10, 50, 90],
+            score: 0.95,
+            isKeeper: true,
+          ),
+          DetectedPerson(
+            id: 1,
+            box: <int>[60, 20, 90, 80],
+            score: 0.85,
+            isKeeper: false,
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 1));
+  }
+
+  Future<BrushController> openBrush(
+    WidgetTester tester, {
+    ThemeMode mode = ThemeMode.light,
+  }) async {
+    await primeDemo(tester);
+    await pumpApp(tester, mode: mode);
+    Get.toNamed<void>(
+      Routes.brush,
+      arguments: BrushArgs(imagePath: _demoPath),
+    );
+    await tester.pump();
+    final controller = Get.find<BrushController>();
+    // The controller decodes the photo's size from its bytes off a
+    // future started in the fake-async zone; await the decode inside
+    // runAsync or imageSize stays null and the canvas renders its
+    // no-size fallback (photo only, no stroke layer).
+    await tester.runAsync(() async {
+      await controller.loadImageSize();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    return controller;
+  }
+
+  List<HistoryEntry> sampleEntries() => <HistoryEntry>[
+    HistoryEntry(
+      id: 'h1',
+      localPath: _demoPath,
+      savedAt: DateTime(2026, 10, 13),
+    ),
+    HistoryEntry(
+      id: 'h2',
+      localPath: _demoPath,
+      savedAt: DateTime(2026, 10, 12),
+    ),
+  ];
+
+  Future<void> openHistory(
+    WidgetTester tester, {
+    ThemeMode mode = ThemeMode.light,
+  }) async {
+    store.entries = sampleEntries();
+    await primeDemo(tester);
+    await pumpApp(tester, mode: mode);
+    Get.toNamed<void>(Routes.history);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
+  Future<void> openHistoryDetail(
+    WidgetTester tester, {
+    ThemeMode mode = ThemeMode.light,
+  }) async {
+    await primeDemo(tester);
+    await pumpApp(tester, mode: mode);
+    Get.toNamed<void>(
+      Routes.historyDetail,
+      arguments: HistoryEntry(
+        id: 'hist_1',
+        localPath: _demoPath,
+        originalPath: _demoPath,
+        savedAt: DateTime.utc(2026, 10, 14),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
   Future<void> openPaywall(
     WidgetTester tester, {
     ThemeMode mode = ThemeMode.light,
@@ -237,65 +400,130 @@ void main() {
     expect(find.byType(CamMascot), findsOneWidget);
   });
 
-  testWidgets('S6: peek is the visible half, flush right, centred on '
-      'the photo, clear of the tray', (tester) async {
+  testWidgets('S6: processing mascot is whole, centred, clear of '
+      'the photo and the tray', (tester) async {
     await openProcessing(tester);
-    final peek = find.byType(CamMascot);
-    expect(peek, findsOneWidget);
-    final peekRect = tester.getRect(peek);
-    // 55×110 box = exactly 50% of the square character canvas visible.
-    expect(peekRect.size, const Size(55, 110));
+    final cam = find.byType(CamMascot);
+    expect(cam, findsOneWidget);
+    final camRect = tester.getRect(cam);
+    // Whole drawing at its fixed width — never cropped, never half.
+    expect(camRect.width, 240);
     expect(
-      (390 - peekRect.right).abs(),
+      (camRect.center.dx - 195).abs(),
       lessThanOrEqualTo(1),
-      reason: 'peek must be flush with the right screen edge',
+      reason: 'processing mascot must be centred horizontally',
     );
 
     final frameRect = tester.getRect(find.byType(ServerWorkingPhotoFrame));
-    expect(
-      (peekRect.center.dy - frameRect.center.dy).abs(),
-      lessThanOrEqualTo(2),
-      reason: 'peek centre must align with the photo centre ±2dp',
-    );
+    expect(camRect.overlaps(frameRect), isFalse);
 
     final buttonRect = tester.getRect(find.byType(PrimaryButton));
-    expect(peekRect.overlaps(buttonRect), isFalse);
+    expect(camRect.overlaps(buttonRect), isFalse);
     final cancelRect = tester.getRect(find.text('Cancel'));
-    expect(peekRect.overlaps(cancelRect), isFalse);
+    expect(camRect.overlaps(cancelRect), isFalse);
 
     await closeProcessing(tester);
   });
 
-  testWidgets('S8: presenter is 120dp, centred, ≥24dp below the links '
-      'row, clear of the CTA', (tester) async {
-    await openPaywall(tester);
+  testWidgets('Analyzing: mascot is whole, centred in the panel, '
+      'clear of the photo', (tester) async {
+    await openAnalyzing(tester);
     final cam = find.byType(CamMascot);
     expect(cam, findsOneWidget);
     final camRect = tester.getRect(cam);
-    expect(camRect.size, const Size(120, 120));
+    // Whole drawing at its fixed width — never cropped, never a
+    // small header avatar.
+    expect(camRect.width, 200);
     expect(
       (camRect.center.dx - 195).abs(),
-      lessThanOrEqualTo(2),
-      reason: 'presenter must be horizontally centred',
+      lessThanOrEqualTo(1),
+      reason: 'analyzing mascot must be centred horizontally',
     );
 
-    final restoreRect = tester.getRect(
-      find.widgetWithText(TextButton, 'Restore Purchases'),
-    );
-    final notNowRect = tester.getRect(
-      find.widgetWithText(TextButton, 'Not now'),
-    );
-    final rowBottom = restoreRect.bottom > notNowRect.bottom
-        ? restoreRect.bottom
-        : notNowRect.bottom;
+    await closeAnalyzing(tester);
+  });
+
+  testWidgets('Result: avatar is 44dp, top-right, clear of the '
+      'photo and every button', (tester) async {
+    await openResult(tester);
+    final cam = find.byType(CamMascot);
+    expect(cam, findsOneWidget);
+    final camRect = tester.getRect(cam);
+    expect(camRect.size, const Size(44, 44));
+    // Header right padding (screenPadding 16) sets the edge.
+    expect((390 - camRect.right - 16).abs(), lessThanOrEqualTo(4));
+    expect(camRect.top, lessThan(120));
+
+    // Every action-zone button must sit below him, never under him.
+    var buttonTop = 844.0;
+    for (final type in <Type>[
+      PrimaryButton,
+      SecondaryButton,
+      SaveReceiptButton,
+    ]) {
+      for (final element in tester.elementList(find.byType(type))) {
+        final rect = tester.getRect(find.byWidget(element.widget));
+        expect(camRect.overlaps(rect), isFalse);
+        if (rect.top < buttonTop) buttonTop = rect.top;
+      }
+    }
     expect(
-      camRect.top - rowBottom,
-      greaterThanOrEqualTo(24),
-      reason: 'presenter gap below the links row must be ≥24dp',
+      camRect.bottom,
+      lessThanOrEqualTo(buttonTop),
+      reason: 'Cam must sit above the action zone, never over a button',
     );
+  });
 
-    final ctaRect = tester.getRect(find.byType(PrimaryButton));
-    expect(camRect.overlaps(ctaRect), isFalse);
+  testWidgets('Brush: small header avatar, clear of the Apply button',
+      (tester) async {
+    await openBrush(tester);
+    final cam = find.byType(CamMascot);
+    expect(cam, findsOneWidget);
+    final camRect = tester.getRect(cam);
+    expect(camRect.size, const Size(32, 32));
+    // Header row: Cam is the last item, at the screen's right padding.
+    expect((390 - camRect.right - 16).abs(), lessThanOrEqualTo(4));
+    expect(camRect.top, lessThan(120));
+
+    final applyRect = tester.getRect(find.byType(PrimaryButton));
+    expect(camRect.overlaps(applyRect), isFalse);
+  });
+
+  testWidgets('History: small header avatar in the app bar',
+      (tester) async {
+    await openHistory(tester);
+    final cam = find.byType(CamMascot);
+    expect(cam, findsOneWidget);
+    final camRect = tester.getRect(cam);
+    expect(camRect.size, const Size(32, 32));
+    expect((390 - camRect.right - 16).abs(), lessThanOrEqualTo(4));
+    expect(camRect.top, lessThan(120));
+  });
+
+  testWidgets('History detail: small header avatar, clear of Share '
+      'and Delete', (tester) async {
+    await openHistoryDetail(tester);
+    final cam = find.byType(CamMascot);
+    expect(cam, findsOneWidget);
+    final camRect = tester.getRect(cam);
+    expect(camRect.size, const Size(32, 32));
+    expect((390 - camRect.right - 16).abs(), lessThanOrEqualTo(4));
+    expect(camRect.top, lessThan(120));
+
+    // Every action-zone button (Share, Delete, and any button the
+    // receipt widget renders) must sit below him, never under him.
+    for (final type in <Type>[SecondaryButton, OutlinedButton]) {
+      for (final element in tester.elementList(find.byType(type))) {
+        final rect = tester.getRect(find.byWidget(element.widget));
+        expect(camRect.overlaps(rect), isFalse);
+      }
+    }
+  });
+
+  testWidgets('Paywall: no Cam anywhere (v1 presenter removed)',
+      (tester) async {
+    await openPaywall(tester);
+    expect(find.byType(CamMascot), findsNothing);
   });
 
   // -----------------------------------------------------------------
@@ -320,7 +548,8 @@ void main() {
     await snap(tester, 's1_home_mascot_dark.png');
   });
 
-  testWidgets('capture S6 Processing with Cam, light + dark', (tester) async {
+  testWidgets('capture S6 Processing with Cam, light + dark',
+      (tester) async {
     if (!_capture) return;
     await openProcessing(tester);
     await snap(tester, 's6_processing_mascot_light.png');
@@ -330,95 +559,87 @@ void main() {
     await closeProcessing(tester);
   });
 
-  testWidgets('capture S8 Paywall with Cam, light + dark', (tester) async {
+  testWidgets('capture Analyzing with Cam, light + dark', (tester) async {
     if (!_capture) return;
-    await openPaywall(tester);
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -700),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await snap(tester, 's8_paywall_mascot_light.png');
-    await openPaywall(tester, mode: ThemeMode.dark);
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -700),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await snap(tester, 's8_paywall_mascot_dark.png');
+    await openAnalyzing(tester);
+    await snap(tester, 's4_analyzing_mascot_light.png');
+    await closeAnalyzing(tester);
+    await openAnalyzing(tester, mode: ThemeMode.dark);
+    await snap(tester, 's4_analyzing_mascot_dark.png');
+    await closeAnalyzing(tester);
+  });
+
+  testWidgets('capture Result with Cam, light + dark', (tester) async {
+    if (!_capture) return;
+    await openResult(tester);
+    await snap(tester, 's7_result_mascot_light.png');
+    await openResult(tester, mode: ThemeMode.dark);
+    await snap(tester, 's7_result_mascot_dark.png');
+  });
+
+  testWidgets('capture Brush with Cam, light + dark', (tester) async {
+    if (!_capture) return;
+    await openBrush(tester);
+    await snap(tester, 's5_brush_mascot_light.png');
+    await openBrush(tester, mode: ThemeMode.dark);
+    await snap(tester, 's5_brush_mascot_dark.png');
+  });
+
+  testWidgets('capture History with Cam, light + dark', (tester) async {
+    if (!_capture) return;
+    await openHistory(tester);
+    await snap(tester, 's9_history_mascot_light.png');
+    await openHistory(tester, mode: ThemeMode.dark);
+    await snap(tester, 's9_history_mascot_dark.png');
+  });
+
+  testWidgets('capture History detail with Cam, light + dark',
+      (tester) async {
+    if (!_capture) return;
+    await openHistoryDetail(tester);
+    await snap(tester, 's9_history_detail_mascot_light.png');
+    await openHistoryDetail(tester, mode: ThemeMode.dark);
+    await snap(tester, 's9_history_detail_mascot_dark.png');
   });
 
   testWidgets('capture expression sheet (plan §5 step 3)', (tester) async {
     if (!_capture) return;
-    tester.view.physicalSize = const Size(1200, 760);
+    // Tall enough for two rows of whole sheet drawings (analyzing
+    // alone is ~235dp tall); the old 760px canvas overflowed.
+    tester.view.physicalSize = const Size(1200, 1040);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
 
-    Widget cell(CamMode mode, Duration at, double w, double h) {
+    Widget cell(CamMode mode, Duration at) {
       return Container(
-        width: w,
-        height: h,
         color: AppPalette.light.background,
-        child: CustomPaint(
-          size: Size(w, h),
-          painter: CamPainter(
-            palette: AppPalette.light,
-            frame: evaluateCamFrame(at, mode),
-            mode: mode,
-          ),
-        ),
+        child: CamMascotArt(frame: evaluateCamFrame(at, mode), mode: mode),
       );
     }
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light(),
         home: Scaffold(
+          backgroundColor: AppPalette.light.background,
           body: Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  cell(CamMode.presenter, Duration.zero, 190, 190),
-                  cell(
-                    CamMode.presenter,
-                    const Duration(milliseconds: 1580),
-                    190,
-                    190,
-                  ),
-                  cell(
-                    CamMode.presenter,
-                    const Duration(milliseconds: 3400),
-                    190,
-                    190,
-                  ),
+                  cell(CamMode.processing, Duration.zero),
+                  cell(CamMode.analyzing, Duration.zero),
+                  cell(CamMode.resultsReady, Duration.zero),
                 ],
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  cell(CamMode.avatar, Duration.zero, 120, 120),
-                  cell(
-                    CamMode.avatar,
-                    const Duration(milliseconds: 3400),
-                    120,
-                    120,
-                  ),
-                  cell(CamMode.peek, Duration.zero, 95, 190),
-                  cell(
-                    CamMode.peek,
-                    const Duration(milliseconds: 3400),
-                    95,
-                    190,
-                  ),
-                  cell(
-                    CamMode.peek,
-                    const Duration(milliseconds: 6225),
-                    95,
-                    190,
-                  ),
+                  cell(CamMode.avatar, Duration.zero),
+                  cell(CamMode.avatarSmall, Duration.zero),
+                  cell(CamMode.processing, Duration.zero),
+                  cell(CamMode.analyzing, Duration.zero),
                 ],
               ),
             ],

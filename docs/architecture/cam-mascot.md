@@ -55,3 +55,41 @@ Two corrections/completions to the research record, neither of which changes the
 - New goldens for Home / Processing / Paywall with Cam, plus numeric measurement tests: avatar centre vs wordmark centre within ±2dp; peek visible fraction 50% ±3%; presenter gap ≥24dp; zero overlap with interactive elements.
 - Consistency: a single rig definition renders all three modes in code (same painter + same frame evaluator) — stated in the change and covered by widget tests pumping all three modes.
 - Asset weight: the SVG master is the only shipped mascot asset; its byte size is measured and reported (runtime adds no asset bytes).
+
+## 7. Sheet-art supersession (owner, 2026-10-24)
+
+The vector rig (§2) and the F3-artwork rig that followed it are both
+superseded. The owner replaced the character with a teal chameleon
+and then directed that the shipped art be the owner's approved
+4-panel sheet drawings themselves — never a redrawn twin.
+
+- Assets (`assets/icons/`): `ic_cam_avatar.webp` (sheet 01, baked
+  peach ring painted out), `ic_cam_results.webp` (sheet 04, baked
+  green ring painted out), `ic_cam_analyzing.webp` and
+  `ic_cam_processing.webp` (full panels, only the outer white made
+  transparent — nothing cropped). Total ~123KB. The vector painter
+  (`cam_painter.dart`) and SVG master (`ic_cam.svg`) are deleted;
+  they have no remaining references.
+- The circle is drawn in code, never baked into the artwork:
+  `CamMascotArt` draws a `BoxDecoration` circle border (peach
+  `mascotRing` for Home, green `mascotRingReady` for Results Ready,
+  both palette tokens) around a `ClipOval` image.
+- Modes (`CamMode`): `avatar` (Home top-right, 44dp),
+  `avatarSmall` (Brush / History headers, 32dp),
+  `analyzing` (centred whole magnifier, 200dp wide),
+  `processing` (centred whole at-computer, 240dp wide),
+  `resultsReady` (Result top-right circle, 44dp). Analyzing and
+  Processing render whole with `BoxFit.contain`, no clip, no card,
+  on the clean screen background; nothing is cut out or cropped.
+  Paywall has no mascot. Result's photo stays clean: the avatar
+  sits in a header row above the photo, never over it.
+- Motion is calm breathing only (±1.2%, 4s cycle) from
+  `evaluateCamFrame`; each sheet drawing already carries its own
+  face, so there is no blink / glance / tilt rig any more.
+  Reduced motion and the test environment still render the
+  neutral still frame.
+- Verification (Flutter 3.47.7, 2026-10-24): `flutter analyze`
+  clean; mascot unit + capture measurement tests pass (17/17);
+  new goldens in `test/goldens/mascot/`. Full suite 225 pass /
+  16 fail, all 16 pre-existing in the working tree (stale
+  copy/motion/save-flow tests, unrelated to the mascot).

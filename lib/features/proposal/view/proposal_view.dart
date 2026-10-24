@@ -6,6 +6,8 @@ import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/cam_frame.dart';
+import '../../../core/widgets/cam_mascot.dart';
 import '../widgets/compact_crops_strip.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/secondary_button.dart';
@@ -281,19 +283,19 @@ class ProposalView extends GetView<ProposalController> {
         color: p.surface,
         border: Border(top: BorderSide(color: p.border)),
       ),
-      child: Row(
+      // Cam, centred and whole (owner journey): the magnifier drawing
+      // in the middle of the panel on its clean surface background —
+      // never cropped, never a small header avatar, never over the
+      // photo. Display only; the status text sits below him.
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          SizedBox(
-            width: s.iconSm,
-            height: s.iconSm,
-            child: CircularProgressIndicator(strokeWidth: 2, color: p.primary),
-          ),
-          SizedBox(width: s.md),
-          Expanded(
-            child: Text(
-              AppStrings.proposalAnalyzing.tr,
-              style: context.textStyles.bodyMd,
-            ),
+          const CamMascot(mode: CamMode.analyzing),
+          SizedBox(height: s.md),
+          Text(
+            AppStrings.proposalAnalyzing.tr,
+            style: context.textStyles.bodyMd,
+            textAlign: TextAlign.center,
           ),
         ],
       ),

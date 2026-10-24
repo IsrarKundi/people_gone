@@ -6,6 +6,8 @@ import '../../../core/constants/app_motion.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../../core/theme/theme_ext.dart';
 import '../../../core/widgets/app_scaffold.dart';
+import '../../../core/widgets/cam_frame.dart';
+import '../../../core/widgets/cam_mascot.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../controller/brush_controller.dart';
@@ -48,6 +50,9 @@ class BrushView extends GetView<BrushController> {
                     style: context.textStyles.titleMd,
                   ),
                 ),
+                // Cam, small header avatar (v2 map): in the header row,
+                // never over the canvas or the dock tools. Display only.
+                const CamMascot(mode: CamMode.avatarSmall),
               ],
             ),
           ),

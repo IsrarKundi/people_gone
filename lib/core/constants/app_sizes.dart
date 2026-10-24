@@ -56,13 +56,14 @@ class AppSizes {
   /// Minimum touch target everywhere (§6.3).
   final double minTouchTarget = 48;
 
-  // Cam mascot (ADR docs/architecture/cam-mascot.md; plan §3 sizes are
-  // fixed dp per §6.4 — percentages are forbidden). The peek widget is
-  // half the height wide: the character canvas is square and exactly
-  // its right half is off-screen.
+  // Cam mascot (plan §3 sizes are fixed dp per §6.4 — percentages
+  // are forbidden). Avatar circles are fixed; Analyzing and
+  // Processing are fixed widths, rendered whole and uncropped, so
+  // their heights follow the sheet art's own aspect ratio.
   final double mascotAvatarSize = 44;
-  final double mascotPeekHeight = 110;
-  final double mascotPresenterHeight = 120;
+  final double mascotAvatarSmallSize = 32;
+  final double mascotAnalyzingWidth = 200;
+  final double mascotProcessingWidth = 240;
 
   // Breakpoints (Material window classes, §6.3).
   final double breakpointMedium = 600;
