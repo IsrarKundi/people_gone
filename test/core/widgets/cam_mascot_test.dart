@@ -53,7 +53,8 @@ void main() {
     await pumpCam(tester, CamMode.processing);
     final processingSize = tester.getSize(find.byType(CamMascot));
     expect(processingSize.width, 240);
-    expect(processingSize.height, closeTo(240 * 1280 / 1920, 0.5));
+    // V2 art is square, and Processing reuses the Analyzing pose.
+    expect(processingSize.height, closeTo(240, 0.5));
   });
 
   // Cam's art widget, scoped inside the CamMascot subtree (the
@@ -66,16 +67,19 @@ void main() {
   CamMascotArt camArtWidget(WidgetTester tester) =>
       tester.widget<CamMascotArt>(camArt());
 
-  testWidgets('every mode renders exactly one image', (tester) async {
+  testWidgets('every mode renders its images', (tester) async {
     for (final mode in CamMode.values) {
       await pumpCam(tester, mode);
       expect(camArtWidget(tester).mode, mode);
+      // Every V2 mode is layered (body + arm, or body + head),
+      // with pupils, lids and mouth drawn in code on top.
+      const int expected = 2;
       expect(
         find.descendant(
           of: find.byType(CamMascot),
           matching: find.byType(Image),
         ),
-        findsOneWidget,
+        findsNWidgets(expected),
       );
     }
   });

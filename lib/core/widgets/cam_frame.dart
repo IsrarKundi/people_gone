@@ -1,36 +1,39 @@
 import 'dart:math' as math;
 
-/// Cam mascot — expression state machine, sheet-art version.
+/// Cam mascot — expression state machine, V2 version.
 ///
-/// The character is the owner's approved 4-panel sheet artwork
-/// itself (see [CamMascotArt]): each state is a complete drawing
-/// with its own face, so there is no redrawn rig. Life comes from
-/// motion that matches the scene he is in — not one generic loop
-/// on every screen. All motion is transform-only on the app's
-/// calm-motion timing (no bounce, no sparkles, no overshoot):
+/// The character is the owner's approved V2 artwork itself (see
+/// [CamMascotArt]): two poses, Home (waving) and Analyzing, and
+/// Processing reuses the Analyzing pose exactly — no monitor, no
+/// per-screen redraw. Life comes from motion that matches the
+/// scene he is in — not one generic loop on every screen. All
+/// motion is transform-only on the app's calm-motion timing (no
+/// bounce, no sparkles, no overshoot):
 ///
 /// * Home (avatar): friendly welcome — slow breathing, a blink
-///   every 4 s, and a gentle side-to-side sway like waving hello.
+///   every 4 s, a gentle side-to-side sway, and a waving arm
+///   rocking on a 2 s cycle.
 /// * Analyzing: curious and focused — a slow left-to-right scan,
 ///   leaning into the scan direction, blinking half as often
-///   because he is concentrating.
+///   because he is concentrating, mouth curious.
 /// * Review (avatarSmall, shared with Brush / History): calm
 ///   company only — breathing and a slow blink, nothing that
 ///   distracts from precise work or browsing. Review's nod on a
 ///   tap is a one-shot reaction in [CamMascot], not this loop.
-/// * Processing: busy at the computer — a small typing bob,
+/// * Processing: the same Analyzing pose, busy — a small bob,
 ///   a blink every 4 s, and a one-second glance up toward the
 ///   user every 12 s, like a quick check-in, then back to work.
 /// * Result (resultsReady): pleased — the same calm welcome loop
 ///   as Home; the arrival pulse is a one-shot in [CamMascot].
 /// * Concerned (any mode, `concerned: true`): sorry, not alarmed
-///   — slower breathing, a constant gentle head droop, and a
-///   blink half as often. Used on the processing failure screen.
+///   — slower breathing, a constant gentle head droop, a frown,
+///   and a blink half as often. Used on the processing failure
+///   screen.
 ///
 /// Modes follow the owner's journey: [CamMode.avatar] = Home
-/// top-right circle; [CamMode.analyzing] = screen-centre
-/// magnifier, whole and uncropped; [CamMode.processing] =
-/// screen-centre at-computer, whole and uncropped;
+/// top-right circle; [CamMode.analyzing] = screen-centre,
+/// whole and uncropped; [CamMode.processing] = the same
+/// Analyzing pose, screen-centre, whole and uncropped;
 /// [CamMode.resultsReady] = Result top-right circle (green ring).
 /// [CamMode.avatarSmall] = the same code-drawn circle, smaller,
 /// for Review / Brush / History headers.
@@ -52,6 +55,23 @@ enum CamMode {
   resultsReady,
 }
 
+/// The mouth expression drawn in code over the V2 art (the original
+/// smile is painted out of the base assets, so the mouth is a
+/// separate layer like the pupils).
+enum CamMouth {
+  /// Small closed smile: quiet company, focused work.
+  smile,
+
+  /// Big open happy smile: Home welcome, Result success.
+  openSmile,
+
+  /// Small curious open mouth: Analyzing a photo.
+  curious,
+
+  /// Downturned frown: failure / concerned screens.
+  frown,
+}
+
 /// One evaluated frame of the mascot.
 class CamFrame {
   const CamFrame({
@@ -62,6 +82,8 @@ class CamFrame {
     required this.shiftY,
     required this.gazeX,
     required this.gazeY,
+    this.mouth = CamMouth.smile,
+    this.waveAngle = 0,
   });
 
   /// The still frame: reduced motion, and the timeline's resting state.
@@ -98,6 +120,13 @@ class CamFrame {
   /// Pupil gaze, -1 (up) to 1 (down).
   final double gazeY;
 
+  /// Mouth expression for this frame (see [CamMouth]).
+  final CamMouth mouth;
+
+  /// Waving-arm angle in radians, Home only. A calm 2 s rock,
+  /// ±0.18 rad, so the wave loops seamlessly over 24 s.
+  final double waveAngle;
+
   @override
   bool operator ==(Object other) =>
       other is CamFrame &&
@@ -107,11 +136,22 @@ class CamFrame {
       other.shiftX == shiftX &&
       other.shiftY == shiftY &&
       other.gazeX == gazeX &&
-      other.gazeY == gazeY;
+      other.gazeY == gazeY &&
+      other.mouth == mouth &&
+      other.waveAngle == waveAngle;
 
   @override
-  int get hashCode =>
-      Object.hash(breath, blink, tilt, shiftX, shiftY, gazeX, gazeY);
+  int get hashCode => Object.hash(
+    breath,
+    blink,
+    tilt,
+    shiftX,
+    shiftY,
+    gazeX,
+    gazeY,
+    mouth,
+    waveAngle,
+  );
 }
 
 /// The idle loop length: the least common multiple of every motion
@@ -231,6 +271,32 @@ CamFrame evaluateCamFrame(
     }
   }
 
+  // Mouth expression is part of the scene, not a motion: Home and
+  // Result are openly happy, Analyzing is curious, focused work
+  // keeps a small smile, and concerned frowns.
+  final CamMouth mouth;
+  if (concerned) {
+    mouth = CamMouth.frown;
+  } else {
+    switch (mode) {
+      case CamMode.avatar:
+      case CamMode.resultsReady:
+        mouth = CamMouth.openSmile;
+      case CamMode.analyzing:
+        mouth = CamMouth.curious;
+      case CamMode.avatarSmall:
+      case CamMode.processing:
+        mouth = CamMouth.smile;
+    }
+  }
+
+  // Home wave: the raised arm rocks ±0.18 rad on a 2 s cycle.
+  // Every other mode keeps the arm still.
+  final double waveAngle =
+      mode == CamMode.avatar && !concerned
+          ? 0.18 * math.sin(2 * math.pi * td / 2000)
+          : 0;
+
   return CamFrame(
     breath: breath,
     blink: blink,
@@ -239,5 +305,7 @@ CamFrame evaluateCamFrame(
     shiftY: shiftY,
     gazeX: gazeX,
     gazeY: gazeY,
+    mouth: mouth,
+    waveAngle: waveAngle,
   );
 }

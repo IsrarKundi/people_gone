@@ -183,6 +183,64 @@ void main() {
       expect(slow.breath, lessThan(fast.breath));
     });
 
+    test('mouth expression follows the scene', () {
+      expect(
+        evaluateCamFrame(Duration.zero, CamMode.avatar).mouth,
+        CamMouth.openSmile,
+      );
+      expect(
+        evaluateCamFrame(Duration.zero, CamMode.resultsReady).mouth,
+        CamMouth.openSmile,
+      );
+      expect(
+        evaluateCamFrame(Duration.zero, CamMode.analyzing).mouth,
+        CamMouth.curious,
+      );
+      expect(
+        evaluateCamFrame(Duration.zero, CamMode.processing).mouth,
+        CamMouth.smile,
+      );
+      expect(
+        evaluateCamFrame(Duration.zero, CamMode.avatarSmall).mouth,
+        CamMouth.smile,
+      );
+      expect(
+        evaluateCamFrame(
+          Duration.zero,
+          CamMode.processing,
+          concerned: true,
+        ).mouth,
+        CamMouth.frown,
+      );
+    });
+
+    test('home wave rocks on a 2 s cycle, other modes stay still', () {
+      expect(
+        evaluateCamFrame(Duration.zero, CamMode.avatar).waveAngle,
+        0,
+      );
+      expect(
+        evaluateCamFrame(
+          const Duration(milliseconds: 500),
+          CamMode.avatar,
+        ).waveAngle,
+        closeTo(0.18, 0.001),
+      );
+      for (final mode in <CamMode>[
+        CamMode.avatarSmall,
+        CamMode.analyzing,
+        CamMode.processing,
+        CamMode.resultsReady,
+      ]) {
+        expect(
+          evaluateCamFrame(const Duration(milliseconds: 500), mode)
+              .waveAngle,
+          0,
+          reason: '$mode never waves',
+        );
+      }
+    });
+
     test('deterministic and loops seamlessly over 24 s', () {
       for (final mode in CamMode.values) {
         final a = evaluateCamFrame(const Duration(milliseconds: 1000), mode);

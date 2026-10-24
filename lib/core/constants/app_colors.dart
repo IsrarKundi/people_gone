@@ -31,6 +31,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.photoChromeBg,
     required this.photoChromeFg,
     required this.mascotLid,
+    required this.mascotV2Face,
     required this.mascotPupil,
     required this.mascotPupilTeal,
     required this.mascotEyeWhite,
@@ -68,6 +69,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
   // near-black navy disc, eyeWhite = the sclera. Identical in both
   // themes — they are the character's own colours, not theme colours.
   final Color mascotLid;
+  final Color mascotV2Face;
   final Color mascotPupil;
   final Color mascotPupilTeal;
   final Color mascotEyeWhite;
@@ -105,6 +107,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     photoChromeBg: Color(0x990F172A),
     photoChromeFg: Color(0xFFFFFFFF),
     mascotLid: Color(0xFF1E48C1),
+    mascotV2Face: Color(0xFF7FC947),
     mascotPupil: Color(0xFF000F3F),
     mascotPupilTeal: Color(0xFF0E5F5A),
     mascotEyeWhite: Color(0xFFFFFFFF),
@@ -136,6 +139,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     photoChromeBg: Color(0xB30B0D11),
     photoChromeFg: Color(0xFFFFFFFF),
     mascotLid: Color(0xFF1E48C1),
+    mascotV2Face: Color(0xFF7FC947),
     mascotPupil: Color(0xFF000F3F),
     mascotPupilTeal: Color(0xFF0E5F5A),
     mascotEyeWhite: Color(0xFFFFFFFF),
@@ -168,6 +172,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? photoChromeBg,
     Color? photoChromeFg,
     Color? mascotLid,
+    Color? mascotV2Face,
     Color? mascotPupil,
     Color? mascotPupilTeal,
     Color? mascotEyeWhite,
@@ -198,6 +203,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       photoChromeBg: photoChromeBg ?? this.photoChromeBg,
       photoChromeFg: photoChromeFg ?? this.photoChromeFg,
       mascotLid: mascotLid ?? this.mascotLid,
+      mascotV2Face: mascotV2Face ?? this.mascotV2Face,
       mascotPupil: mascotPupil ?? this.mascotPupil,
       mascotPupilTeal: mascotPupilTeal ?? this.mascotPupilTeal,
       mascotEyeWhite: mascotEyeWhite ?? this.mascotEyeWhite,
@@ -234,6 +240,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       photoChromeBg: mix(photoChromeBg, other.photoChromeBg),
       photoChromeFg: mix(photoChromeFg, other.photoChromeFg),
       mascotLid: mix(mascotLid, other.mascotLid),
+      mascotV2Face: mix(mascotV2Face, other.mascotV2Face),
       mascotPupil: mix(mascotPupil, other.mascotPupil),
       mascotPupilTeal: mix(mascotPupilTeal, other.mascotPupilTeal),
       mascotEyeWhite: mix(mascotEyeWhite, other.mascotEyeWhite),

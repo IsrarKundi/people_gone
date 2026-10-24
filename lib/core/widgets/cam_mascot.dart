@@ -173,6 +173,8 @@ class _CamMascotState extends State<CamMascot> with TickerProviderStateMixin {
             shiftY: idle.shiftY + nod,
             gazeX: idle.gazeX,
             gazeY: idle.gazeY,
+            mouth: idle.mouth,
+            waveAngle: idle.waveAngle,
           ),
           mode: widget.mode,
         );
