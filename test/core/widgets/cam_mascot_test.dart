@@ -48,12 +48,12 @@ void main() {
     await pumpCam(tester, CamMode.analyzing);
     final analyzingSize = tester.getSize(find.byType(CamMascot));
     expect(analyzingSize.width, 200);
-    expect(analyzingSize.height, closeTo(200 * 670 / 569, 0.5));
+    expect(analyzingSize.height, closeTo(200, 0.5));
 
     await pumpCam(tester, CamMode.processing);
     final processingSize = tester.getSize(find.byType(CamMascot));
     expect(processingSize.width, 240);
-    expect(processingSize.height, closeTo(240 * 706 / 804, 0.5));
+    expect(processingSize.height, closeTo(240 * 1280 / 1920, 0.5));
   });
 
   // Cam's art widget, scoped inside the CamMascot subtree (the
@@ -84,10 +84,17 @@ void main() {
     await pumpCam(tester, CamMode.avatar);
     // The ring is a code-drawn border, not part of the image: the
     // avatar subtree contains a circular Container with a border.
+    // The ring is the circular Container carrying a border;
+    // pupil discs are also Containers, but carry no border.
     final container = tester.widget<Container>(
       find.descendant(
         of: find.byType(CamMascot),
-        matching: find.byType(Container),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Container &&
+              widget.decoration is BoxDecoration &&
+              (widget.decoration as BoxDecoration).border != null,
+        ),
       ),
     );
     final decoration = container.decoration as BoxDecoration;
@@ -101,9 +108,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('reduced motion renders the neutral still frame', (
-    tester,
-  ) async {
+  testWidgets('reduced motion renders the neutral still frame', (tester) async {
     await pumpCam(tester, CamMode.avatar, reduceMotion: true);
     expect(
       find.descendant(
@@ -112,10 +117,16 @@ void main() {
       ),
       findsNothing,
     );
-    expect(camArtWidget(tester).frame, CamFrame.neutral);
+    expect(
+      camArtWidget(tester).frame,
+      evaluateCamFrame(Duration.zero, CamMode.avatar),
+    );
     // Time passing changes nothing: he is a still frame.
     await tester.pump(const Duration(seconds: 3));
-    expect(camArtWidget(tester).frame, CamFrame.neutral);
+    expect(
+      camArtWidget(tester).frame,
+      evaluateCamFrame(Duration.zero, CamMode.avatar),
+    );
   });
 
   testWidgets('test environment freezes the ticker but still renders', (
@@ -133,6 +144,9 @@ void main() {
       const Duration(seconds: 30),
     );
     expect(find.byType(CamMascot), findsOneWidget);
-    expect(camArtWidget(tester).frame, CamFrame.neutral);
+    expect(
+      camArtWidget(tester).frame,
+      evaluateCamFrame(Duration.zero, CamMode.processing),
+    );
   });
 }

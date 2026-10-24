@@ -32,6 +32,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.photoChromeFg,
     required this.mascotLid,
     required this.mascotPupil,
+    required this.mascotPupilTeal,
     required this.mascotEyeWhite,
     required this.mascotRing,
     required this.mascotRingReady,
@@ -68,6 +69,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
   // themes — they are the character's own colours, not theme colours.
   final Color mascotLid;
   final Color mascotPupil;
+  final Color mascotPupilTeal;
   final Color mascotEyeWhite;
 
   // Cam circle rings, drawn in code (sampled from the sheet art:
@@ -104,6 +106,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     photoChromeFg: Color(0xFFFFFFFF),
     mascotLid: Color(0xFF1E48C1),
     mascotPupil: Color(0xFF000F3F),
+    mascotPupilTeal: Color(0xFF0E5F5A),
     mascotEyeWhite: Color(0xFFFFFFFF),
     mascotRing: Color(0xFFFFAF7A),
     mascotRingReady: Color(0xFF5BAD62),
@@ -134,6 +137,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     photoChromeFg: Color(0xFFFFFFFF),
     mascotLid: Color(0xFF1E48C1),
     mascotPupil: Color(0xFF000F3F),
+    mascotPupilTeal: Color(0xFF0E5F5A),
     mascotEyeWhite: Color(0xFFFFFFFF),
     mascotRing: Color(0xFFFFAF7A),
     mascotRingReady: Color(0xFF5BAD62),
@@ -165,6 +169,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? photoChromeFg,
     Color? mascotLid,
     Color? mascotPupil,
+    Color? mascotPupilTeal,
     Color? mascotEyeWhite,
     Color? mascotRing,
     Color? mascotRingReady,
@@ -194,6 +199,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       photoChromeFg: photoChromeFg ?? this.photoChromeFg,
       mascotLid: mascotLid ?? this.mascotLid,
       mascotPupil: mascotPupil ?? this.mascotPupil,
+      mascotPupilTeal: mascotPupilTeal ?? this.mascotPupilTeal,
       mascotEyeWhite: mascotEyeWhite ?? this.mascotEyeWhite,
       mascotRing: mascotRing ?? this.mascotRing,
       mascotRingReady: mascotRingReady ?? this.mascotRingReady,
@@ -229,6 +235,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       photoChromeFg: mix(photoChromeFg, other.photoChromeFg),
       mascotLid: mix(mascotLid, other.mascotLid),
       mascotPupil: mix(mascotPupil, other.mascotPupil),
+      mascotPupilTeal: mix(mascotPupilTeal, other.mascotPupilTeal),
       mascotEyeWhite: mix(mascotEyeWhite, other.mascotEyeWhite),
       mascotRing: mix(mascotRing, other.mascotRing),
       mascotRingReady: mix(mascotRingReady, other.mascotRingReady),

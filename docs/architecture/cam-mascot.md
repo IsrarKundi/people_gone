@@ -93,3 +93,40 @@ and then directed that the shipped art be the owner's approved
   new goldens in `test/goldens/mascot/`. Full suite 225 pass /
   16 fail, all 16 pre-existing in the working tree (stale
   copy/motion/save-flow tests, unrelated to the mascot).
+
+## 8. PUPPET — REAL LIFE WITHOUT REDRAWING (owner, 2026-10-24 ~16:19)
+
+- The vector rig (§8 in the previous draft, uncommitted) was
+  rejected by the owner as "totally different" and discarded
+  unpushed; the sheet drawings are the character, full stop.
+- Puppet: the sheet picture is the body. Its pupils are
+  painted out in `*_nopupil.webp` (eye whites only), and
+  `CamMascotArt` draws pupil discs (teal iris token
+  `mascotPupilTeal`, near-black `mascotPupil` centre, white
+  highlight) over the whites, positioned from
+  `CamFrame.gazeX`/`gazeY`. Gaze is scene-specific:
+  avatar wanders, analyzing scans left-right, processing
+  looks at the computer and glances up, results looks down
+  at the photo, concerned looks down. Blink still swaps to
+  the `_blink` asset, which hides the pupils for the blink.
+- Why this layer is clean: a pupil moves inside a white
+  eye, so it leaves no gap. A hand or mouth cut out of the
+  flat picture would leave a hole behind it — that layer
+  is NOT promised. Rive was considered and deferred by the
+  owner ("stick with the puppet first"); its rig would
+  still need layers built in the Rive Editor.
+- Verification: `flutter analyze` clean; mascot unit tests
+  pass; mascot goldens regenerated (pupils visible at
+  scene gaze in S4/S6) and viewed before any push.
+
+## §9. Version 1 teal chameleon (owner pick, 2026-10-24)
+
+The sheet character was rejected by the owner ("does not look chameleon at all").
+Owner picked Version 1 teal classic from four generated variants. App poses built
+from that character: home closeup (face + waving hand, for the 44dp circle),
+analyzing front-on with magnifier, processing front-side with monitor back and
+keyboard, results thumbs up. White backgrounds converted to transparent in PIL;
+pupil centres measured from dark pixels in the art (results right eye verified
+at 0.718, 0.279 — its small eye reads as a dot at 44dp, position is exact).
+Puppet pupils/blink kept from §8, with V1 aspect ratios (square, processing
+1920×1280). Verified: analyze clean, 56/56 tests, goldens regenerated and viewed.

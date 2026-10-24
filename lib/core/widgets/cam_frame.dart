@@ -60,6 +60,8 @@ class CamFrame {
     required this.tilt,
     required this.shiftX,
     required this.shiftY,
+    required this.gazeX,
+    required this.gazeY,
   });
 
   /// The still frame: reduced motion, and the timeline's resting state.
@@ -69,6 +71,8 @@ class CamFrame {
     tilt: 0,
     shiftX: 0,
     shiftY: 0,
+    gazeX: 0,
+    gazeY: 0,
   );
 
   /// Breathing scale around the ground line (1 = rest).
@@ -86,6 +90,14 @@ class CamFrame {
   /// Vertical shift in dp (typing bob, nod, droop are tilt, not this).
   final double shiftY;
 
+  /// Pupil gaze inside the eye whites, -1 (left / up) to 1.
+  /// Drives the puppet pupils in [CamMascotArt]; the sheet body
+  /// itself does not move with the gaze.
+  final double gazeX;
+
+  /// Pupil gaze, -1 (up) to 1 (down).
+  final double gazeY;
+
   @override
   bool operator ==(Object other) =>
       other is CamFrame &&
@@ -93,10 +105,13 @@ class CamFrame {
       other.blink == blink &&
       other.tilt == tilt &&
       other.shiftX == shiftX &&
-      other.shiftY == shiftY;
+      other.shiftY == shiftY &&
+      other.gazeX == gazeX &&
+      other.gazeY == gazeY;
 
   @override
-  int get hashCode => Object.hash(breath, blink, tilt, shiftX, shiftY);
+  int get hashCode =>
+      Object.hash(breath, blink, tilt, shiftX, shiftY, gazeX, gazeY);
 }
 
 /// The idle loop length: the least common multiple of every motion
@@ -125,8 +140,7 @@ CamFrame evaluateCamFrame(
 
   // Breathing: ±1.2 % around the ground line; slower when concerned.
   final double breathPeriod = concerned ? 6000 : 4000;
-  final double breath =
-      1 + 0.012 * math.sin(2 * math.pi * td / breathPeriod);
+  final double breath = 1 + 0.012 * math.sin(2 * math.pi * td / breathPeriod);
 
   // Blink rate is part of the scene: Home / Processing / Result
   // blink every 4 s; Analyzing and the small headers blink every
@@ -181,11 +195,39 @@ CamFrame evaluateCamFrame(
         // the user, then back to the computer.
         final double glanceCycle = td % 12000;
         if (glanceCycle >= 8000 && glanceCycle <= 9000) {
-          final double g =
-              math.sin(math.pi * (glanceCycle - 8000) / 1000);
+          final double g = math.sin(math.pi * (glanceCycle - 8000) / 1000);
           tilt += -0.035 * g;
           shiftX += -2 * g;
         }
+    }
+  }
+
+  // Puppet gaze per scene: pupils look where the scene looks.
+  double gazeX = 0;
+  double gazeY = 0;
+  if (concerned) {
+    gazeY = 0.45;
+  } else {
+    switch (mode) {
+      case CamMode.avatar:
+        gazeX = -0.35 + 0.2 * math.sin(2 * math.pi * td / 12000);
+        gazeY = 0.15;
+      case CamMode.avatarSmall:
+        gazeX = -0.2;
+        gazeY = 0.1;
+      case CamMode.analyzing:
+        gazeX = 0.7 * math.sin(2 * math.pi * td / 8000);
+        gazeY = 0.1 * math.sin(2 * math.pi * td / 8000 + math.pi / 2);
+      case CamMode.processing:
+        gazeX = 0.55;
+        gazeY = 0;
+        final double glanceCycle = td % 12000;
+        if (glanceCycle >= 8000 && glanceCycle <= 9000) {
+          gazeY = -0.6 * math.sin(math.pi * (glanceCycle - 8000) / 1000);
+        }
+      case CamMode.resultsReady:
+        gazeX = 0;
+        gazeY = 0.3;
     }
   }
 
@@ -195,5 +237,7 @@ CamFrame evaluateCamFrame(
     tilt: tilt,
     shiftX: shiftX,
     shiftY: shiftY,
+    gazeX: gazeX,
+    gazeY: gazeY,
   );
 }

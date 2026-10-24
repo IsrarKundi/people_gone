@@ -11,14 +11,41 @@ import 'package:people_gone/core/widgets/cam_frame.dart';
 /// up, concerned droops slowly.
 void main() {
   group('evaluateCamFrame', () {
-    test('resting state at t=0 in every non-concerned mode', () {
+    test('resting body state at t=0 in every non-concerned mode', () {
+      // Body motion rests at t=0; gaze is scene-specific even at
+      // rest, so it is checked separately below.
       for (final mode in CamMode.values) {
-        expect(
-          evaluateCamFrame(Duration.zero, mode),
-          CamFrame.neutral,
-          reason: '$mode should start from the neutral frame',
-        );
+        final frame = evaluateCamFrame(Duration.zero, mode);
+        expect(frame.breath, 1, reason: '$mode breath');
+        expect(frame.blink, 0, reason: '$mode blink');
+        expect(frame.tilt, 0, reason: '$mode tilt');
+        expect(frame.shiftX, 0, reason: '$mode shiftX');
+        expect(frame.shiftY, 0, reason: '$mode shiftY');
       }
+    });
+
+    test('puppet gaze differs by scene', () {
+      final analyzing = evaluateCamFrame(
+        const Duration(milliseconds: 2000),
+        CamMode.analyzing,
+      );
+      expect(analyzing.gazeX, greaterThan(0), reason: 'scanning right');
+      final processing = evaluateCamFrame(
+        const Duration(milliseconds: 2000),
+        CamMode.processing,
+      );
+      expect(processing.gazeX, 0.55, reason: 'looking at the computer');
+      final result = evaluateCamFrame(
+        const Duration(milliseconds: 2000),
+        CamMode.resultsReady,
+      );
+      expect(result.gazeY, 0.3, reason: 'looking down at the photo');
+      final concerned = evaluateCamFrame(
+        const Duration(milliseconds: 2000),
+        CamMode.processing,
+        concerned: true,
+      );
+      expect(concerned.gazeY, 0.45, reason: 'looking down, sorry');
     });
 
     test('breathing stays within ±1.2 % in every mode', () {
@@ -54,13 +81,17 @@ void main() {
       }
       // Analyzing: every 8 s, peak at 3880 ms, and NOT at 1880 ms.
       expect(
-        evaluateCamFrame(const Duration(milliseconds: 3880), CamMode.analyzing)
-            .blink,
+        evaluateCamFrame(
+          const Duration(milliseconds: 3880),
+          CamMode.analyzing,
+        ).blink,
         closeTo(1, 0.001),
       );
       expect(
-        evaluateCamFrame(const Duration(milliseconds: 1880), CamMode.analyzing)
-            .blink,
+        evaluateCamFrame(
+          const Duration(milliseconds: 1880),
+          CamMode.analyzing,
+        ).blink,
         0,
         reason: 'analyzing blinks half as often as Home',
       );

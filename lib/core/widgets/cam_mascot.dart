@@ -74,8 +74,7 @@ class CamMascot extends StatefulWidget {
   State<CamMascot> createState() => _CamMascotState();
 }
 
-class _CamMascotState extends State<CamMascot>
-    with TickerProviderStateMixin {
+class _CamMascotState extends State<CamMascot> with TickerProviderStateMixin {
   late final AnimationController _loop;
   late final AnimationController _reaction;
   late final AnimationController _arrive;
@@ -152,8 +151,7 @@ class _CamMascotState extends State<CamMascot>
       animation: Listenable.merge(<Listenable>[_loop, _reaction, _arrive]),
       builder: (context, _) {
         final elapsed = Duration(
-          milliseconds: (_loop.value * camLoopDuration.inMilliseconds)
-              .round(),
+          milliseconds: (_loop.value * camLoopDuration.inMilliseconds).round(),
         );
         final idle = evaluateCamFrame(
           elapsed,
@@ -173,6 +171,8 @@ class _CamMascotState extends State<CamMascot>
             tilt: idle.tilt - 0.02 * pulse,
             shiftX: idle.shiftX,
             shiftY: idle.shiftY + nod,
+            gazeX: idle.gazeX,
+            gazeY: idle.gazeY,
           ),
           mode: widget.mode,
         );
