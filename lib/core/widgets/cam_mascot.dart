@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'cam_art.dart';
 import 'cam_frame.dart';
+import 'cam_video.dart';
 
 /// True only inside `flutter test` (the runner sets FLUTTER_TEST).
 /// Cam's idle loop repeats forever by design, which would block
@@ -24,25 +25,25 @@ final bool _inTestEnvironment = Platform.environment.containsKey(
 /// Analyzing screen, [CamMode.processing] centred whole on the
 /// Processing screen, [CamMode.resultsReady] back in the top-right
 /// circle on Result, and [CamMode.avatarSmall] for Review / Brush /
-/// History headers — all rendering the owner's sheet drawings
-/// ([CamMascotArt] + [evaluateCamFrame]), so the character is
-/// identical on every screen by construction. The circle is drawn
-/// in code, never baked into the art; Analyzing and Processing are
-/// never cropped.
+/// History headers — all playing the owner's approved videos
+/// ([CamMascotVideo]): Home circles wave, both work screens scan.
+/// The circle is drawn in code, never baked into the video;
+/// Analyzing and Processing are never cropped. The two videos
+/// are the whole live method now — the code puppet
+/// ([CamMascotArt] + [evaluateCamFrame]) survives only as the
+/// still artwork for tests, reduced motion, and video loading.
 ///
-/// Motion is scene-matched (see [evaluateCamFrame]): Home sways
-/// like waving hello, Analyzing scans, Processing types and
-/// glances up, small headers stay quiet. Two one-shot reactions
-/// sit on top of the idle loop, both calm and both over in under
-/// a second:
+/// Two one-shot reactions sit on top of the videos, both calm and
+/// both over in under a second:
 ///
 /// * [arrive]: the Result arrival pulse — a slow scale pulse and a
 ///   small tilt, played once when the widget first appears.
 /// * [reactionKey]: Review's nod — changing the key (for example
 ///   when the user toggles a person) plays a tiny downward nod.
 ///
-/// [concerned] renders the sorry, drooped idle loop for failure
-/// screens.
+/// [concerned] has no separate video: failure screens play the
+/// same scanning video. A sorry video is open work if the owner
+/// wants one.
 ///
 /// Cam is decoration, not information: he carries no action and no
 /// meaning a screen-reader user would miss, so he is excluded from
@@ -150,33 +151,19 @@ class _CamMascotState extends State<CamMascot> with TickerProviderStateMixin {
     return AnimatedBuilder(
       animation: Listenable.merge(<Listenable>[_loop, _reaction, _arrive]),
       builder: (context, _) {
-        final elapsed = Duration(
-          milliseconds: (_loop.value * camLoopDuration.inMilliseconds).round(),
-        );
-        final idle = evaluateCamFrame(
-          elapsed,
-          widget.mode,
-          concerned: widget.concerned,
-        );
         // Nod: a 2 dp dip and back, over 300 ms. After it finishes
         // the sine returns to 0, so no reset is needed.
         final double nod = 2 * math.sin(math.pi * _reaction.value);
         // Arrival pulse: a slow 3 % scale pulse and a small tilt,
         // once, over 600 ms.
         final double pulse = math.sin(math.pi * _arrive.value);
-        return CamMascotArt(
-          frame: CamFrame(
-            breath: idle.breath * (1 + 0.03 * pulse),
-            blink: idle.blink,
-            tilt: idle.tilt - 0.02 * pulse,
-            shiftX: idle.shiftX,
-            shiftY: idle.shiftY + nod,
-            gazeX: idle.gazeX,
-            gazeY: idle.gazeY,
-            mouth: idle.mouth,
-            waveAngle: idle.waveAngle,
-          ),
+        // The idle loop ticker still runs so the one-shots above
+        // have a clock, but the video carries the idle motion
+        // itself — no frame is evaluated for it anymore.
+        return CamMascotVideo(
           mode: widget.mode,
+          nod: nod,
+          pulse: pulse,
         );
       },
     );

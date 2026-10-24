@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 import '../theme/theme_ext.dart';
 import 'cam_frame.dart';
 
-/// Cam's art: the owner's approved V2 drawings themselves — never
-/// a redrawn twin — brought to life as a puppet.
+/// Cam's still art: the owner's approved V2 drawings themselves —
+/// never a redrawn twin — with code pupils, lids and mouths.
+///
+/// This was the live method until the owner rejected it in favour
+/// of video assets ([CamMascotVideo]). It survives as the still
+/// artwork: tests, reduced motion, and the frame shown while a
+/// video loads or if one fails to load. The layers and geometry
+/// below are unchanged, so every golden still renders from here.
 ///
 /// Two approved poses, and only two: the Home pose (waving) and
 /// the Analyzing pose. Processing reuses the Analyzing pose
